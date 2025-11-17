@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Enter Marks — School Results System</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    /* Extra styles local to marks page */
+    .topbar { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .card{ background:#fff; padding:16px; border-radius:8px; box-shadow:0 0 8px #ddd; margin-bottom:12px; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td{ border:1px solid #e5e5e5; padding:8px; text-align:center; }
+    .small { font-size:13px; color:#555; }
+    .btn { padding:8px 12px; border-radius:6px; border:none; cursor:pointer; }
+    .btn-primary { background:#0066ff; color:#fff; }
+    .btn-ghost { background:#f1f1f1; }
+    .input-inline { width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; }
+    .flex { display:flex; gap:8px; align-items:center; }
+    .col { display:flex; flex-direction:column; gap:8px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width:1100px;">
+    <h1>📋 Enter Marks</h1>
+
+    <div class="topbar card">
+      <div class="col">
+        <div class="flex">
+          <label><strong>Class / Stream:</strong></label>
+          <select id="classSelect"></select>
+          <button class="btn btn-ghost" id="addClassBtn">Add Class</button>
+        </div>
+        <div class="small">Hifadhi data kwa browser localStorage. Tumebuni MVP; baadaye tunaweza kubadili hadi Firebase/Supabase.</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="loadSample">Load Sample Data</button>
+        <button class="btn" id="saveAll">Save Marks</button>
+        <button class="btn" id="generateReports">Generate Report Cards</button>
+        <button class="btn" id="gotoResults">Open Results Page</button>
+      </div>
+    </div>
+
+    <!-- Manage students & subjects -->
+    <div class="card" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div>
+        <h3>Students</h3>
+        <div class="flex">
+          <input id="stuAdmission" placeholder="Admission No." class="input-inline" />
+          <input id="stuFirst" placeholder="First Name" />
+          <input id="stuLast" placeholder="Last Name" />
+          <input id="stuPhone" placeholder="Guardian Phone" class="input-inline" />
+          <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
+        </div>
+        <div id="studentsList" style="max-height:220px; overflow:auto; margin-top:8px;"></div>
+      </div>
+
+      <div>
+        <h3>Subjects</h3>
+        <div class="flex">
+          <input id="subCode" placeholder="Code" class="input-inline"/>
+          <input id="subName" placeholder="Subject Name" />
+          <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+        </div>
+        <div id="subjectsList" style="max-height:220px; overflow:auto; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Marks matrix -->
+    <div class="card">
+      <h3>Marks Entry Matrix</h3>
+      <div class="small">Weka CA na Exam kwa kila mwanafunzi kwa kila somo. CA + Exam lazima isiwe zaidi ya 100 (au ubadilishe rule kwenye code).</div>
+      <div id="marksMatrixWrap" style="overflow:auto; margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Quick Actions</h3>
+      <div class="flex">
+        <button class="btn btn-ghost" id="exportJson">Export Data (JSON)</button>
+        <button class="btn btn-ghost" id="importJsonBtn">Import Data (Paste JSON)</button>
+        <button class="btn btn-ghost" id="clearAll">Clear All (Reset)</button>
+      </div>
+    </div>
+
+    <div id="toast" style="position:fixed; right:20px; bottom:20px;"></div>
+
+  </div>
+
+  <script src="./js/marks.js"></script>
+</body>
+</html>
