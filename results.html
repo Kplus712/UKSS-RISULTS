@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Results & Report Cards</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    .card { background:#fff; padding:18px; border-radius:10px; box-shadow:0 0 8px #ccc; margin-bottom:15px; }
+    .topbar { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td { border:1px solid #ddd; padding:10px; text-align:center; }
+    .btn { padding:8px 12px; border-radius:6px; cursor:pointer; border:none; }
+    .btn-primary { background:#0066ff; color:white; }
+    .btn-ghost { background:#f0f0f0; }
+    .input { padding:8px 12px; border-radius:6px; border:1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+  <div class="container" style="max-width:1100px;">
+    <h1>📄 Student Report Cards</h1>
+
+    <div class="topbar card">
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="searchBox" class="input" placeholder="Search student name or admission..." />
+        <select id="classFilter" class="input" style="height:40px;"></select>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" onclick="window.location.href='marks.html'">Back to Marks</button>
+        <button class="btn btn-primary" id="printAll">Print / Export PDF</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Admission</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Total</th>
+            <th>Mean</th>
+            <th>Grade</th>
+            <th>Weak Subjects</th>
+            <th>Remark</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script src="./js/report.js"></script>
+</body>
+</html>
