@@ -1,29 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>SMS Logs</title>
-  <link rel="stylesheet" href="./style.css"/>
-  <style>
-    body{font-family:Inter,system-ui;margin:30px;background:#f6fbff}
-    .card{background:#fff;padding:16px;border-radius:12px;box-shadow:0 8px 28px rgba(6,78,204,0.06)}
-    table{width:100%;border-collapse:collapse;margin-top:12px}
-    th,td{padding:8px;border-bottom:1px solid #eef3ff;text-align:left}
-    th{background:#f1f6ff;color:#0646c8}
-  </style>
-</head>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>SMS Logs</title><link rel="stylesheet" href="./style.css"/></head>
 <body>
-  <div style="max-width:1100px;margin:auto">
-    <div class="card">
-      <h2>📥 SMS Logs</h2>
-      <div class="small">Recent SMS sent to parents (from sms module).</div>
-      <table id="logsTable">
-        <thead><tr><th>#</th><th>Student ID</th><th>Phone</th><th>Message</th><th>Exam</th><th>Time</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-  <script type="module" src="./js/sms_logs.js"></script>
+<div class="app">
+  <aside class="sidebar"><div class="brand"><div class="logo">UK</div>UKSS</div><nav class="nav"><a href="marks.html">🏠 Marks</a><a href="results.html">📄 Results</a><a href="sms.html">📨 SMS</a><a href="sms_logs.html" class="active">🧾 SMS Logs</a><a href="admin.html">🔐 Admin</a></nav></aside>
+  <main class="main">
+    <div class="topbar"><div><h2 style="margin:0">🧾 SMS Logs</h2><div class="small">History of sent messages</div></div><div></div></div>
+    <div class="card"><table class="table" id="logsTable"><thead><tr><th>#</th><th>Student</th><th>Phone</th><th>Message</th><th>Exam</th><th>Time</th></tr></thead><tbody></tbody></table></div>
+  </main>
+</div>
+<script type="module" src="./js/sms_logs.js"></script>
 </body>
 </html>
