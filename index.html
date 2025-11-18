@@ -1,33 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>School Results Management System</title>
-    <link rel="stylesheet" href="./css/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Login</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
-
-<body>
-
-    <div class="container">
-        <h1>📘 School Results Management System</h1>
-
-        <div class="login-box">
-            <h2>Login</h2>
-
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Enter username">
-
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Enter password">
-
-            <button onclick="login()">Login</button>
-
-            <p id="loginMessage"></p>
-        </div>
+<body style="display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(180deg,#f6fbff,#ffffff)">
+  <div class="card" style="width:420px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(90deg,#0b61ff,#0763f7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">UK</div>
+      <div>
+        <div style="font-weight:800;font-size:18px">UKSS — Results</div>
+        <div class="small">School Results Management System</div>
+      </div>
     </div>
 
-   <script type="module" src="./js/auth.js"></script>
-</body>
+    <div style="margin:12px 0">
+      <label class="small">Email</label>
+      <input id="username" class="input" placeholder="admin@example.com" />
+    </div>
+    <div style="margin:12px 0">
+      <label class="small">Password</label>
+      <input id="password" class="input" type="password" placeholder="••••••••" />
+    </div>
 
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" onclick="login()">Sign in</button>
+      <button class="btn btn-ghost" onclick="location.href='results.html'">View (Public demo)</button>
+    </div>
+
+    <p id="loginMessage" class="small" style="margin-top:10px;color:#888"></p>
+  </div>
+
+  <script type="module" src="./js/auth.js"></script>
+</body>
 </html>
+
