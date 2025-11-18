@@ -2,56 +2,58 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bulk SMS Sender</title>
-
-  <link rel="stylesheet" href="./css/style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bulk SMS — School Results</title>
 
   <style>
-    .card { background:#fff; padding:18px; border-radius:10px; box-shadow:0 0 10px #ccc; margin-bottom:16px; }
-    textarea { width:100%; height:120px; padding:10px; border-radius:8px; border:1px solid #ccc; }
-    .btn { padding:10px 14px; border:none; border-radius:6px; cursor:pointer; }
-    .btn-primary { background:#0066ff; color:white; }
-    .btn-ghost { background:#f3f3f3; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    body { background:#f6fbff; font-family:Inter,system-ui,sans-serif; }
+    .container { max-width:1100px; margin:32px auto; padding:16px; }
+    .card {
+      background:#fff; padding:20px; border-radius:12px;
+      box-shadow:0 6px 18px rgba(6,78,204,0.08); margin-bottom:20px;
+    }
+    .btn{ padding:10px 14px; border:none; border-radius:8px; cursor:pointer; }
+    .btn-primary{ background:#0066ff; color:#fff; }
+    .btn-ghost{ background:#f4f8ff; color:#0646c8; border:1px solid #e4edff; }
+    .input{ padding:10px 14px; border:1px solid #ccd9ff; border-radius:8px; background:#fbfdff; }
+    table{ width:100%; border-collapse:collapse; margin-top:14px; font-size:15px; }
+    th,td{ padding:10px; border-bottom:1px solid #eef3ff; text-align:left; }
+    th{ background:#f1f6ff; color:#0646c8; }
+    .title{ color:#0646c8; }
   </style>
 </head>
-<body>
 
-  <div class="container" style="max-width:1100px;">
-    <h1>📨 Bulk SMS Sender</h1>
+<body>
+  <div class="container">
+    <h1 class="title">📨 Bulk SMS — Exam Results</h1>
 
     <div class="card">
       <h3>Select Class</h3>
-      <select id="classSelect" class="input" style="padding:10px; width:200px;"></select>
-      <button class="btn btn-primary" onclick="loadRecipients()">Load Recipients</button>
-      <button class="btn btn-ghost" onclick="window.location.href='results.html'">Back to Results</button>
+      <select id="classSelect" class="input" style="width:220px;"></select>
+      <button class="btn btn-primary" id="loadBtn">Load Recipients</button>
+      <button class="btn btn-ghost" onclick="location.href='results.html'">View Results</button>
     </div>
 
     <div class="card">
       <h3>SMS Template</h3>
-
-      <select id="templateSelect" class="input" style="padding:10px; width:260px;">
-        <option value="simple">Simple Results Summary</option>
-        <option value="detail">Detailed Results Summary</option>
-        <option value="remark">Results + Remark</option>
+      <select id="templateSelect" class="input" style="width:260px;">
+        <option value="simple">Simple Summary</option>
+        <option value="detail">Detailed Summary</option>
+        <option value="remark">With Teacher Remark</option>
       </select>
 
-      <p class="small">Template hutumia placeholders:</p>
-      <p class="small">{FirstName}, {AdmissionNo}, {Mean}, {Grade}, {WeakSubjects}</p>
-
-      <textarea id="messageBox"></textarea>
+      <p class="small">Use placeholders: {FirstName}, {Admission}, {Mean}, {Grade}, {Weak}, {Remark}</p>
+      <textarea id="msgBox" class="input" style="width:100%; height:140px;"></textarea>
     </div>
 
     <div class="card">
       <h3>Recipients</h3>
-      <table id="recipientsTable">
+      <table id="recTable">
         <thead>
           <tr>
             <th>Student</th>
             <th>Phone</th>
-            <th>Preview SMS</th>
+            <th>Message Preview</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -59,13 +61,12 @@
     </div>
 
     <div class="card">
-      <h3>Send Messages</h3>
-      <button class="btn btn-primary" onclick="sendBulkSMS()">Send All SMS</button>
-      <p id="statusLog" class="small" style="margin-top:10px;"></p>
+      <h3>Send All</h3>
+      <button class="btn btn-primary" id="sendAll">Send SMS</button>
+      <p id="status" style="margin-top:10px; color:#0646c8;"></p>
     </div>
-
   </div>
 
-  <script src="./js/sms.js"></script>
+  <script type="module" src="./js/sms.js"></script>
 </body>
 </html>
