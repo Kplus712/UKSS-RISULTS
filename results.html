@@ -1,59 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Results & Report Cards</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <style>
-    .card { background:#fff; padding:18px; border-radius:10px; box-shadow:0 0 8px #ccc; margin-bottom:15px; }
-    .topbar { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-    table { width:100%; border-collapse: collapse; margin-top:10px; }
-    th, td { border:1px solid #ddd; padding:10px; text-align:center; }
-    .btn { padding:8px 12px; border-radius:6px; cursor:pointer; border:none; }
-    .btn-primary { background:#0066ff; color:white; }
-    .btn-ghost { background:#f0f0f0; }
-    .input { padding:8px 12px; border-radius:6px; border:1px solid #ccc; }
-  </style>
-</head>
-<body>
+// /js/report.js
+import { col, getAll } from './database.js';
 
-  <div class="container" style="max-width:1100px;">
-    <h1>📄 Student Report Cards</h1>
+const $ = id => document.getElementById(id);
 
-    <div class="topbar card">
-      <div style="display:flex; gap:10px;">
-        <input type="text" id="searchBox" class="input" placeholder="Search student name or admission..." />
-        <select id="classFilter" class="input" style="height:40px;"></select>
-      </div>
+let store = { classes: [], students: [], reports: [] };
 
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" onclick="window.location.href='marks.html'">Back to Marks</button>
-        <button class="btn btn-primary" id="printAll">Print / Export PDF</button>
-      </div>
-    </div>
+async function loadAll() {
+  [store.classes, store.students, store.reports] = await Promise.all([
+    getAll(col.classes),
+    getAll(col.students),
+    getAll(col.report_cards)
+  ]);
+}
 
-    <div class="card">
-      <table id="resultsTable">
-        <thead>
-          <tr>
-            <th>Admission</th>
-            <th>Student</th>
-            <th>Class</th>
-            <th>Total</th>
-            <th>Mean</th>
-            <th>Grade</th>
-            <th>Weak Subjects</th>
-            <th>Remark</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+function fillClassFilter() {
+  const sel = $('classFilter');
+  sel.innerHTML = `<option value="">All Classes</option>` + store.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
 
-  </div>
+function renderTable(list) {
+  const tbody = $('resultsTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="9">No reports found.</td></tr>`; return; }
+  for (const r of list) {
+    const stu = store.students.find(s => s.id === r.student_id) || {};
+    const cls = store.classes.find(c => c.id === r.class_id) || {};
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.admission_no}</td>
+      <td>${stu.first_name||''} ${stu.last_name||''}</td>
+      <td>${cls.name||'-'}</td>
+      <td>${r.total_marks}</td>
+      <td>${r.mean_score}</td>
+      <td>${r.grade}</td>
+      <td>${(r.weak_subjects||[]).join(', ')}</td>
+      <td>${r.remark}</td>
+      <td><button class="btn" onclick="printSingle('${r.id}')">Print</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
 
-  <script src="./js/report.js"></script>
-</body>
-</html>
+window.printSingle = function(reportId) {
+  const r = store.reports.find(x => x.id === reportId);
+  const stu = store.students.find(s => s.id === (r && r.student_id)) || {};
+  const cls = store.classes.find(c => c.id === (r && r.class_id)) || {};
+  const html = `
+  <html><head><title>Report</title><style>body{font-family:Arial;padding:20px}</style></head><body>
+  <h2>STUDENT REPORT CARD</h2>
+  <p><strong>Name:</strong> ${stu.first_name || ''} ${stu.last_name || ''}</p>
+  <p><strong>Admission:</strong> ${r.admission_no}</p>
+  <p><strong>Class:</strong> ${cls.name || '-'}</p>
+  <table style="width:100%;border-collapse:collapse"><tr><td>Total</td><td>${r.total_marks}</td></tr>
+  <tr><td>Mean</td><td>${r.mean_score}</td></tr><tr><td>Grade</td><td>${r.grade}</td></tr>
+  <tr><td>Weak</td><td>${(r.weak_subjects||[]).join(', ')}</td></tr>
+  <tr><td>Remark</td><td>${r.remark}</td></tr></table>
+  <p>Printed: ${new Date().toLocaleString()}</p>
+  </body></html>`;
+  const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
+};
+
+function applyFilters() {
+  const q = $('searchBox').value.trim().toLowerCase();
+  const cls = $('classFilter').value;
+  const list = store.reports.filter(r => {
+    const s = store.students.find(x => x.id === r.student_id) || {};
+    const matchesQ = !q || (s.first_name||'').toLowerCase().includes(q) || (s.last_name||'').toLowerCase().includes(q) || (r.admission_no||'').toLowerCase().includes(q);
+    const matchesC = !cls || r.class_id === cls;
+    return matchesQ && matchesC;
+  });
+  renderTable(list);
+}
+
+window.addEventListener('load', async () => {
+  await loadAll();
+  fillClassFilter();
+  renderTable(store.reports);
+  $('searchBox').oninput = applyFilters;
+  $('classFilter').onchange = applyFilters;
+  $('printAll').onclick = () => window.print();
+});
