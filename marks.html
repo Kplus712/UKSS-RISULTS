@@ -6,97 +6,87 @@
   <title>Marks — UKSS</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand"><div class="logo">UK</div>UKSS</div>
-      <nav class="nav">
-        <a href="marks.html" class="active">🏠 Marks</a>
-        <a href="results.html">📄 Results</a>
-        <a href="sms.html">📨 SMS</a>
-        <a href="sms_logs.html">🧾 SMS Logs</a>
-        <a href="admin.html">🔐 Admin</a>
-        <a id="signOutLink" href="#">⇦ Sign out</a>
-      </nav>
-      <div style="margin-top:auto" class="small">Version 1.0 • kplus712</div>
-    </aside>
+<div class="app">
 
-    <main class="main">
-      <div class="topbar">
-        <div>
-          <h2 style="margin:0">📘 Marks Entry — <span class="small">Exam: <strong>annual_2025</strong></span></h2>
-          <div class="small">Enter CA + Exam (0–100), CA + EX ≤ 100</div>
-        </div>
+  <!-- Sidebar  -->
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">UK</div>UKSS</div>
+    <nav class="nav">
+      <a href="marks.html" class="active">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+      <a id="signOutLink" href="#">⇦ Logout</a>
+    </nav>
+  </aside>
 
-        <div style="display:flex;gap:10px;align-items:center">
-          <input id="globalSearch" class="input search" placeholder="Search students..." />
-          <button id="loadSampleBtn" class="btn btn-ghost">Load Sample</button>
-        </div>
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <h2 style="margin:0">📘 Marks Entry</h2>
+        <div class="small">Exam: <strong>annual_2025</strong> — Enter CA + EX values</div>
       </div>
 
-      <div class="grid-2">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div>
-              <label class="small">Class</label>
-              <select id="classSelect" class="input"></select>
-            </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button id="loadSampleBtn" class="btn btn-ghost">Load Sample</button>
+      </div>
+    </div>
 
-            <div style="display:flex;gap:10px;align-items:center">
-              <button id="addClassBtn" class="btn btn-ghost">+ Add class</button>
-              <button id="saveAll" class="btn btn-primary">Save All</button>
-              <button id="genReports" class="btn btn-primary">Generate Reports</button>
-            </div>
-          </div>
+    <!-- CLASS + STUDENT + SUBJECT FORM -->
+    <div class="card">
 
-          <div style="display:flex;gap:12px;margin-bottom:12px">
-            <div style="flex:1">
-              <label class="small">Admission</label>
-              <input id="stuAdmission" class="input" placeholder="ADM001" />
-            </div>
-            <div style="flex:1">
-              <label class="small">First name</label>
-              <input id="stuFirst" class="input" placeholder="First" />
-            </div>
-            <div style="flex:1">
-              <label class="small">Last name</label>
-              <input id="stuLast" class="input" placeholder="Last" />
-            </div>
-            <div style="width:160px">
-              <label class="small">Guardian phone</label>
-              <input id="stuPhone" class="input" placeholder="071..." />
-            </div>
-            <div style="align-self:end">
-              <button id="addStudentBtn" class="btn btn-primary">Add student</button>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
-            <div style="flex:1">
-              <label class="small">Subject code</label>
-              <input id="subCode" class="input" placeholder="ENG" />
-            </div>
-            <div style="flex:2">
-              <label class="small">Subject name</label>
-              <input id="subName" class="input" placeholder="English" />
-            </div>
-            <div style="align-self:end">
-              <button id="addSubjectBtn" class="btn btn-primary">Add subject</button>
-            </div>
-          </div>
-
-          <div id="studentsList" style="max-height:220px;overflow:auto"></div>
+      <div class="row" style="flex-wrap:wrap; margin-bottom:16px">
+        <div style="flex:1 1 180px">
+          <label class="small">Class</label>
+          <select id="classSelect" class="input"></select>
         </div>
-
-        <div class="card">
-          <h3 style="margin-top:0">Marks Matrix</h3>
-          <div id="marksMatrixWrap" style="overflow:auto"></div>
-        </div>
+        <button id="addClassBtn" class="btn btn-primary" style="height:42px">+ Add Class</button>
+        <button id="saveAll" class="btn btn-primary" style="height:42px">Save All</button>
+        <button id="genReports" class="btn btn-primary" style="height:42px">Generate Reports</button>
       </div>
 
-    </main>
-  </div>
+      <!-- Add Student -->
+      <h3 style="margin-bottom:6px">Add Student</h3>
+      <div class="row" style="flex-wrap:wrap">
+        <input id="stuAdmission" class="input" placeholder="Admission" style="flex:1 1 120px" />
+        <input id="stuFirst" class="input" placeholder="First name" style="flex:1 1 120px" />
+        <input id="stuLast" class="input" placeholder="Last name" style="flex:1 1 120px" />
+        <input id="stuPhone" class="input" placeholder="Guardian phone" style="flex:1 1 160px" />
+        <button id="addStudentBtn" class="btn btn-primary">Add</button>
+      </div>
 
-  <script type="module" src="./js/marks.js"></script>
+      <!-- Add Subject -->
+      <h3 style="margin-top:24px;margin-bottom:6px">Add Subject</h3>
+      <div class="row" style="flex-wrap:wrap">
+        <input id="subCode" class="input" placeholder="Code (ENG)" style="flex:1 1 120px" />
+        <input id="subName" class="input" placeholder="Subject name" style="flex:1 1 200px" />
+        <button id="addSubjectBtn" class="btn btn-primary">Add</button>
+      </div>
+
+      <!-- SUBJECT LIST (THIS WAS MISSING!) -->
+      <div id="subjectsList" style="margin-top:14px;max-height:160px;overflow:auto"></div>
+
+      <!-- STUDENTS LIST -->
+      <h3 style="margin-top:24px">Students</h3>
+      <div id="studentsList" style="max-height:200px;overflow:auto"></div>
+
+    </div>
+
+    <!-- MARKS MATRIX -->
+    <div class="card">
+      <h3 style="margin-top:0">Marks Matrix</h3>
+      <div id="marksMatrixWrap" style="overflow:auto"></div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="./js/marks.js"></script>
 </body>
 </html>
