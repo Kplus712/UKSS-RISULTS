@@ -1,84 +1,241 @@
-/* ===========================================================
-   UKSS SIDEBAR OFF-CANVAS — MOBILE RESPONSIVE FINAL VERSION
-=========================================================== */
+(/* -------------------------------------------------------------------
+   UKSS — PRO DASHBOARD UI  (Responsive + Dark mode + Mobile sidebar)
+------------------------------------------------------------------- */
 
-/* OFFCANVAS SIDEBAR */
-.sidebar {
-  transition: transform .32s cubic-bezier(.2,.9,.3,1), opacity .32s;
-  will-change: transform;
+:root{
+  --bg:#f6fbff;
+  --card:#ffffff;
+  --text:#0d1b2a;
+  --muted:#5d6a7a;
+
+  --blue1:#0763f7;
+  --blue2:#0b61ff;
+
+  --accent:linear-gradient(90deg,var(--blue1),var(--blue2));
+  --shadow:0 10px 24px rgba(0,0,0,0.08);
+  --radius:14px;
+
+  --sidebar-bg:linear-gradient(180deg,#07378b 0%, #0b61ff 100%);
+  --sidebar-width:260px;
+
+  --transition:0.25s ease;
 }
 
-/* hidden by default on mobile */
-.sidebar.offcanvas {
-  transform: translateX(-110%);
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: var(--sidebar-width);
-  z-index: 1100;
-  box-shadow: 6px 0 30px rgba(2,20,78,0.25);
+/* DARK MODE */
+.dark{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --sidebar-bg:linear-gradient(180deg,#0b1e42 0%, #083077 100%);
+  --shadow:0 0 0 rgba(0,0,0,0);
 }
 
-/* visible state */
-.sidebar.offcanvas.show {
-  transform: translateX(0);
+/* Reset */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Inter,system-ui,-apple-system;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
 }
 
-/* backdrop overlay */
-.sidebar-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 1050;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .25s;
-}
-.sidebar-backdrop.show {
-  opacity: 1;
-  pointer-events: auto;
+/* Layout */
+.app{
+  display:flex;
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
 }
 
-/* MAIN SHIFT (bigger phones) */
-@media (min-width: 560px) and (max-width: 900px) {
-  .main.shifted {
-    transform: translateX(var(--sidebar-width));
-    transition: transform .32s cubic-bezier(.2,.9,.3,1);
+/* Sidebar */
+.sidebar{
+  width:var(--sidebar-width);
+  background:var(--sidebar-bg);
+  padding:22px;
+  color:#fff;
+  position:relative;
+  z-index:50;
+  transition:transform var(--transition);
+}
+
+/* Mobile hidden */
+.sidebar.hidden{
+  transform:translateX(-110%);
+}
+
+/* Mobile toggle button */
+#menuBtn{
+  display:none;
+  background:none;
+  border:none;
+  font-size:26px;
+  cursor:pointer;
+  color:var(--blue2);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:16px;
+}
+.logo{
+  width:48px;height:48px;border-radius:12px;
+  background:rgba(255,255,255,0.16);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;
+}
+
+.nav{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.nav a{
+  padding:10px 12px;
+  border-radius:10px;
+  text-decoration:none;
+  color:#ffffffd9;
+  font-weight:600;
+  transition:background var(--transition);
+}
+.nav a:hover{
+  background:rgba(255,255,255,0.18);
+}
+.nav a.active{
+  background:rgba(255,255,255,0.28);
+}
+
+/* Main */
+.main{
+  flex:1;
+  padding:20px 28px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+  gap:16px;
+}
+
+/* Dark mode button */
+#darkBtn{
+  border:none;
+  padding:8px 14px;
+  border-radius:10px;
+  background:var(--card);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:600;
+  box-shadow:var(--shadow);
+}
+
+/* Cards */
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:18px;
+  box-shadow:var(--shadow);
+}
+
+/* Buttons */
+.btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
+.btn-primary{
+  background:var(--accent);
+  color:#fff;
+}
+.btn-ghost{
+  background:rgba(0,0,0,0.06);
+  color:var(--blue2);
+}
+
+/* Inputs */
+.input{
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,0.08);
+  background:var(--card);
+  color:var(--text);
+  width:100%;
+  min-height:42px;
+}
+
+/* Inline */
+.input-inline{
+  width:84px;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,0.14);
+  background:var(--card);
+  color:var(--text);
+}
+
+/* Table */
+.table{
+  width:100%;
+  border-collapse:collapse;
+}
+.table th{
+  padding:12px;
+  background:rgba(0,0,0,0.04);
+  color:var(--blue2);
+  text-align:left;
+  font-weight:700;
+}
+.table td{
+  padding:12px;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+  font-size:14px;
+}
+
+/* GRID */
+.row{display:flex;gap:12px}
+.grid-2{
+  display:grid;
+  grid-template-columns:1fr 360px;
+  gap:18px;
+}
+
+/* MOBILE RESPONSIVE */
+@media(max-width:900px){
+  /* Sidebar auto hide */
+  .sidebar{
+    position:absolute;
+    height:100vh;
+    top:0;left:0;
   }
-}
-
-/* Always active for mobile */
-@media (max-width: 900px){
-  .sidebar { display:block !important; }
-  #menuBtn { display:inline-flex !important; }
-}
-
-/* ==============================================
-   FULL RESPONSIVE FOR ALL DEVICES
-============================================== */
-
-@media(max-width:1024px){
-  .topbar{
-    flex-direction:column;
-    align-items:flex-start;
-    gap:10px;
+  #menuBtn{
+    display:block;
   }
-}
-
-@media(max-width:768px){
   .main{
-    padding:12px !important;
+    padding:16px;
   }
   .grid-2{
-    grid-template-columns:1fr !important;
-    gap:12px !important;
+    grid-template-columns:1fr;
   }
   .row{
-    flex-direction:column !important;
+    flex-direction:column;
   }
   .input-inline{
-    width:100% !important;
+    width:100%;
   }
-  .btn, .btn-primary, .btn-ghost{
-    width:
+}
+
+/* Horizontal scroll for tables */
+#marksMatrixWrap,
+.card table{
+  overflow-x:auto;
+}
