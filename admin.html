@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="./style.css"/>
+  <style>
+    body{font-family:Inter,system-ui;background:#f6fbff;padding:24px}
+    .card{background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 28px rgba(6,78,204,0.06);max-width:1000px;margin:auto}
+    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .btn-primary{background:#0066ff;color:#fff}
+    .input{padding:8px;border-radius:8px;border:1px solid #e6eefc}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #eef3ff;text-align:left}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🔐 Admin Panel</h2>
+    <p class="small">Your UID: <span id="myUid">—</span></p>
+    <p class="small">Your Email: <span id="myEmail">—</span></p>
+    <div style="margin:10px 0;display:flex;gap:8px">
+      <input id="adminUidInput" placeholder="UID to add/remove" class="input" style="flex:1" />
+      <button id="addAdminBtn" class="btn btn-primary">Add Admin (by UID)</button>
+      <button id="removeAdminBtn" class="btn">Remove Admin</button>
+      <button id="signOutBtn" class="btn">Sign Out</button>
+    </div>
+
+    <h3>Current Admins</h3>
+    <table id="adminsTable"><thead><tr><th>#</th><th>UID</th><th>Email (optional)</th><th>Added At</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <script type="module" src="./js/admin.js"></script>
+</body>
+</html>
