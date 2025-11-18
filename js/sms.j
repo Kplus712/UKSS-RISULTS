@@ -1,157 +1,150 @@
-/*
-  sms.js
-  - Loads report_cards + students
-  - Generates SMS from templates
-  - Preview per recipient
-  - Sends to external API (mock example + real example)
-*/
+// /js/sms.js
+// Bulk SMS using Firestore + templates
 
-const STORAGE_KEY = 'school_results_v1';
-let store = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-  students: [],
-  report_cards: [],
-  classes: []
-};
+import {
+  col,
+  getAll,
+  queryCollection,
+  getDocById,
+  setDocById
+} from './database.js';
 
 const $ = id => document.getElementById(id);
+const EXAM_ID = 'annual_2025';
 
-// Load classes into dropdown
-window.onload = () => {
-  const sel = $('classSelect');
-  store.classes.forEach(c => {
-    sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-  });
-
-  loadTemplate(); // prefill template box
-};
-
-// ---------------------------
-// Templates
-// ---------------------------
-function loadTemplate() {
-  const type = $('templateSelect').value;
-
-  let text = "";
-  if (type === "simple") {
-    text = "Matokeo ya {FirstName} ({AdmissionNo}) — Mean: {Mean}, Grade: {Grade}.";
-  } 
-  else if (type === "detail") {
-    text = "Matokeo ya {FirstName}: Mean {Mean}, Daraja {Grade}. Masomo dhaifu: {WeakSubjects}.";
-  } 
-  else if (type === "remark") {
-    text = "{FirstName} — Mean {Mean}, Grade {Grade}. Ujumbe: {Remark}.";
-  }
-
-  $('messageBox').value = text;
+// Load classes
+async function loadClasses() {
+  const classes = await getAll(col.classes);
+  $('classSelect').innerHTML = classes.map(c =>
+    `<option value="${c.id}">${c.name}</option>`
+  ).join('');
 }
 
-$('templateSelect').onchange = loadTemplate;
+window.addEventListener('load', () => {
+  loadClasses();
+  setDefaultTemplate();
+  $('templateSelect').onchange = setDefaultTemplate;
+  $('loadBtn').onclick = loadRecipients;
+  $('sendAll').onclick = sendAllSMS;
+});
 
-// ---------------------------
-// Load Recipients (students from one class)
-// ---------------------------
-let currentRecipients = [];
+// ----------------------------
+// Templates
+// ----------------------------
+function setDefaultTemplate() {
+  const type = $('templateSelect').value;
+  let msg = "";
 
-function loadRecipients() {
-  const cls = $('classSelect').value;
-
-  const students = store.students.filter(s => s.class_id === cls);
-  currentRecipients = [];
-
-  if (!students.length) {
-    alert("No students found for this class.");
-    return;
+  if (type === 'simple') {
+    msg = "Matokeo ya {FirstName} ({Admission}): Mean {Mean}, Daraja {Grade}.";
+  } else if (type === 'detail') {
+    msg = "Matokeo: {FirstName} — Mean {Mean}, Grade {Grade}. Masomo dhaifu: {Weak}.";
+  } else {
+    msg = "Matokeo ya {FirstName}: Mean {Mean}, Grade {Grade}. Remark: {Remark}.";
   }
 
-  const reportCards = store.report_cards;
+  $('msgBox').value = msg;
+}
 
-  const tbody = $('recipientsTable').querySelector('tbody');
+// ----------------------------
+// Load Recipients
+// ----------------------------
+async function loadRecipients() {
+  const cls = $('classSelect').value;
+  if (!cls) return alert("Choose class.");
+
+  const students = (await getAll(col.students))
+    .filter(s => s.class_id === cls && !s.deleted);
+
+  const tbody = $('recTable').querySelector('tbody');
   tbody.innerHTML = '';
 
-  students.forEach(stu => {
-    const report = reportCards.find(r => r.student_id === stu.id);
-    if (!report) return; // student has no report card
+  recipients = [];
 
-    const row = {
-      student: stu,
-      report: report,
-      phone: stu.guardian_phone || "",
-      sms: generateSMS(stu, report)
-    };
+  for (const stu of students) {
+    // report card doc id: `${stu.id}_${EXAM_ID}`
+    const repId = `${stu.id}_${EXAM_ID}`;
+    const rep = await getDocById(col.report_cards, repId);
 
-    currentRecipients.push(row);
+    if (!rep) continue;
+
+    const sms = buildMessage(stu, rep);
+
+    recipients.push({ stu, rep, sms });
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${stu.first_name} ${stu.last_name} <br><span class="small">(${stu.admission_no})</span></td>
+      <td>${stu.first_name} ${stu.last_name} <br><span style="color:#666">${stu.admission_no}</span></td>
       <td>${stu.guardian_phone}</td>
-      <td>${row.sms}</td>
+      <td>${sms}</td>
     `;
     tbody.appendChild(tr);
-  });
+  }
+
+  if (!recipients.length) {
+    tbody.innerHTML = `<tr><td colspan="3">No report cards found for exam ${EXAM_ID}</td></tr>`;
+  }
 }
 
-// ---------------------------
-// Generate SMS from template
-// ---------------------------
-function generateSMS(student, report) {
-  let msg = $('messageBox').value;
+function buildMessage(stu, rep) {
+  let msg = $('msgBox').value;
 
-  msg = msg.replace("{FirstName}", student.first_name);
-  msg = msg.replace("{AdmissionNo}", report.admission_no);
-  msg = msg.replace("{Mean}", report.mean_score);
-  msg = msg.replace("{Grade}", report.grade);
-  msg = msg.replace("{WeakSubjects}", report.weak_subjects.join(", "));
-  msg = msg.replace("{Remark}", report.remark);
+  msg = msg.replace("{FirstName}", stu.first_name)
+           .replace("{Admission}", stu.admission_no)
+           .replace("{Mean}", rep.mean_score)
+           .replace("{Grade}", rep.grade)
+           .replace("{Weak}", rep.weak_subjects.join(", "))
+           .replace("{Remark}", rep.remark);
 
   return msg;
 }
 
-// ---------------------------
+// ----------------------------
 // SEND BULK SMS
-// ---------------------------
-async function sendBulkSMS() {
-  if (!currentRecipients.length) {
-    alert("Load recipients first!");
-    return;
+// ----------------------------
+let recipients = [];
+
+async function sendAllSMS() {
+  if (!recipients.length) return alert("Load recipients first.");
+
+  $('status').innerText = "Sending...";
+
+  for (const r of recipients) {
+    let result = await sendMock(r.stu.guardian_phone, r.sms);
+
+    // Save log to Firestore
+    const logId = `${r.stu.id}_${Date.now()}`;
+    await setDocById(col.sms_logs, logId, {
+      id: logId,
+      student_id: r.stu.id,
+      phone: r.stu.guardian_phone,
+      sms: r.sms,
+      exam_id: EXAM_ID,
+      delivered: true,
+      timestamp: new Date().toISOString()
+    });
+
+    $('status').innerText = `Sent to ${r.stu.first_name} (${r.stu.guardian_phone})`;
   }
 
-  $('statusLog').innerText = "Sending messages...";
-
-  for (let i = 0; i < currentRecipients.length; i++) {
-    let r = currentRecipients[i];
-
-    // Mock sending (works without internet)
-    // Replace with your actual SMS API below
-    let res = await sendMockSMS(r.phone, r.sms);
-
-    $('statusLog').innerText = `Sent to ${r.student.first_name} (${r.phone}): ${res}`;
-  }
-
-  $('statusLog').innerText += "\nDone sending all messages!";
+  $('status').innerText = "All SMS sent successfully!";
 }
 
-// ---------------------------
-// MOCK SMS SENDER (Works offline)
-// ---------------------------
-function sendMockSMS(phone, message) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve("DELIVERED (mock)");
-    }, 500);
-  });
+// ----------------------------
+// MOCK SMS — Works offline
+// ----------------------------
+function sendMock(phone, msg) {
+  return new Promise(res => setTimeout(() => res("sent"), 350));
 }
 
-// ---------------------------
-// REAL SMS API EXAMPLE (Beem Africa)
-// Replace sendMockSMS with this:
-// ---------------------------
-/*
+// ----------------------------
+// REAL SMS API (Use Beem)
+// ----------------------------
 async function sendRealSMS(phone, msg) {
-  const apiKey = "YOUR_API_KEY";
-  const secret = "YOUR_SECRET";
+  const apiKey = "YOUR_BEEM_KEY";
+  const secret = "YOUR_BEEM_SECRET";
 
-  let res = await fetch("https://apisms.beem.africa/v1/send", {
+  const res = await fetch("https://apisms.beem.africa/v1/send", {
     method: "POST",
     headers: {
       "Authorization": "Basic " + btoa(apiKey + ":" + secret),
@@ -169,7 +162,5 @@ async function sendRealSMS(phone, msg) {
     })
   });
 
-  let data = await res.json();
-  return data;
+  return await res.json();
 }
-*/
