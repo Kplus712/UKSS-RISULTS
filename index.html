@@ -8,51 +8,56 @@
 </head>
 <body>
 
-  <div class="page-center">
-    <div class="card">
-
-      <div class="brand">
-        <div class="brand-badge">UK</div>
-        <div>
-          <div class="brand-title">UKSS — Results System</div>
-          <div class="brand-sub">Secondary School Results • Form I–IV</div>
-        </div>
+<div class="page-center">
+  <div class="card">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS — Results System</div>
+        <div class="brand-sub">Secondary School Results • Form I–IV</div>
       </div>
+    </div>
 
-      <div style="margin-bottom:10px">
-        <div class="label">Email</div>
-        <input id="username" class="input" type="email" placeholder="admin@example.com" />
-      </div>
+    <div style="margin-bottom:10px">
+      <div class="label">Email</div>
+      <input id="username" class="input" type="email" placeholder="admin@example.com" />
+    </div>
 
-      <div style="margin-bottom:4px">
-        <div class="label">Password</div>
-        <input id="password" class="input" type="password" placeholder="••••••••" />
-      </div>
+    <div style="margin-bottom:4px">
+      <div class="label">Password</div>
+      <input id="password" class="input" type="password" placeholder="••••••••" />
+    </div>
 
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="login()">Login</button>
-        <button class="btn btn-ghost" type="button" onclick="document.getElementById('username').value='';document.getElementById('password').value='';">
-          Clear
-        </button>
-      </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="login()">Login</button>
+      <button class="btn btn-ghost" type="button"
+              onclick="username.value='';password.value='';">
+        Clear
+      </button>
+    </div>
 
-      <div id="loginMessage" class="msg">
-        Andika akaunti ya admin uliyosajili kwenye Firebase Authentication.
-      </div>
+    <div id="loginMessage" class="msg">
+      Andika akaunti ya admin uliyosajili kwenye Firebase Authentication.
+    </div>
 
-      <div class="footer">
-        © <span id="year"></span> UKSS • Designed for Tanzanian Secondary Schools
-      </div>
-
+    <div class="footer">
+      © <span id="year"></span> UKSS • Designed for Tanzanian Secondary Schools
     </div>
   </div>
+</div>
 
-  <script>
-    // simple footer year
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 
-  <!-- Firebase + auth logic -->
-  <script type="module" src="./js/auth.js"></script>
+<!-- Firebase CDN v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/auth.js"></script>
 </body>
 </html>
+
