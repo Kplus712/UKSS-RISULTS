@@ -1,5 +1,5 @@
 // js/report.js
-// Results listing + single report card modal
+// Results listing + single report card modal (with Behaviour)
 // Uses global firebase auth, db, col, getAll, getDocById from database.js
 
 var EXAM_ID = "annual_2025";
@@ -19,7 +19,7 @@ auth.onAuthStateChanged(function(user){
   }
 });
 
-/* ========== TOAST HELPER (reuse from marks style) ========== */
+/* ========== TOAST ========== */
 function toast(text){
   console.log(text);
   var el = document.createElement("div");
@@ -105,7 +105,6 @@ function renderTable(list){
     tbody.appendChild(tr);
   });
 
-  // attach click listeners for View buttons
   Array.prototype.forEach.call(
     tbody.querySelectorAll("button[data-report-id]"),
     function(btn){
@@ -115,6 +114,17 @@ function renderTable(list){
       };
     }
   );
+}
+
+/* ========== HELPER: behaviour label ========== */
+function behaviourLabel(score){
+  if (score == null) return "-";
+  if (score === 5) return "Excellent";
+  if (score === 4) return "Very Good";
+  if (score === 3) return "Good";
+  if (score === 2) return "Fair";
+  if (score === 1) return "Poor";
+  return String(score);
 }
 
 /* ========== REPORT CARD MODAL ========== */
@@ -138,7 +148,7 @@ async function openReport(reportId){
     ? r.weak_subjects.join(", ")
     : "None";
 
-  // build subject marks table from marks doc
+  // SUBJECT MARKS
   var tbody = $("rpSubjectsTable").querySelector("tbody");
   tbody.innerHTML = "";
 
@@ -162,6 +172,49 @@ async function openReport(reportId){
   }catch(err){
     console.error("openReport marks error:", err);
     tbody.innerHTML = "<tr><td colspan='4'>Error loading subject marks.</td></tr>";
+  }
+
+  // BEHAVIOUR
+  try{
+    var behId  = EXAM_ID+"_"+r.class_id+"_"+r.student_id;
+    var behDoc = await getDocById(col.behaviour, behId);
+
+    if (behDoc && behDoc.ratings){
+      var rt = behDoc.ratings;
+      var lines = [];
+
+      if (rt.discipline != null)
+        lines.push("Discipline: "+behaviourLabel(rt.discipline)+" ("+rt.discipline+"/5)");
+      if (rt.cleanliness != null)
+        lines.push("Personal Cleanliness: "+behaviourLabel(rt.cleanliness)+" ("+rt.cleanliness+"/5)");
+      if (rt.diligence != null)
+        lines.push("Diligence: "+behaviourLabel(rt.diligence)+" ("+rt.diligence+"/5)");
+      if (rt.punctuality != null)
+        lines.push("Punctuality: "+behaviourLabel(rt.punctuality)+" ("+rt.punctuality+"/5)");
+      if (rt.cooperation != null)
+        lines.push("Cooperation: "+behaviourLabel(rt.cooperation)+" ("+rt.cooperation+"/5)");
+      if (rt.academics != null)
+        lines.push("Academic Attitude: "+behaviourLabel(rt.academics)+" ("+rt.academics+"/5)");
+      if (rt.sports != null)
+        lines.push("Sports & Activities: "+behaviourLabel(rt.sports)+" ("+rt.sports+"/5)");
+      if (rt.care != null)
+        lines.push("Care for School Property: "+behaviourLabel(rt.care)+" ("+rt.care+"/5)");
+      if (rt.honesty != null)
+        lines.push("Honesty: "+behaviourLabel(rt.honesty)+" ("+rt.honesty+"/5)");
+
+      $("rpBehaviour").innerHTML = lines.length ? lines.join("<br>") : "Not recorded.";
+      $("rpTeacherComment").textContent = behDoc.teacher_comment || "Not recorded.";
+      $("rpHeadComment").textContent    = behDoc.head_comment    || "Not recorded.";
+    }else{
+      $("rpBehaviour").textContent      = "Not recorded.";
+      $("rpTeacherComment").textContent = "Not recorded.";
+      $("rpHeadComment").textContent    = "Not recorded.";
+    }
+  }catch(err2){
+    console.error("openReport behaviour error:", err2);
+    $("rpBehaviour").textContent      = "Error loading behaviour.";
+    $("rpTeacherComment").textContent = "";
+    $("rpHeadComment").textContent    = "";
   }
 
   $("reportOverlay").classList.remove("hidden");
