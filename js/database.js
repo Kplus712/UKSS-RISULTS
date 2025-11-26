@@ -19,7 +19,6 @@ firebase.initializeApp(firebaseConfig);
 window.auth = firebase.auth();
 window.db   = firebase.firestore();
 
-// ----- 3. Collection names -----
 window.col = {
   classes:      "classes",
   students:     "students",
@@ -27,9 +26,11 @@ window.col = {
   exams:        "exams",
   marks:        "marks",
   report_cards: "report_cards",
+  behaviour:    "behaviour",   // 🔹 NEW
   sms_logs:     "sms_logs",
   admins:       "admins"
 };
+
 
 // ----- 4. Helper functions (available globally) -----
 window.getAll = async function getAll(colName){
