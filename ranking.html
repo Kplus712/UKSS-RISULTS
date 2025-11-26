@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Ranking</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html" class="active">🏆 Ranking</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2>🏆 Best 10 & Last 10</h2>
+        <p class="small">Based on generated report cards (mean score & grade).</p>
+      </div>
+
+      <div class="top-actions">
+        <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+      </div>
+    </header>
+
+    <!-- FILTERS -->
+    <section class="card">
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Exam</label>
+          <select id="examSelect" class="input">
+            <option value="annual_2025">annual_2025</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Class</label>
+          <select id="classSelect" class="input">
+            <!-- options zitawekwa na JS -->
+          </select>
+        </div>
+
+        <button id="applyBtn" class="btn btn-primary">Load Ranking</button>
+      </div>
+    </section>
+
+    <!-- TABLES -->
+    <section class="card">
+      <h3>Top 10 Students</h3>
+      <div class="matrix-wrap">
+        <table class="table" id="topTable">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Adm</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Total</th>
+            <th>Mean</th>
+            <th>Grade</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="7">No data yet. Chagua class na hakikisha reports zimezalishwa.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Last 10 Students</h3>
+      <div class="matrix-wrap">
+        <table class="table" id="lastTable">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Adm</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Total</th>
+            <th>Mean</th>
+            <th>Grade</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="7">No data yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Firebase CDN v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/ranking.js"></script>
+</body>
+</html>
