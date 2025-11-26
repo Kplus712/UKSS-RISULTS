@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Behaviour & Comments</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html" class="active">🧭 Behaviour</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2>🧭 Student Behaviour & Comments</h2>
+        <p class="small">
+          Record behaviour scores and comments for each student (used in report cards & SMS).
+        </p>
+      </div>
+
+      <div class="top-actions">
+        <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+      </div>
+    </header>
+
+    <!-- FILTERS -->
+    <section class="card">
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Exam</label>
+          <select id="bhExam" class="input">
+            <option value="annual_2025">annual_2025</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Class</label>
+          <select id="bhClass" class="input">
+            <!-- options from JS -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Student</label>
+          <select id="bhStudent" class="input">
+            <option value="">Select class first</option>
+          </select>
+        </div>
+
+        <button id="bhLoadBtn" class="btn btn-primary">Load Behaviour</button>
+      </div>
+    </section>
+
+    <!-- BEHAVIOUR FORM -->
+    <section class="card">
+      <h3>Behaviour Ratings (1–5)</h3>
+      <p class="small">
+        Scale: 5 = Excellent, 4 = Very Good, 3 = Good, 2 = Fair, 1 = Poor.
+      </p>
+
+      <div class="matrix-wrap">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Score (1–5)</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>Discipline (Nidhamu)</td>
+            <td>
+              <select id="bh_discipline" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Personal Cleanliness (Usafi binafsi)</td>
+            <td>
+              <select id="bh_cleanliness" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Diligence/Hard Work (Bidii katika kazi)</td>
+            <td>
+              <select id="bh_diligence" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Punctuality (Kujali muda)</td>
+            <td>
+              <select id="bh_punctuality" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Cooperation (Ushirikiano)</td>
+            <td>
+              <select id="bh_cooperation" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Academic Attitude (Taaluma)</td>
+            <td>
+              <select id="bh_academics" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Sports & Activities (Ushiriki katika michezo)</td>
+            <td>
+              <select id="bh_sports" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Care for School Property (Utunzaji wa mali za shule)</td>
+            <td>
+              <select id="bh_care" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Honesty (Uaminifu)</td>
+            <td>
+              <select id="bh_honesty" class="input-inline">
+                <option value="">-</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label class="label">Class Teacher Comment</label>
+        <textarea id="bh_teacher_comment" class="textarea" placeholder="Mfano: Anaonesha bidii na nidhamu nzuri..."></textarea>
+      </div>
+
+      <div style="margin-top:8px;">
+        <label class="label">Head of School Comment</label>
+        <textarea id="bh_head_comment" class="textarea" placeholder="Mfano: Tunampongeza kwa juhudi zake..."></textarea>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:14px;">
+        <button id="bhSaveBtn" class="btn btn-primary">Save Behaviour</button>
+        <button id="bhClearBtn" class="btn btn-ghost">Clear</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/behaviour.js"></script>
+</body>
+</html>
