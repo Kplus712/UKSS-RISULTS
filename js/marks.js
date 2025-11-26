@@ -1,152 +1,148 @@
-// /js/marks.js
-// Marks entry for UKSS — Voting Green UI
+// js/marks.js
+// Marks entry — uses global auth, db, col, getAll, getDocById, setDocById from database.js
 
-import {
-  col,
-  getAll,
-  getDocById,
-  setDocById,
-  onAuthChange,
-  firebaseSignOut
-} from "./database.js";
+var EXAM_ID = "annual_2025";
+var byId = function(id){ return document.getElementById(id); };
 
-const EXAM_ID = "annual_2025";
-const byId = id => document.getElementById(id);
-
-let store = {
+var store = {
   classes: [],
   students: [],
   subjects: []
 };
 
 // ============ AUTH GUARD ============ //
-onAuthChange(user => {
-  // kama hakuna user → rudisha login
-  if (!user) {
+auth.onAuthStateChanged(function(user){
+  if (!user){
+    // mtu hajalogin → rudisha login page
     window.location.href = "index.html";
   }
 });
 
-// ============ SIMPLE TOAST ============ //
+// ============ TOAST ============ //
 function toast(text){
   console.log(text);
-  const el = document.createElement("div");
+  var el = document.createElement("div");
   el.textContent = text;
   el.style.cssText =
     "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
     "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2200);
+  setTimeout(function(){ el.remove(); }, 2200);
 }
 
 // ============ LOAD DATA ============ //
 async function refreshStore(){
-  const [classes, students, subjects] = await Promise.all([
+  var results = await Promise.all([
     getAll(col.classes),
     getAll(col.students),
     getAll(col.subjects)
   ]);
-  store.classes  = classes;
-  store.students = students;
-  store.subjects = subjects;
+  store.classes  = results[0];
+  store.students = results[1];
+  store.subjects = results[2];
 }
 
 // ============ RENDER HELPERS ============ //
 function renderClassSelect(){
-  const sel = byId("classSelect");
+  var sel = byId("classSelect");
   if (!store.classes.length){
-    sel.innerHTML = `<option value="">No classes yet</option>`;
+    sel.innerHTML = '<option value="">No classes yet</option>';
     return;
   }
   sel.innerHTML = store.classes
-    .map(c => `<option value="${c.id}">${c.name}</option>`)
+    .map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; })
     .join("");
 }
 
 function renderSubjectsList(){
-  const box = byId("subjectsList");
+  var box = byId("subjectsList");
   if (!store.subjects.length){
     box.innerHTML = "No subjects yet.";
     return;
   }
   box.innerHTML = store.subjects
-    .map(s => `${s.code || s.id} — ${s.name}`)
+    .map(function(s){ return (s.code || s.id) + " — " + s.name; })
     .join("<br>");
 }
 
 function renderStudentsList(){
-  const classId = byId("classSelect").value;
-  const box = byId("studentsList");
-  const list = store.students.filter(s => s.class_id === classId);
+  var classId = byId("classSelect").value;
+  var box = byId("studentsList");
+  var list = store.students.filter(function(s){ return s.class_id === classId; });
   if (!list.length){
     box.innerHTML = "No students in this class.";
     return;
   }
   box.innerHTML = list
-    .map(s => `${s.admission_no} — ${s.first_name} ${s.last_name}`)
+    .map(function(s){ return s.admission_no+" — "+s.first_name+" "+s.last_name; })
     .join("<br>");
 }
 
 // ============ MARKS TABLE ============ //
 async function renderMatrix(){
-  const classId   = byId("classSelect").value;
-  const container = byId("marksMatrixWrap");
+  var classId   = byId("classSelect").value;
+  var container = byId("marksMatrixWrap");
   container.innerHTML = "";
 
-  const students = store.students.filter(s => s.class_id === classId);
-  const subjects = store.subjects;
+  var students = store.students.filter(function(s){ return s.class_id === classId; });
+  var subjects = store.subjects;
 
   if (!classId || !students.length || !subjects.length){
     container.innerHTML = "<p class='small'>Add class, students and subjects to start entering marks.</p>";
     return;
   }
 
-  const table = document.createElement("table");
+  var table = document.createElement("table");
   table.className = "table";
 
-  const thead = document.createElement("thead");
-  const hr    = document.createElement("tr");
-  hr.innerHTML = `
-    <th>Adm</th>
-    <th>Student</th>
-    ${subjects.map(s => `<th>${s.code || s.id}<br><span class="small">${s.name}</span></th>`).join("")}
-    <th>Total</th>
-    <th>Mean</th>
-  `;
+  var thead = document.createElement("thead");
+  var hr    = document.createElement("tr");
+  hr.innerHTML =
+    "<th>Adm</th><th>Student</th>" +
+    subjects.map(function(s){
+      return "<th>"+(s.code || s.id)+"<br><span class='small'>"+s.name+"</span></th>";
+    }).join("") +
+    "<th>Total</th><th>Mean</th>";
   thead.appendChild(hr);
   table.appendChild(thead);
 
-  const tbody = document.createElement("tbody");
+  var tbody = document.createElement("tbody");
 
-  for (const stu of students){
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${stu.admission_no}</td><td>${stu.first_name} ${stu.last_name}</td>`;
+  for (var i=0; i<students.length; i++){
+    var stu = students[i];
+    var row = document.createElement("tr");
+    row.innerHTML = "<td>"+stu.admission_no+"</td><td>"+stu.first_name+" "+stu.last_name+"</td>";
 
-    let sum = 0;
+    var sum = 0;
 
-    for (const sub of subjects){
-      const cell  = document.createElement("td");
-      const docId = `${EXAM_ID}_${classId}_${stu.id}`;
-      const markDoc = await getDocById(col.marks, docId);
+    for (var j=0; j<subjects.length; j++){
+      var sub = subjects[j];
+      var cell  = document.createElement("td");
+      var docId = EXAM_ID+"_"+classId+"_"+stu.id;
 
-      const subj = markDoc && markDoc.subject_marks && markDoc.subject_marks[sub.id]
-        ? markDoc.subject_marks[sub.id]
-        : { ca:"", exam:"", total:0 };
+      // eslint-disable-next-line no-await-in-loop
+      var markDoc = await getDocById(col.marks, docId);
+      var subj = (markDoc && markDoc.subject_marks && markDoc.subject_marks[sub.id]) ?
+        markDoc.subject_marks[sub.id] : { ca:"", exam:"", total:0 };
 
-      const caInput = document.createElement("input");
-      caInput.className  = "input-inline";
-      caInput.placeholder= "CA";
-      caInput.value      = subj.ca === null ? "" : subj.ca;
+      var caInput = document.createElement("input");
+      caInput.className   = "input-inline";
+      caInput.placeholder = "CA";
+      caInput.value       = (subj.ca === null ? "" : subj.ca);
 
-      const exInput = document.createElement("input");
-      exInput.className  = "input-inline";
-      exInput.placeholder= "EX";
-      exInput.value      = subj.exam === null ? "" : subj.exam;
+      var exInput = document.createElement("input");
+      exInput.className   = "input-inline";
+      exInput.placeholder = "EX";
+      exInput.value       = (subj.exam === null ? "" : subj.exam);
 
-      caInput.onchange = () =>
-        saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
-      exInput.onchange = () =>
-        saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
+      (function(classId, stuId, subjId, caInput, exInput){
+        caInput.onchange = function(){
+          saveMark(classId, stuId, subjId, caInput.value, exInput.value);
+        };
+        exInput.onchange = function(){
+          saveMark(classId, stuId, subjId, caInput.value, exInput.value);
+        };
+      })(classId, stu.id, sub.id, caInput, exInput);
 
       cell.appendChild(caInput);
       cell.appendChild(document.createElement("br"));
@@ -156,11 +152,11 @@ async function renderMatrix(){
       sum += subj.total || 0;
     }
 
-    const totalCell = document.createElement("td");
-    const meanCell  = document.createElement("td");
+    var totalCell = document.createElement("td");
+    var meanCell  = document.createElement("td");
 
-    const subjectsCount = subjects.length || 1;
-    const mean = sum / subjectsCount;
+    var subjectsCount = subjects.length || 1;
+    var mean = sum / subjectsCount;
 
     totalCell.textContent = sum.toFixed(0);
     meanCell.textContent  = mean.toFixed(2);
@@ -176,8 +172,8 @@ async function renderMatrix(){
 
 // ============ SAVE MARK ============ //
 async function saveMark(classId, studentId, subjectId, caVal, exVal){
-  let ca = caVal === "" ? null : Number(caVal);
-  let ex = exVal === "" ? null : Number(exVal);
+  var ca = (caVal === "") ? null : Number(caVal);
+  var ex = (exVal === "") ? null : Number(exVal);
 
   if (ca !== null && (isNaN(ca) || ca < 0 || ca > 100)){
     toast("CA must be 0–100");
@@ -188,22 +184,21 @@ async function saveMark(classId, studentId, subjectId, caVal, exVal){
     return;
   }
 
-  const total = (ca || 0) + (ex || 0);
+  var total = (ca || 0) + (ex || 0);
   if (total > 100){
     toast("CA + EX must not exceed 100");
     return;
   }
 
-  const id        = `${EXAM_ID}_${classId}_${studentId}`;
-  const existing  = await getDocById(col.marks, id);
-  const subjMarks = existing && existing.subject_marks ? existing.subject_marks : {};
-
-  subjMarks[subjectId] = { ca, exam: ex, total };
+  var id       = EXAM_ID+"_"+classId+"_"+studentId;
+  var existing = await getDocById(col.marks, id);
+  var subjMarks = (existing && existing.subject_marks) ? existing.subject_marks : {};
+  subjMarks[subjectId] = { ca:ca, exam:ex, total:total };
 
   await setDocById(col.marks, id, {
-    id,
-    exam_id:   EXAM_ID,
-    class_id:  classId,
+    id: id,
+    exam_id: EXAM_ID,
+    class_id: classId,
     student_id: studentId,
     subject_marks: subjMarks,
     updated_at: new Date().toISOString()
@@ -213,12 +208,12 @@ async function saveMark(classId, studentId, subjectId, caVal, exVal){
   await renderMatrix();
 }
 
-// ============ ADD / SAMPLE / REPORTS ============ //
+// ============ ADD CLASS/STUDENT/SUBJECT ============ //
 async function addClass(){
-  const name = prompt("Andika jina la darasa (mf. Form 1A):");
+  var name = prompt("Andika jina la darasa (mf. Form 1A):");
   if (!name) return;
-  const id = name.toLowerCase().replace(/\s+/g,"_");
-  await setDocById(col.classes, id, { id, name });
+  var id = name.toLowerCase().replace(/\s+/g,"_");
+  await setDocById(col.classes, id, { id:id, name:name });
   toast("Class added");
   await refreshStore();
   renderClassSelect();
@@ -227,22 +222,22 @@ async function addClass(){
 }
 
 async function addStudent(){
-  const cls   = byId("classSelect").value;
-  const adm   = byId("stuAdmission").value.trim();
-  const first = byId("stuFirst").value.trim();
-  const last  = byId("stuLast").value.trim();
-  const phone = byId("stuPhone").value.trim();
+  var cls   = byId("classSelect").value;
+  var adm   = byId("stuAdmission").value.trim();
+  var first = byId("stuFirst").value.trim();
+  var last  = byId("stuLast").value.trim();
+  var phone = byId("stuPhone").value.trim();
 
   if (!cls){ toast("Chagua darasa kwanza"); return; }
   if (!adm || !first || !last){ toast("Jaza admission, first na last name"); return; }
 
-  const id = adm; // tumia admission kama unique ID
+  var id = adm;
   await setDocById(col.students, id, {
-    id,
+    id:id,
     admission_no: adm,
-    first_name:   first,
-    last_name:    last,
-    class_id:     cls,
+    first_name: first,
+    last_name:  last,
+    class_id:   cls,
     guardian_phone: phone
   });
 
@@ -258,14 +253,13 @@ async function addStudent(){
 }
 
 async function addSubject(){
-  const code = byId("subCode").value.trim().toUpperCase();
-  const name = byId("subName").value.trim();
+  var code = byId("subCode").value.trim().toUpperCase();
+  var name = byId("subName").value.trim();
   if (!code || !name){
     toast("Jaza subject code na name");
     return;
   }
-
-  await setDocById(col.subjects, code, { id:code, code, name });
+  await setDocById(col.subjects, code, { id:code, code:code, name:name });
 
   byId("subCode").value = "";
   byId("subName").value = "";
@@ -276,6 +270,7 @@ async function addSubject(){
   await renderMatrix();
 }
 
+// ============ REPORTS (simple) ============ //
 function gradeFromMean(m){
   if (m >= 80) return "A";
   if (m >= 65) return "B";
@@ -286,29 +281,35 @@ function gradeFromMean(m){
 
 async function generateReports(){
   await refreshStore();
-  const subjects = store.subjects;
-  const classes  = store.classes;
-  const students = store.students;
+  var subjects = store.subjects;
+  var classes  = store.classes;
+  var students = store.students;
 
-  for (const cls of classes){
-    const studs = students.filter(s => s.class_id === cls.id);
-    for (const s of studs){
-      const markId  = `${EXAM_ID}_${cls.id}_${s.id}`;
-      const markDoc = await getDocById(col.marks, markId);
+  for (var c=0;c<classes.length;c++){
+    var cls = classes[c];
+    var studs = students.filter(function(s){ return s.class_id === cls.id; });
+
+    for (var k=0;k<studs.length;k++){
+      var s = studs[k];
+      var markId  = EXAM_ID+"_"+cls.id+"_"+s.id;
+      // eslint-disable-next-line no-await-in-loop
+      var markDoc = await getDocById(col.marks, markId);
       if (!markDoc || !markDoc.subject_marks) continue;
 
-      let sum  = 0;
-      let weak = [];
-      for (const sub of subjects){
-        const t = markDoc.subject_marks[sub.id]?.total || 0;
+      var sum  = 0;
+      var weak = [];
+      for (var m=0;m<subjects.length;m++){
+        var sub = subjects[m];
+        var t = (markDoc.subject_marks[sub.id] && markDoc.subject_marks[sub.id].total) || 0;
         sum += t;
         if (t < 50) weak.push(sub.code || sub.id);
       }
 
-      const mean  = subjects.length ? sum / subjects.length : 0;
-      const grade = gradeFromMean(mean);
+      var mean  = subjects.length ? sum / subjects.length : 0;
+      var grade = gradeFromMean(mean);
+      var repId = s.id+"_"+EXAM_ID;
 
-      const repId = `${s.id}_${EXAM_ID}`;
+      // eslint-disable-next-line no-await-in-loop
       await setDocById(col.report_cards, repId, {
         id: repId,
         exam_id: EXAM_ID,
@@ -317,7 +318,7 @@ async function generateReports(){
         admission_no: s.admission_no,
         total_marks: sum,
         mean_score: Number(mean.toFixed(2)),
-        grade,
+        grade: grade,
         weak_subjects: weak,
         generated_at: new Date().toISOString()
       });
@@ -326,9 +327,10 @@ async function generateReports(){
   toast("Reports generated for all classes");
 }
 
+// ============ SAMPLE DATA ============ //
 async function loadSample(){
   if (!confirm("Load sample data into Firestore?")) return;
-  const cid = "form1a";
+  var cid = "form1a";
   await setDocById(col.classes, cid, { id:cid, name:"Form 1A" });
 
   await setDocById(col.subjects, "ENG",  { id:"ENG",  code:"ENG",  name:"English" });
@@ -353,25 +355,28 @@ async function loadSample(){
 }
 
 // ============ INIT ============ //
-window.addEventListener("load", async () => {
-  await refreshStore();
-  renderClassSelect();
-  renderSubjectsList();
-  renderStudentsList();
-  await renderMatrix();
+document.addEventListener("DOMContentLoaded", function(){
+  (async function init(){
+    await refreshStore();
+    renderClassSelect();
+    renderSubjectsList();
+    renderStudentsList();
+    await renderMatrix();
 
-  byId("classSelect").onchange         = async () => { renderStudentsList(); await renderMatrix(); };
-  byId("addClassBtn").onclick          = addClass;
-  byId("addStudentBtn").onclick        = addStudent;
-  byId("addSubjectBtn").onclick        = addSubject;
-  byId("generateReportsBtn").onclick   = generateReports;
-  byId("loadSampleBtn").onclick        = loadSample;
+    byId("classSelect").onchange       = async function(){ renderStudentsList(); await renderMatrix(); };
+    byId("addClassBtn").onclick        = addClass;
+    byId("addStudentBtn").onclick      = addStudent;
+    byId("addSubjectBtn").onclick      = addSubject;
+    byId("generateReportsBtn").onclick = generateReports;
+    byId("loadSampleBtn").onclick      = loadSample;
 
-  const logoutBtn = byId("logoutBtn");
-  if (logoutBtn){
-    logoutBtn.onclick = async () => {
-      await firebaseSignOut();
-      window.location.href = "index.html";
-    };
-  }
+    var logoutBtn = byId("logoutBtn");
+    if (logoutBtn){
+      logoutBtn.onclick = function(){
+        auth.signOut().then(function(){
+          window.location.href = "index.html";
+        });
+      };
+    }
+  })();
 });
