@@ -1,27 +1,8 @@
-// /js/database.js
-// Firebase init + helper functions for Auth & Firestore
+// js/database.js
+// Uses Firebase v8 CDN (firebase-app.js, auth.js, firestore.js MUST be loaded before this file)
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  query,
-  where
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ========= YOUR CONFIG =========
-const firebaseConfig = {
+// ----- 1. Firebase config -----
+var firebaseConfig = {
   apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
   authDomain: "school-results-management.firebaseapp.com",
   projectId: "school-results-management",
@@ -31,60 +12,44 @@ const firebaseConfig = {
   measurementId: "G-MDN4Q3C22J"
 };
 
-// ========= INIT =========
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db   = getFirestore(app);
+// ----- 2. Init app -----
+firebase.initializeApp(firebaseConfig);
 
-// ========= AUTH HELPERS =========
-export function firebaseSignIn(email, password){
-  return signInWithEmailAndPassword(auth, email, password);
-}
+// GLOBAL instances
+window.auth = firebase.auth();
+window.db   = firebase.firestore();
 
-export function firebaseSignOut(){
-  return signOut(auth);
-}
-
-export function onAuthChange(callback){
-  return onAuthStateChanged(auth, callback);
-}
-
-// ========= FIRESTORE HELPERS =========
-export const col = {
-  classes:       "classes",
-  students:      "students",
-  subjects:      "subjects",
-  exams:         "exams",
-  marks:         "marks",
-  report_cards:  "report_cards",
-  sms_logs:      "sms_logs",
-  admins:        "admins"
+// ----- 3. Collection names -----
+window.col = {
+  classes:      "classes",
+  students:     "students",
+  subjects:     "subjects",
+  exams:        "exams",
+  marks:        "marks",
+  report_cards: "report_cards",
+  sms_logs:     "sms_logs",
+  admins:       "admins"
 };
 
-export async function getAll(colName){
-  const snap = await getDocs(collection(db, colName));
+// ----- 4. Helper functions (available globally) -----
+window.getAll = async function getAll(colName){
+  const snap = await db.collection(colName).get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
+};
 
-export async function getDocById(colName, id){
-  const ref  = doc(db, colName, id);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
+window.getDocById = async function getDocById(colName, id){
+  const docRef = db.collection(colName).doc(id);
+  const snap   = await docRef.get();
+  if (!snap.exists) return null;
   return { id: snap.id, ...snap.data() };
-}
+};
 
-export async function setDocById(colName, id, data){
-  const ref = doc(db, colName, id);
-  await setDoc(ref, data, { merge:true });
-}
+window.setDocById = async function setDocById(colName, id, data){
+  const docRef = db.collection(colName).doc(id);
+  await docRef.set(data, { merge:true });
+};
 
-export async function addCollectionDoc(colName, data){
-  const ref = await addDoc(collection(db, colName), data);
+window.addCollectionDoc = async function addCollectionDoc(colName, data){
+  const ref = await db.collection(colName).add(data);
   return ref.id;
-}
-
-export async function queryCollection(colName, field, op, value){
-  const q    = query(collection(db, colName), where(field, op, value));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
+};
