@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — SMS</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="sms.html" class="active">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2>📨 SMS to Parents</h2>
+        <p class="small">
+          Generate SMS messages from existing report cards (you’ll copy + paste to your SMS app).
+        </p>
+      </div>
+
+      <div class="top-actions">
+        <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+      </div>
+    </header>
+
+    <!-- FILTERS -->
+    <section class="card">
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Exam</label>
+          <select id="examSelect" class="input">
+            <option value="annual_2025">annual_2025</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Class</label>
+          <select id="classSelect" class="input">
+            <!-- options from JS -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Recipients</label>
+          <select id="recipientFilter" class="input">
+            <option value="all">All students</option>
+            <option value="weak">Only weak students (Grade D/E)</option>
+          </select>
+        </div>
+
+        <button id="loadRecipientsBtn" class="btn btn-primary">Load Recipients</button>
+      </div>
+    </section>
+
+    <!-- TEMPLATE + RECIPIENTS -->
+    <section class="card">
+      <h3>SMS Template</h3>
+      <p class="small">
+        Tags: {name}, {adm}, {class}, {total}, {mean}, {grade}, {weak}.<br/>
+        Mfano: “Mzazi wa {name}, matokeo ya {class} {exam}: jumla {total}, wastani {mean}, daraja {grade}. Masomo
+        hafifu: {weak}.”
+      </p>
+      <textarea id="smsTemplate" class="textarea" spellcheck="false">
+Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, wastani {mean}, daraja {grade}. Masomo hafifu: {weak}.
+      </textarea>
+
+      <div style="margin-top:10px;" class="row row-wrap">
+        <button id="generateSmsBtn" class="btn btn-primary">Generate SMS</button>
+        <button id="saveLogsBtn" class="btn btn-ghost">Save Log (for SMS Logs)</button>
+      </div>
+    </section>
+
+    <!-- RECIPIENT LIST -->
+    <section class="card">
+      <h3>Recipients</h3>
+      <div class="matrix-wrap">
+        <table class="table" id="recipientsTable">
+          <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" /></th>
+            <th>Adm</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Phone</th>
+            <th>Grade</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="6">Load recipients using filters above.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- GENERATED MESSAGES -->
+    <section class="card">
+      <h3>Generated Messages</h3>
+      <p class="small">Copy each message and paste into your SMS app or bulk SMS system.</p>
+      <div id="messagesList" class="list-box"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/sms.js"></script>
+</body>
+</html>
