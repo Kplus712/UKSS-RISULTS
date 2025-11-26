@@ -1,0 +1,90 @@
+// /js/ranking.js
+import { col, getAll } from './database.js';
+
+const $ = id => document.getElementById(id);
+
+let store = {
+  exams: [],
+  classes: [],
+  students: [],
+  reports: []
+};
+
+async function loadBaseData() {
+  const [exams, classes, students, reports] = await Promise.all([
+    getAll(col.exams),
+    getAll(col.classes),
+    getAll(col.students),
+    getAll(col.report_cards)
+  ]);
+
+  store.exams = exams;
+  store.classes = classes;
+  store.students = students;
+  store.reports = reports;
+}
+
+function fillSelectors() {
+  // exams
+  const examSel = $('examSelect');
+  if (!store.exams.length) {
+    // fallback – kama hakuna exams kwenye db tumia exam tuliyotumia marks.js
+    examSel.innerHTML = `<option value="annual_2025">annual_2025</option>`;
+  } else {
+    examSel.innerHTML = store.exams
+      .map(e => `<option value="${e.id}">${e.name || e.id}</option>`)
+      .join('');
+  }
+
+  // classes
+  const classSel = $('classSelect');
+  classSel.innerHTML = store.classes
+    .map(c => `<option value="${c.id}">${c.name}</option>`)
+    .join('');
+}
+
+function renderTable(tbodyEl, list) {
+  tbodyEl.innerHTML = '';
+  if (!list.length) {
+    tbodyEl.innerHTML = `<tr><td colspan="6">No students found for this class & exam.</td></tr>`;
+    return;
+  }
+  list.forEach((r, idx) => {
+    const stu = store.students.find(s => s.id === r.student_id) || {};
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>${r.admission_no || ''}</td>
+      <td>${stu.first_name || ''} ${stu.last_name || ''}</td>
+      <td>${r.total_marks?.toFixed ? r.total_marks.toFixed(0) : r.total_marks}</td>
+      <td>${r.mean_score}</td>
+      <td>${r.grade}</td>
+    `;
+    tbodyEl.appendChild(tr);
+  });
+}
+
+function buildRanking() {
+  const examId = $('examSelect').value;
+  const classId = $('classSelect').value;
+  const reports = store.reports.filter(
+    r => r.exam_id === examId && r.class_id === classId
+  );
+
+  // sort by mean_score
+  const sorted = [...reports].sort((a, b) => (b.mean_score || 0) - (a.mean_score || 0));
+
+  const top10 = sorted.slice(0, 10);
+  const last10 = [...sorted].reverse().slice(0, 10);
+
+  renderTable($('topTable').querySelector('tbody'), top10);
+  renderTable($('lastTable').querySelector('tbody'), last10);
+}
+
+window.addEventListener('load', async () => {
+  await loadBaseData();
+  fillSelectors();
+  buildRanking();
+
+  $('loadBtn').onclick = buildRanking;
+});
