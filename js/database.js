@@ -88,4 +88,3 @@ export async function queryCollection(colName, field, op, value){
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
-
