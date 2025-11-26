@@ -1,5 +1,5 @@
 // /js/database.js
-// Firebase init + small helper functions (Auth + Firestore)
+// Firebase init + helper functions for Auth & Firestore
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -20,7 +20,7 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ==== YOUR CONFIG (ule ule uliotupa mwanzo) ====
+// ========= YOUR CONFIG =========
 const firebaseConfig = {
   apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
   authDomain: "school-results-management.firebaseapp.com",
@@ -31,14 +31,12 @@ const firebaseConfig = {
   measurementId: "G-MDN4Q3C22J"
 };
 
-// Init app
+// ========= INIT =========
 const app = initializeApp(firebaseConfig);
-
-// Auth + DB instances
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db   = getFirestore(app);
 
-// ---- AUTH HELPERS ----
+// ========= AUTH HELPERS =========
 export function firebaseSignIn(email, password){
   return signInWithEmailAndPassword(auth, email, password);
 }
@@ -51,16 +49,16 @@ export function onAuthChange(callback){
   return onAuthStateChanged(auth, callback);
 }
 
-// ---- FIRESTORE HELPERS (tutazitumia baadaye kwenye marks/results) ----
+// ========= FIRESTORE HELPERS =========
 export const col = {
-  classes: "classes",
-  students: "students",
-  subjects: "subjects",
-  exams: "exams",
-  marks: "marks",
-  report_cards: "report_cards",
-  sms_logs: "sms_logs",
-  admins: "admins"
+  classes:       "classes",
+  students:      "students",
+  subjects:      "subjects",
+  exams:         "exams",
+  marks:         "marks",
+  report_cards:  "report_cards",
+  sms_logs:      "sms_logs",
+  admins:        "admins"
 };
 
 export async function getAll(colName){
@@ -69,7 +67,7 @@ export async function getAll(colName){
 }
 
 export async function getDocById(colName, id){
-  const ref = doc(db, colName, id);
+  const ref  = doc(db, colName, id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
@@ -77,7 +75,7 @@ export async function getDocById(colName, id){
 
 export async function setDocById(colName, id, data){
   const ref = doc(db, colName, id);
-  await setDoc(ref, data, { merge: true });
+  await setDoc(ref, data, { merge:true });
 }
 
 export async function addCollectionDoc(colName, data){
@@ -86,7 +84,8 @@ export async function addCollectionDoc(colName, data){
 }
 
 export async function queryCollection(colName, field, op, value){
-  const q = query(collection(db, colName), where(field, op, value));
+  const q    = query(collection(db, colName), where(field, op, value));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
