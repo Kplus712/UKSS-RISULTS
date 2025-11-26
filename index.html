@@ -6,34 +6,53 @@
   <title>UKSS — Login</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body style="display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(180deg,#f6fbff,#ffffff)">
-  <div class="card" style="width:420px">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-      <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(90deg,#0b61ff,#0763f7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">UK</div>
-      <div>
-        <div style="font-weight:800;font-size:18px">UKSS — Results</div>
-        <div class="small">School Results Management System</div>
+<body>
+
+  <div class="page-center">
+    <div class="card">
+
+      <div class="brand">
+        <div class="brand-badge">UK</div>
+        <div>
+          <div class="brand-title">UKSS — Results System</div>
+          <div class="brand-sub">Secondary School Results • Form I–IV</div>
+        </div>
       </div>
-    </div>
 
-    <div style="margin:12px 0">
-      <label class="small">Email</label>
-      <input id="username" class="input" placeholder="admin@example.com" />
-    </div>
-    <div style="margin:12px 0">
-      <label class="small">Password</label>
-      <input id="password" class="input" type="password" placeholder="••••••••" />
-    </div>
+      <div style="margin-bottom:10px">
+        <div class="label">Email</div>
+        <input id="username" class="input" type="email" placeholder="admin@example.com" />
+      </div>
 
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" onclick="login()">Sign in</button>
-      <button class="btn btn-ghost" onclick="location.href='results.html'">View (Public demo)</button>
-    </div>
+      <div style="margin-bottom:4px">
+        <div class="label">Password</div>
+        <input id="password" class="input" type="password" placeholder="••••••••" />
+      </div>
 
-    <p id="loginMessage" class="small" style="margin-top:10px;color:#888"></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="login()">Login</button>
+        <button class="btn btn-ghost" type="button" onclick="document.getElementById('username').value='';document.getElementById('password').value='';">
+          Clear
+        </button>
+      </div>
+
+      <div id="loginMessage" class="msg">
+        Andika akaunti ya admin uliyosajili kwenye Firebase Authentication.
+      </div>
+
+      <div class="footer">
+        © <span id="year"></span> UKSS • Designed for Tanzanian Secondary Schools
+      </div>
+
+    </div>
   </div>
 
- <script type="module" src="./js/ui.js"></script>
+  <script>
+    // simple footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+  <!-- Firebase + auth logic -->
+  <script type="module" src="./js/auth.js"></script>
 </body>
 </html>
-
