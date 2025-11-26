@@ -4,18 +4,20 @@ var emailInput = document.getElementById("username");
 var passInput  = document.getElementById("password");
 var msgBox     = document.getElementById("loginMessage");
 
-// kama user tayari ka-login, mtupie marks.html
-auth.onAuthStateChanged(function(user){
-  if (user) {
-    window.location.href = "marks.html";
-  }
-});
-
 function showMessage(text, isError){
   if (!msgBox) return;
   msgBox.textContent = text;
   msgBox.style.color = isError ? "#ffb3b3" : "#9fb5a7";
 }
+
+// Hapa HATUredirect tena, tunaonyesha tu status
+auth.onAuthStateChanged(function(user){
+  if (user) {
+    showMessage("Umeisha login tayari. Unaweza kubonyeza Login tena kufungua Marks.");
+  } else {
+    showMessage("Andika akaunti ya admin uliyosajili kwenye Firebase Authentication.");
+  }
+});
 
 // inahitajika na onclick="login()" kwenye index.html
 window.login = function login(){
