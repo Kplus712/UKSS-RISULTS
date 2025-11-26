@@ -1,10 +1,17 @@
 // /js/marks.js
-// Marks entry logic — Form I–IV using Firestore
+// Marks entry for UKSS — Voting Green UI
 
-import { col, getAll, getDocById, setDocById } from "./database.js";
+import {
+  col,
+  getAll,
+  getDocById,
+  setDocById,
+  onAuthChange,
+  firebaseSignOut
+} from "./database.js";
 
 const EXAM_ID = "annual_2025";
-const $ = id => document.getElementById(id);
+const byId = id => document.getElementById(id);
 
 let store = {
   classes: [],
@@ -12,33 +19,43 @@ let store = {
   subjects: []
 };
 
+// ============ AUTH GUARD ============ //
+onAuthChange(user => {
+  // kama hakuna user → rudisha login
+  if (!user) {
+    window.location.href = "index.html";
+  }
+});
+
+// ============ SIMPLE TOAST ============ //
 function toast(text){
   console.log(text);
-  // simple inline message on page (you can upgrade later)
   const el = document.createElement("div");
   el.textContent = text;
-  el.style.cssText = "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
+  el.style.cssText =
+    "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
+    "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(),2200);
+  setTimeout(() => el.remove(), 2200);
 }
 
-/* ---------- LOAD DATA ---------- */
+// ============ LOAD DATA ============ //
 async function refreshStore(){
   const [classes, students, subjects] = await Promise.all([
     getAll(col.classes),
     getAll(col.students),
     getAll(col.subjects)
   ]);
-  store.classes = classes;
+  store.classes  = classes;
   store.students = students;
   store.subjects = subjects;
 }
 
-/* ---------- RENDER UI ---------- */
+// ============ RENDER HELPERS ============ //
 function renderClassSelect(){
-  const sel = $("classSelect");
+  const sel = byId("classSelect");
   if (!store.classes.length){
-    sel.innerHTML = "<option value=\"\">No classes yet</option>";
+    sel.innerHTML = `<option value="">No classes yet</option>`;
     return;
   }
   sel.innerHTML = store.classes
@@ -47,7 +64,7 @@ function renderClassSelect(){
 }
 
 function renderSubjectsList(){
-  const box = $("subjectsList");
+  const box = byId("subjectsList");
   if (!store.subjects.length){
     box.innerHTML = "No subjects yet.";
     return;
@@ -58,8 +75,8 @@ function renderSubjectsList(){
 }
 
 function renderStudentsList(){
-  const classId = $("classSelect").value;
-  const box = $("studentsList");
+  const classId = byId("classSelect").value;
+  const box = byId("studentsList");
   const list = store.students.filter(s => s.class_id === classId);
   if (!list.length){
     box.innerHTML = "No students in this class.";
@@ -70,16 +87,17 @@ function renderStudentsList(){
     .join("<br>");
 }
 
+// ============ MARKS TABLE ============ //
 async function renderMatrix(){
-  const classId = $("classSelect").value;
-  const matrixWrap = $("marksMatrixWrap");
-  matrixWrap.innerHTML = "";
+  const classId   = byId("classSelect").value;
+  const container = byId("marksMatrixWrap");
+  container.innerHTML = "";
 
   const students = store.students.filter(s => s.class_id === classId);
   const subjects = store.subjects;
 
   if (!classId || !students.length || !subjects.length){
-    matrixWrap.innerHTML = "<p class='small'>Add class, students and subjects to start entering marks.</p>";
+    container.innerHTML = "<p class='small'>Add class, students and subjects to start entering marks.</p>";
     return;
   }
 
@@ -87,7 +105,7 @@ async function renderMatrix(){
   table.className = "table";
 
   const thead = document.createElement("thead");
-  const hr = document.createElement("tr");
+  const hr    = document.createElement("tr");
   hr.innerHTML = `
     <th>Adm</th>
     <th>Student</th>
@@ -107,25 +125,28 @@ async function renderMatrix(){
     let sum = 0;
 
     for (const sub of subjects){
-      const cell = document.createElement("td");
+      const cell  = document.createElement("td");
       const docId = `${EXAM_ID}_${classId}_${stu.id}`;
       const markDoc = await getDocById(col.marks, docId);
+
       const subj = markDoc && markDoc.subject_marks && markDoc.subject_marks[sub.id]
         ? markDoc.subject_marks[sub.id]
-        : { ca: "", exam: "", total: 0 };
+        : { ca:"", exam:"", total:0 };
 
       const caInput = document.createElement("input");
-      caInput.className = "input-inline";
-      caInput.placeholder = "CA";
-      caInput.value = subj.ca === null ? "" : subj.ca;
+      caInput.className  = "input-inline";
+      caInput.placeholder= "CA";
+      caInput.value      = subj.ca === null ? "" : subj.ca;
 
       const exInput = document.createElement("input");
-      exInput.className = "input-inline";
-      exInput.placeholder = "EX";
-      exInput.value = subj.exam === null ? "" : subj.exam;
+      exInput.className  = "input-inline";
+      exInput.placeholder= "EX";
+      exInput.value      = subj.exam === null ? "" : subj.exam;
 
-      caInput.onchange = () => saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
-      exInput.onchange = () => saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
+      caInput.onchange = () =>
+        saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
+      exInput.onchange = () =>
+        saveMark(classId, stu.id, sub.id, caInput.value, exInput.value);
 
       cell.appendChild(caInput);
       cell.appendChild(document.createElement("br"));
@@ -136,12 +157,13 @@ async function renderMatrix(){
     }
 
     const totalCell = document.createElement("td");
-    const meanCell = document.createElement("td");
+    const meanCell  = document.createElement("td");
+
     const subjectsCount = subjects.length || 1;
     const mean = sum / subjectsCount;
 
     totalCell.textContent = sum.toFixed(0);
-    meanCell.textContent = mean.toFixed(2);
+    meanCell.textContent  = mean.toFixed(2);
 
     row.appendChild(totalCell);
     row.appendChild(meanCell);
@@ -149,10 +171,10 @@ async function renderMatrix(){
   }
 
   table.appendChild(tbody);
-  matrixWrap.appendChild(table);
+  container.appendChild(table);
 }
 
-/* ---------- SAVE MARK ---------- */
+// ============ SAVE MARK ============ //
 async function saveMark(classId, studentId, subjectId, caVal, exVal){
   let ca = caVal === "" ? null : Number(caVal);
   let ex = exVal === "" ? null : Number(exVal);
@@ -165,23 +187,25 @@ async function saveMark(classId, studentId, subjectId, caVal, exVal){
     toast("EX must be 0–100");
     return;
   }
+
   const total = (ca || 0) + (ex || 0);
   if (total > 100){
     toast("CA + EX must not exceed 100");
     return;
   }
 
-  const id = `${EXAM_ID}_${classId}_${studentId}`;
-  const existing = await getDocById(col.marks, id);
-  const subject_marks = existing && existing.subject_marks ? existing.subject_marks : {};
-  subject_marks[subjectId] = { ca, exam: ex, total };
+  const id        = `${EXAM_ID}_${classId}_${studentId}`;
+  const existing  = await getDocById(col.marks, id);
+  const subjMarks = existing && existing.subject_marks ? existing.subject_marks : {};
+
+  subjMarks[subjectId] = { ca, exam: ex, total };
 
   await setDocById(col.marks, id, {
     id,
-    exam_id: EXAM_ID,
-    class_id: classId,
+    exam_id:   EXAM_ID,
+    class_id:  classId,
     student_id: studentId,
-    subject_marks,
+    subject_marks: subjMarks,
     updated_at: new Date().toISOString()
   });
 
@@ -189,7 +213,7 @@ async function saveMark(classId, studentId, subjectId, caVal, exVal){
   await renderMatrix();
 }
 
-/* ---------- HANDLERS: ADD CLASS/STUDENT/SUBJECT ---------- */
+// ============ ADD / SAMPLE / REPORTS ============ //
 async function addClass(){
   const name = prompt("Andika jina la darasa (mf. Form 1A):");
   if (!name) return;
@@ -203,29 +227,29 @@ async function addClass(){
 }
 
 async function addStudent(){
-  const cls = $("classSelect").value;
-  const adm = $("stuAdmission").value.trim();
-  const first = $("stuFirst").value.trim();
-  const last = $("stuLast").value.trim();
-  const phone = $("stuPhone").value.trim();
+  const cls   = byId("classSelect").value;
+  const adm   = byId("stuAdmission").value.trim();
+  const first = byId("stuFirst").value.trim();
+  const last  = byId("stuLast").value.trim();
+  const phone = byId("stuPhone").value.trim();
 
   if (!cls){ toast("Chagua darasa kwanza"); return; }
   if (!adm || !first || !last){ toast("Jaza admission, first na last name"); return; }
 
-  const id = adm; // tumia admission kama id
+  const id = adm; // tumia admission kama unique ID
   await setDocById(col.students, id, {
     id,
     admission_no: adm,
-    first_name: first,
-    last_name: last,
-    class_id: cls,
+    first_name:   first,
+    last_name:    last,
+    class_id:     cls,
     guardian_phone: phone
   });
 
-  $("stuAdmission").value = "";
-  $("stuFirst").value = "";
-  $("stuLast").value = "";
-  $("stuPhone").value = "";
+  byId("stuAdmission").value = "";
+  byId("stuFirst").value     = "";
+  byId("stuLast").value      = "";
+  byId("stuPhone").value     = "";
 
   toast("Student added");
   await refreshStore();
@@ -234,18 +258,17 @@ async function addStudent(){
 }
 
 async function addSubject(){
-  const code = $("subCode").value.trim().toUpperCase();
-  const name = $("subName").value.trim();
-  if (!code || !name){ toast("Jaza subject code na name"); return; }
+  const code = byId("subCode").value.trim().toUpperCase();
+  const name = byId("subName").value.trim();
+  if (!code || !name){
+    toast("Jaza subject code na name");
+    return;
+  }
 
-  await setDocById(col.subjects, code, {
-    id: code,
-    code,
-    name
-  });
+  await setDocById(col.subjects, code, { id:code, code, name });
 
-  $("subCode").value = "";
-  $("subName").value = "";
+  byId("subCode").value = "";
+  byId("subName").value = "";
 
   toast("Subject added");
   await refreshStore();
@@ -253,7 +276,6 @@ async function addSubject(){
   await renderMatrix();
 }
 
-/* ---------- GENERATE REPORT CARDS (simple version) ---------- */
 function gradeFromMean(m){
   if (m >= 80) return "A";
   if (m >= 65) return "B";
@@ -265,25 +287,25 @@ function gradeFromMean(m){
 async function generateReports(){
   await refreshStore();
   const subjects = store.subjects;
-  const classes = store.classes;
+  const classes  = store.classes;
   const students = store.students;
 
   for (const cls of classes){
     const studs = students.filter(s => s.class_id === cls.id);
     for (const s of studs){
-      const markId = `${EXAM_ID}_${cls.id}_${s.id}`;
+      const markId  = `${EXAM_ID}_${cls.id}_${s.id}`;
       const markDoc = await getDocById(col.marks, markId);
       if (!markDoc || !markDoc.subject_marks) continue;
 
-      let sum = 0;
+      let sum  = 0;
       let weak = [];
       for (const sub of subjects){
-        const m = markDoc.subject_marks[sub.id]?.total || 0;
-        sum += m;
-        if (m < 50) weak.push(sub.code || sub.id);
+        const t = markDoc.subject_marks[sub.id]?.total || 0;
+        sum += t;
+        if (t < 50) weak.push(sub.code || sub.id);
       }
 
-      const mean = subjects.length ? sum / subjects.length : 0;
+      const mean  = subjects.length ? sum / subjects.length : 0;
       const grade = gradeFromMean(mean);
 
       const repId = `${s.id}_${EXAM_ID}`;
@@ -304,15 +326,14 @@ async function generateReports(){
   toast("Reports generated for all classes");
 }
 
-/* ---------- SAMPLE DATA (for testing) ---------- */
 async function loadSample(){
   if (!confirm("Load sample data into Firestore?")) return;
   const cid = "form1a";
-  await setDocById(col.classes, cid, { id: cid, name: "Form 1A" });
+  await setDocById(col.classes, cid, { id:cid, name:"Form 1A" });
 
-  await setDocById(col.subjects, "ENG", { id:"ENG", code:"ENG", name:"English" });
+  await setDocById(col.subjects, "ENG",  { id:"ENG",  code:"ENG",  name:"English" });
   await setDocById(col.subjects, "MATH", { id:"MATH", code:"MATH", name:"Mathematics" });
-  await setDocById(col.subjects, "BS", { id:"BS", code:"BS", name:"Business Studies" });
+  await setDocById(col.subjects, "BS",   { id:"BS",   code:"BS",   name:"Business Studies" });
 
   await setDocById(col.students, "ADM001", {
     id:"ADM001", admission_no:"ADM001", first_name:"Kelvin",
@@ -331,7 +352,7 @@ async function loadSample(){
   await renderMatrix();
 }
 
-/* ---------- INIT ---------- */
+// ============ INIT ============ //
 window.addEventListener("load", async () => {
   await refreshStore();
   renderClassSelect();
@@ -339,13 +360,18 @@ window.addEventListener("load", async () => {
   renderStudentsList();
   await renderMatrix();
 
-  $("classSelect").onchange = async () => {
-    renderStudentsList();
-    await renderMatrix();
-  };
-  $("addClassBtn").onclick = addClass;
-  $("addStudentBtn").onclick = addStudent;
-  $("addSubjectBtn").onclick = addSubject;
-  $("generateReportsBtn").onclick = generateReports;
-  $("loadSampleBtn").onclick = loadSample;
+  byId("classSelect").onchange         = async () => { renderStudentsList(); await renderMatrix(); };
+  byId("addClassBtn").onclick          = addClass;
+  byId("addStudentBtn").onclick        = addStudent;
+  byId("addSubjectBtn").onclick        = addSubject;
+  byId("generateReportsBtn").onclick   = generateReports;
+  byId("loadSampleBtn").onclick        = loadSample;
+
+  const logoutBtn = byId("logoutBtn");
+  if (logoutBtn){
+    logoutBtn.onclick = async () => {
+      await firebaseSignOut();
+      window.location.href = "index.html";
+    };
+  }
 });
