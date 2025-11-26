@@ -1,54 +1,211 @@
-// /js/report.js
-import { col, getAll } from './database.js';
-const $ = id => document.getElementById(id);
+// js/report.js
+// Results listing + single report card modal
+// Uses global firebase auth, db, col, getAll, getDocById from database.js
 
-let store = { classes:[], students:[], reports:[] };
+var EXAM_ID = "annual_2025";
+var $ = function(id){ return document.getElementById(id); };
 
-async function loadAll(){
-  [store.classes, store.students, store.reports] = await Promise.all([ getAll(col.classes), getAll(col.students), getAll(col.report_cards) ]);
-}
-
-function fillFilter(){
-  $('classFilter').innerHTML = `<option value="">All Classes</option>` + store.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-}
-
-function render(list){
-  const tbody = $('resultsTable').querySelector('tbody'); tbody.innerHTML = '';
-  if(!list.length){ tbody.innerHTML = `<tr><td colspan="9">No reports found.</td></tr>`; return; }
-  list.forEach(r=>{
-    const stu = store.students.find(s=>s.id===r.student_id) || {};
-    const cls = store.classes.find(c=>c.id===r.class_id) || {};
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r.admission_no}</td><td>${stu.first_name||''} ${stu.last_name||''}</td><td>${cls.name||'-'}</td><td>${r.total_marks}</td><td>${r.mean_score}</td><td>${r.grade}</td><td>${(r.weak_subjects||[]).join(', ')}</td><td>${r.remark}</td><td><button class="btn btn-ghost" onclick="printSingle('${r.id}')">Print</button></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-window.printSingle = function(id){
-  const r = store.reports.find(x=>x.id===id);
-  const stu = store.students.find(s=>s.id===r.student_id)||{};
-  const cls = store.classes.find(c=>c.id===r.class_id)||{};
-  const html = `<html><head><title>Report</title></head><body style="font-family:Inter;padding:20px"><h2>STUDENT REPORT CARD</h2><p><strong>Name:</strong> ${stu.first_name||''} ${stu.last_name||''}</p><p><strong>Admission:</strong> ${r.admission_no}</p><p><strong>Class:</strong> ${cls.name||'-'}</p><p>Total: ${r.total_marks}</p><p>Mean: ${r.mean_score}</p><p>Grade: ${r.grade}</p><p>Weak: ${(r.weak_subjects||[]).join(', ')}</p><p>Remark: ${r.remark}</p><p>Printed: ${new Date().toLocaleString()}</p></body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close(); w.print();
+var store = {
+  classes: [],
+  students: [],
+  subjects: [],
+  reports: []
 };
 
-function applyFilters(){
-  const q = $('searchBox').value.trim().toLowerCase();
-  const cls = $('classFilter').value;
-  const list = store.reports.filter(r=>{
-    const s = store.students.find(x=>x.id===r.student_id)||{};
-    const matchesQ = !q || (s.first_name||'').toLowerCase().includes(q) || (s.last_name||'').toLowerCase().includes(q) || (r.admission_no||'').toLowerCase().includes(q);
-    const matchesC = !cls || r.class_id===cls;
-    return matchesQ && matchesC;
-  });
-  render(list);
+/* ========== AUTH GUARD ========== */
+auth.onAuthStateChanged(function(user){
+  if (!user){
+    window.location.href = "index.html";
+  }
+});
+
+/* ========== TOAST HELPER (reuse from marks style) ========== */
+function toast(text){
+  console.log(text);
+  var el = document.createElement("div");
+  el.textContent = text;
+  el.style.cssText =
+    "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
+    "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2200);
 }
 
-window.addEventListener('load', async ()=>{
-  await loadAll();
-  fillFilter();
-  render(store.reports);
-  $('searchBox').oninput = applyFilters;
-  $('classFilter').onchange = applyFilters;
-  $('printAll').onclick = ()=> window.print();
+/* ========== LOAD DATA ========== */
+async function refreshStore(){
+  try{
+    var res = await Promise.all([
+      getAll(col.classes),
+      getAll(col.students),
+      getAll(col.subjects),
+      getAll(col.report_cards)
+    ]);
+    store.classes  = res[0];
+    store.students = res[1];
+    store.subjects = res[2];
+    store.reports  = res[3];
+  }catch(err){
+    console.error("refreshStore (results) error:", err);
+    toast("Imeshindikana kusoma report cards kutoka Firestore.");
+  }
+}
+
+/* ========== FILTERS & TABLE ========== */
+function fillClassFilter(){
+  var sel = $("classSelect");
+  if (!sel) return;
+  var options = ['<option value="">All classes</option>'];
+  store.classes.forEach(function(c){
+    options.push('<option value="'+c.id+'">'+c.name+'</option>');
+  });
+  sel.innerHTML = options.join("");
+}
+
+function applyFilters(){
+  var examId  = $("examSelect").value || EXAM_ID;
+  var classId = $("classSelect").value;
+  var q       = ($("searchBox").value || "").toLowerCase();
+
+  var list = store.reports.filter(function(r){
+    if (r.exam_id && r.exam_id !== examId) return false;
+    if (classId && r.class_id !== classId) return false;
+    var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
+    var name = ((stu.first_name || "") + " " + (stu.last_name || "")).toLowerCase();
+    var adm  = (r.admission_no || "").toLowerCase();
+    if (q && !(name.includes(q) || adm.includes(q))) return false;
+    return true;
+  });
+
+  renderTable(list);
+}
+
+function renderTable(list){
+  var tbody = $("resultsTable").querySelector("tbody");
+  tbody.innerHTML = "";
+
+  if (!list.length){
+    tbody.innerHTML = '<tr><td colspan="7">No report cards found. Hakikisha ume-generate reports kwenye Marks page.</td></tr>';
+    return;
+  }
+
+  list.forEach(function(r){
+    var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
+    var cls = store.classes.find(function(c){ return c.id === r.class_id; }) || {};
+
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>"+(r.admission_no || "")+"</td>"+
+      "<td>"+(stu.first_name || "")+" "+(stu.last_name || "")+"</td>"+
+      "<td>"+(cls.name || "")+"</td>"+
+      "<td>"+(r.total_marks || "")+"</td>"+
+      "<td>"+(r.mean_score || "")+"</td>"+
+      "<td>"+(r.grade || "")+"</td>"+
+      '<td><button class="btn btn-ghost btn-sm" data-report-id="'+r.id+'">View</button></td>';
+
+    tbody.appendChild(tr);
+  });
+
+  // attach click listeners for View buttons
+  Array.prototype.forEach.call(
+    tbody.querySelectorAll("button[data-report-id]"),
+    function(btn){
+      btn.onclick = function(){
+        var repId = btn.getAttribute("data-report-id");
+        openReport(repId);
+      };
+    }
+  );
+}
+
+/* ========== REPORT CARD MODAL ========== */
+async function openReport(reportId){
+  var r = store.reports.find(function(x){ return x.id === reportId; });
+  if (!r){
+    toast("Report haijapatikana.");
+    return;
+  }
+  var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
+  var cls = store.classes.find(function(c){ return c.id === r.class_id; }) || {};
+
+  $("rpName").textContent  = (stu.first_name || "")+" "+(stu.last_name || "");
+  $("rpAdm").textContent   = r.admission_no || "";
+  $("rpClass").textContent = cls.name || "";
+  $("rpExam").textContent  = r.exam_id || EXAM_ID;
+  $("rpTotal").textContent = r.total_marks || "";
+  $("rpMean").textContent  = r.mean_score || "";
+  $("rpGrade").textContent = r.grade || "";
+  $("rpWeak").textContent  = (r.weak_subjects && r.weak_subjects.length)
+    ? r.weak_subjects.join(", ")
+    : "None";
+
+  // build subject marks table from marks doc
+  var tbody = $("rpSubjectsTable").querySelector("tbody");
+  tbody.innerHTML = "";
+
+  try{
+    var markId = EXAM_ID+"_"+r.class_id+"_"+r.student_id;
+    var markDoc = await getDocById(col.marks, markId);
+    if (markDoc && markDoc.subject_marks){
+      store.subjects.forEach(function(sub){
+        var m = markDoc.subject_marks[sub.id] || {};
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>"+(sub.code || sub.id)+" — "+sub.name+"</td>"+
+          "<td>"+(m.ca   != null ? m.ca   : "")+"</td>"+
+          "<td>"+(m.exam != null ? m.exam : "")+"</td>"+
+          "<td>"+(m.total!= null ? m.total: "")+"</td>";
+        tbody.appendChild(tr);
+      });
+    }else{
+      tbody.innerHTML = "<tr><td colspan='4'>No subject breakdown found for this report.</td></tr>";
+    }
+  }catch(err){
+    console.error("openReport marks error:", err);
+    tbody.innerHTML = "<tr><td colspan='4'>Error loading subject marks.</td></tr>";
+  }
+
+  $("reportOverlay").classList.remove("hidden");
+}
+
+/* ========== INIT & EVENTS ========== */
+document.addEventListener("DOMContentLoaded", function(){
+  (async function init(){
+    await refreshStore();
+    fillClassFilter();
+    applyFilters();
+
+    if ($("filterBtn")) $("filterBtn").onclick = applyFilters;
+    if ($("searchBox")) $("searchBox").onkeyup = function(e){
+      if (e.key === "Enter") applyFilters();
+    };
+
+    var closeBtn = $("closeReportBtn");
+    if (closeBtn){
+      closeBtn.onclick = function(){
+        $("reportOverlay").classList.add("hidden");
+      };
+    }
+    var overlay = $("reportOverlay");
+    if (overlay){
+      overlay.addEventListener("click", function(e){
+        if (e.target === overlay) overlay.classList.add("hidden");
+      });
+    }
+
+    var printBtn = $("printBtn");
+    if (printBtn){
+      printBtn.onclick = function(){
+        window.print();
+      };
+    }
+
+    var logoutBtn = $("logoutBtn");
+    if (logoutBtn){
+      logoutBtn.onclick = function(){
+        auth.signOut().then(function(){
+          window.location.href = "index.html";
+        });
+      };
+    }
+  })();
 });
