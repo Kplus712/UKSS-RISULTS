@@ -26,10 +26,13 @@ window.col = {
   exams:        "exams",
   marks:        "marks",
   report_cards: "report_cards",
-  behaviour:    "behaviour",   // 🔹 NEW
+  behaviour:    "behaviour",
   sms_logs:     "sms_logs",
+  staff:        "staff",      // 🔹 staff collection
+  settings:     "settings",   // 🔹 system settings
   admins:       "admins"
 };
+
 
 // mfano wa structure uliyonayo sasa
 const db = firebase.firestore();
