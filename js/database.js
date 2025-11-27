@@ -34,16 +34,17 @@ window.col = {
 };
 
 
-const db = firebase.firestore();
 const col = {
-  classes: db.collection("classes"),
-  students: db.collection("students"),
-  report_cards: db.collection("report_cards"),
-  behaviour: db.collection("behaviour"),
-  sms_logs: db.collection("sms_logs"),
-  staff: db.collection("staff"),       // 👈 hii lazima iwepo
-  settings: db.collection("settings")  // 👈 hii pia kwa system settings
+  classes:      "classes",
+  students:     "students",
+  subjects:     "subjects",
+  report_cards: "report_cards",
+  behaviour:    "behaviour",
+  sms_logs:     "sms_logs",
+  staff:        "staff",      // 🔹 mpya
+  settings:     "settings"    // 🔹 mpya
 };
+
 
 
 
