@@ -39,8 +39,8 @@ auth.onAuthStateChanged(function(user){
 /* ===== INIT ADMIN ===== */
 async function initAdmin(user){
   try{
-    // 1) SOMA STAFF DOC YA USER HUYU (direct Firestore)
-    var snap = await col.staff.doc(user.uid).get();
+    // 1) SOMA STAFF DOC YA USER HUYU (tunatumia db.collection + col.staff kama string)
+    var snap = await db.collection(col.staff).doc(user.uid).get();
     var staffDoc = snap.exists ? (function(){
       var d = snap.data(); d.id = snap.id; return d;
     })() : null;
@@ -56,7 +56,7 @@ async function initAdmin(user){
         active: false,
         updated_at: new Date().toISOString()
       };
-      await col.staff.doc(user.uid).set(staffDoc, { merge:true });
+      await db.collection(col.staff).doc(user.uid).set(staffDoc, { merge:true });
     }
 
     var myRole  = staffDoc.role || "none";
@@ -121,7 +121,7 @@ async function loadStaffTable(){
   tbody.innerHTML = "<tr><td colspan='6'>Loading staff...</td></tr>";
 
   try{
-    // getAll inategemea col.staff (collection ref), kama marks/sms
+    // getAll inatumia col.staff kama string (eg. "staff")
     var staffList = await getAll(col.staff);
     if (!staffList.length){
       tbody.innerHTML = "<tr><td colspan='6'>Hakuna staff kwenye collection 'staff' bado.</td></tr>";
@@ -203,15 +203,15 @@ function attachStaffHandlers(){
   });
 }
 
-/* ==== helper: updateStaff (direct Firestore) ==== */
+/* ==== helper: updateStaff (string-based col) ==== */
 async function updateStaff(uid, partial){
   try{
-    var snap = await col.staff.doc(uid).get();
+    var snap = await db.collection(col.staff).doc(uid).get();
     var existing = snap.exists ? snap.data() : {};
     var data = Object.assign({}, existing, partial, {
       updated_at: new Date().toISOString()
     });
-    await col.staff.doc(uid).set(data, { merge:true });
+    await db.collection(col.staff).doc(uid).set(data, { merge:true });
     console.log("updated staff", uid, partial);
   }catch(err){
     console.error("updateStaff error:", err);
@@ -303,8 +303,7 @@ function attachPendingHandlers(){
    ================== */
 async function loadSettings(){
   try{
-    // tumetegemea col.settings ni collection ref: db.collection("settings")
-    var snap = await col.settings.doc("global").get();
+    var snap = await db.collection(col.settings).doc("global").get();
     var s = snap.exists ? snap.data() : {};
 
     if ($("setSchoolName"))    $("setSchoolName").value    = s.school_name  || "";
@@ -339,7 +338,7 @@ async function saveSettings(){
       updated_at:    new Date().toISOString()
     };
 
-    await col.settings.doc("global").set(data, { merge:true });
+    await db.collection(col.settings).doc("global").set(data, { merge:true });
     var st = $("settingsStatus");
     if (st) st.textContent = "Settings saved successfully.";
     toast("System settings zimeshifadhiwa.");
@@ -375,3 +374,4 @@ async function loadLogsOverview(){
     if ($("logBehaviourCount")) $("logBehaviourCount").value = "error";
   }
 }
+
