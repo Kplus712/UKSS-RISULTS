@@ -32,22 +32,23 @@
 
   <!-- MAIN -->
   <main class="main">
+
+    <!-- TOPBAR -->
     <header class="topbar">
       <div>
-        <h2>🔐 Admin & Roles</h2>
+        <h2>🔐 Admin Control Center</h2>
         <p class="small">
-          Manage staff roles. Kila user ataona features kulingana na role yake
-          (Academic, Headmaster, Class Teacher, Admin).
+          Full control kwa system owner: staff roles, system settings, logs na approvals za access.
         </p>
       </div>
       <button id="logoutBtn" class="btn btn-ghost">Logout</button>
     </header>
 
-    <!-- YOUR ROLE -->
+    <!-- YOUR ACCOUNT -->
     <section class="card">
       <h3>Your Account</h3>
       <p class="small">
-        Hapa unaona taarifa zako kama zilivyo kwenye mfumo.
+        Hapa unaona taarifa zako na role uliyopewa. Kazi za admin zipo chini.
       </p>
 
       <div class="row row-wrap">
@@ -72,13 +73,12 @@
       <p id="roleWarning" class="small" style="margin-top:8px;color:#f97373;"></p>
     </section>
 
-    <!-- STAFF ROLES TABLE -->
+    <!-- 1) MANAGE STAFF (ROLES + ACTIVE) -->
     <section class="card">
-      <h3>Staff Roles</h3>
+      <h3>1. Staff Management</h3>
       <p class="small">
-        Users wote wanaotumia UKSS wanahifadhiwa kwenye collection <code>staff</code>.
-        Kwanza wafundishe wajisajili (create account), kisha hapa unawa-assign role:
-        <strong>Admin</strong>, <strong>Headmaster</strong>, <strong>Academic</strong>, au <strong>Class Teacher</strong>.
+        Badili roles, class na status ya staff. “Active” ikizimwa, user hawezi kutumia mfumo
+        (lakini account haifutwi kabisa). Kufuta kabisa tutaweka kwenye Danger Zone baadaye.
       </p>
 
       <div class="matrix-wrap">
@@ -89,15 +89,136 @@
             <th>Email</th>
             <th>Role</th>
             <th>Main Class</th>
+            <th>Active</th>
             <th>Updated</th>
           </tr>
           </thead>
           <tbody>
-          <tr><td colspan="5">Loading staff...</td></tr>
+          <tr><td colspan="6">Loading staff...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:8px;">
+        Roles:
+        <strong>Admin</strong> (full control),
+        <strong>Headmaster</strong> (approvals & reports),
+        <strong>Academic</strong> (exams & analysis),
+        <strong>Class Teacher</strong> (comments & class reports).
+      </p>
+    </section>
+
+    <!-- 8) ACCESS CONTROL / APPROVALS -->
+    <section class="card">
+      <h3>2. Access Control & Approvals</h3>
+      <p class="small">
+        Staff wapya au wasio na role/active wataonekana hapa. Wape role sahihi na uwasha “Active”.
+        Unaweza pia ku-disable user yeyote bila kufuta kabisa account yake.
+      </p>
+
+      <div class="matrix-wrap">
+        <table class="table" id="pendingTable">
+          <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Current Role</th>
+            <th>New Role</th>
+            <th>Set Active</th>
+            <th>Apply</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="6">No pending staff.</td></tr>
           </tbody>
         </table>
       </div>
     </section>
+
+    <!-- 6) SYSTEM SETTINGS -->
+    <section class="card">
+      <h3>3. System Settings</h3>
+      <p class="small">
+        Taarifa za shule na baadhi ya settings za mfumo. Zitatumika kwenye report cards,
+        SMS templates na dashboards. Settings hizi zitahifadhiwa kwenye collection
+        <code>settings</code>, document <code>global</code>.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">School Name</label>
+          <input id="setSchoolName" class="input" placeholder="eg. Mambosasa Secondary School" />
+        </div>
+        <div class="field">
+          <label class="label">School Motto</label>
+          <input id="setSchoolMotto" class="input" placeholder="eg. Discipline and Excellence" />
+        </div>
+        <div class="field">
+          <label class="label">School Address</label>
+          <input id="setSchoolAddress" class="input" placeholder="eg. P.O. Box 123, Dar es Salaam" />
+        </div>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:8px;">
+        <div class="field">
+          <label class="label">School Phone</label>
+          <input id="setSchoolPhone" class="input" placeholder="eg. 0789 000 000" />
+        </div>
+        <div class="field">
+          <label class="label">Current SMS Provider</label>
+          <input id="setSmsProvider" class="input" value="Beem Africa" />
+        </div>
+        <div class="field">
+          <label class="label">Academic Year</label>
+          <input id="setAcademicYear" class="input" placeholder="eg. 2025" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <h4>Grading Scale (summary note)</h4>
+        <p class="small">
+          Hapa unaweka tu maelezo ya grading scale kama reference (mfano A: 75–100, B: 65–74 n.k.).
+          Logic halisi ya grading tutaweka kwenye marks.js baadaye.
+        </p>
+        <textarea id="setGradingNote" class="textarea" rows="3"
+          placeholder="eg. A: 75–100, B: 65–74, C: 45–64, D: 25–44, E: 0–24"></textarea>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:10px;">
+        <button id="saveSettingsBtn" class="btn btn-primary">Save Settings</button>
+        <span id="settingsStatus" class="small"></span>
+      </div>
+    </section>
+
+    <!-- 7) LOGS OVERVIEW -->
+    <section class="card">
+      <h3>4. Logs & Reports Overview</h3>
+      <p class="small">
+        Muhtasari wa rekodi muhimu. Kwa sasa unaonyesha counts na links kwenda kwenye pages husika.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Total SMS Logs</label>
+          <input id="logSmsCount" class="input" type="text" disabled value="..." />
+        </div>
+        <div class="field">
+          <label class="label">Total Report Cards</label>
+          <input id="logReportsCount" class="input" type="text" disabled value="..." />
+        </div>
+        <div class="field">
+          <label class="label">Total Behaviour Records</label>
+          <input id="logBehaviourCount" class="input" type="text" disabled value="..." />
+        </div>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:10px;">
+        <a href="sms_logs.html" class="btn btn-ghost">Open SMS Logs Page</a>
+        <a href="results.html" class="btn btn-ghost">Open Results Page</a>
+        <a href="behaviour.html" class="btn btn-ghost">Open Behaviour Page</a>
+      </div>
+    </section>
+
   </main>
 </div>
 
