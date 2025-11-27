@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Admin</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html">🧭 Behaviour</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html" class="active">🔐 Admin</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2>🔐 Admin & Roles</h2>
+        <p class="small">
+          Manage staff roles. Kila user ataona features kulingana na role yake
+          (Academic, Headmaster, Class Teacher, Admin).
+        </p>
+      </div>
+      <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+    </header>
+
+    <!-- YOUR ROLE -->
+    <section class="card">
+      <h3>Your Account</h3>
+      <p class="small">
+        Hapa unaona taarifa zako kama zilivyo kwenye mfumo.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Name</label>
+          <input id="meName" class="input" type="text" disabled />
+        </div>
+        <div class="field">
+          <label class="label">Email</label>
+          <input id="meEmail" class="input" type="text" disabled />
+        </div>
+        <div class="field">
+          <label class="label">Role</label>
+          <input id="meRole" class="input" type="text" disabled />
+        </div>
+        <div class="field">
+          <label class="label">Main Class (for class teacher)</label>
+          <input id="meClass" class="input" type="text" disabled />
+        </div>
+      </div>
+
+      <p id="roleWarning" class="small" style="margin-top:8px;color:#f97373;"></p>
+    </section>
+
+    <!-- STAFF ROLES TABLE -->
+    <section class="card">
+      <h3>Staff Roles</h3>
+      <p class="small">
+        Users wote wanaotumia UKSS wanahifadhiwa kwenye collection <code>staff</code>.
+        Kwanza wafundishe wajisajili (create account), kisha hapa unawa-assign role:
+        <strong>Admin</strong>, <strong>Headmaster</strong>, <strong>Academic</strong>, au <strong>Class Teacher</strong>.
+      </p>
+
+      <div class="matrix-wrap">
+        <table class="table" id="staffTable">
+          <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Main Class</th>
+            <th>Updated</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="5">Loading staff...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/admin.js"></script>
+</body>
+</html>
