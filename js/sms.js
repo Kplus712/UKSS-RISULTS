@@ -1,7 +1,9 @@
 // js/sms.js
-// Generate SMS texts from report_cards
+// Generate SMS texts from report_cards + send via Beem backend
 
 var EXAM_ID = "annual_2025";
+var GATEWAY_URL = "https://ukss-sms-backend.onrender.com/api/send-sms"; // 👈 backend yako ya Render
+
 var $ = function(id){ return document.getElementById(id); };
 
 var store = {
@@ -10,7 +12,7 @@ var store = {
   reports: []
 };
 
-var currentMessages = []; // kwa ku-save logs
+var currentMessages = []; // kwa ku-save logs na kutuma gateway
 
 /* ===== AUTH GUARD ===== */
 auth.onAuthStateChanged(function(user){
@@ -233,7 +235,7 @@ function generateSms(){
     messagesDiv.innerHTML = "No messages — angalia selections zako.";
     toast("Hakuna message zilizochaguliwa.");
   }else{
-    toast("SMS "+currentMessages.length+" zimeandaliwa. Copy & paste kwenye app ya SMS.");
+    toast("SMS "+currentMessages.length+" zimeandaliwa.");
   }
 }
 
@@ -266,6 +268,86 @@ async function saveLogs(){
   }
 }
 
+/* ===== DOWNLOAD CSV (OPTIONAL BULK EXPORT) ===== */
+function downloadCsv(){
+  if (!currentMessages.length){
+    toast("Generate SMS kwanza ili kupata CSV.");
+    return;
+  }
+
+  var lines = ["phone,message"];
+  currentMessages.forEach(function(m){
+    var phone = (m.phone || "").replace(/[\s\-]/g,"");
+    var msg   = (m.message || "").replace(/\"/g,'""'); // escape quotes
+    lines.push('"' + phone + '","' + msg + '"');
+  });
+
+  var blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8;"});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement("a");
+  a.href = url;
+  a.download = "ukss_sms_" + EXAM_ID + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toast("CSV imeshushwa. Unaweza kuitumia pia kwa backup.");
+}
+
+/* ===== SEND VIA GATEWAY (BEEM BACKEND) ===== */
+async function sendViaGateway(){
+  if (!currentMessages.length){
+    toast("Generate SMS kwanza kabla ya kutuma.");
+    return;
+  }
+
+  if (!GATEWAY_URL || GATEWAY_URL.indexOf("http") !== 0){
+    toast("Gateway URL haijawekwa vizuri kwenye sms.js");
+    return;
+  }
+
+  var payload = currentMessages.filter(function(m){
+    return m.phone;
+  });
+
+  if (!payload.length){
+    toast("Hakuna namba za simu (phone) zilizopatikana.");
+    return;
+  }
+
+  var btn = $("sendViaGatewayBtn");
+  if (btn){
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+  }
+
+  try{
+    var resp = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: payload })
+    });
+
+    var data = await resp.json();
+    if (!resp.ok || !data.ok){
+      console.error("Gateway error:", data);
+      toast("Beem gateway imeshindwa kutuma SMS. Angalia console / Render logs.");
+    }else{
+      toast("SMS "+data.count+" zimepelekwa Beem.");
+      console.log("Beem response:", data);
+    }
+  }catch(err){
+    console.error("sendViaGateway error:", err);
+    toast("Hitilafu wakati wa kuwasiliana na gateway.");
+  }finally{
+    if (btn){
+      btn.disabled = false;
+      btn.textContent = "Send via Gateway";
+    }
+  }
+}
+
 /* ===== INIT ===== */
 document.addEventListener("DOMContentLoaded", function(){
   (async function init(){
@@ -273,8 +355,10 @@ document.addEventListener("DOMContentLoaded", function(){
     fillClassSelect();
 
     if ($("loadRecipientsBtn")) $("loadRecipientsBtn").onclick = loadRecipients;
-    if ($("generateSmsBtn"))   $("generateSmsBtn").onclick = generateSms;
-    if ($("saveLogsBtn"))      $("saveLogsBtn").onclick = saveLogs;
+    if ($("generateSmsBtn"))   $("generateSmsBtn").onclick   = generateSms;
+    if ($("saveLogsBtn"))      $("saveLogsBtn").onclick      = saveLogs;
+    if ($("downloadCsvBtn"))   $("downloadCsvBtn").onclick   = downloadCsv;
+    if ($("sendViaGatewayBtn")) $("sendViaGatewayBtn").onclick = sendViaGateway;
 
     var logoutBtn = $("logoutBtn");
     if (logoutBtn){
