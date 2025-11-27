@@ -31,6 +31,17 @@ window.col = {
   admins:       "admins"
 };
 
+// mfano wa structure uliyonayo sasa
+const db = firebase.firestore();
+const col = {
+  classes: db.collection("classes"),
+  students: db.collection("students"),
+  report_cards: db.collection("report_cards"),
+  sms_logs: db.collection("sms_logs"),
+  // ➕ mpya:
+  staff: db.collection("staff")
+};
+
 
 // ----- 4. Helper functions (available globally) -----
 window.getAll = async function getAll(colName){
