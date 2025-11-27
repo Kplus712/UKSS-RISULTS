@@ -34,16 +34,17 @@ window.col = {
 };
 
 
-// mfano wa structure uliyonayo sasa
 const db = firebase.firestore();
 const col = {
   classes: db.collection("classes"),
   students: db.collection("students"),
   report_cards: db.collection("report_cards"),
+  behaviour: db.collection("behaviour"),
   sms_logs: db.collection("sms_logs"),
-  // ➕ mpya:
-  staff: db.collection("staff")
+  staff: db.collection("staff"),       // 👈 hii lazima iwepo
+  settings: db.collection("settings")  // 👈 hii pia kwa system settings
 };
+
 
 
 // ----- 4. Helper functions (available globally) -----
