@@ -19,24 +19,25 @@
       </div>
     </div>
 
-<nav class="nav">
-  <a href="marks.html">🏠 Marks</a>
-  <a href="results.html">📄 Results</a>
-  <a href="ranking.html">🏆 Ranking</a>
-  <a href="behaviour.html">🧭 Behaviour</a>
-  <a href="sms.html">📨 SMS</a>
-  <a href="sms_logs.html">🧾 SMS Logs</a>
-  <a href="admin.html">🔐 Admin</a>
-</nav>
-</aside>
-  
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html">🧭 Behaviour</a>
+      <a href="sms.html" class="active">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
+
   <!-- MAIN -->
   <main class="main">
     <header class="topbar">
       <div>
         <h2>📨 SMS to Parents</h2>
         <p class="small">
-          Generate SMS messages from existing report cards (you’ll copy + paste to your SMS app).
+          Generate SMS messages from existing report cards, then tumia “Send via Gateway”
+          kutuma moja kwa moja kupitia Beem.
         </p>
       </div>
 
@@ -74,21 +75,24 @@
       </div>
     </section>
 
-    <!-- TEMPLATE + RECIPIENTS -->
+    <!-- TEMPLATE -->
     <section class="card">
       <h3>SMS Template</h3>
       <p class="small">
         Tags: {name}, {adm}, {class}, {total}, {mean}, {grade}, {weak}.<br/>
-        Mfano: “Mzazi wa {name}, matokeo ya {class} {exam}: jumla {total}, wastani {mean}, daraja {grade}. Masomo
+        Mfano: “Mzazi wa {name}, matokeo ya {class} ({exam}): jumla {total}, wastani {mean}, daraja {grade}. Masomo
         hafifu: {weak}.”
       </p>
+
       <textarea id="smsTemplate" class="textarea" spellcheck="false">
 Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, wastani {mean}, daraja {grade}. Masomo hafifu: {weak}.
       </textarea>
 
       <div style="margin-top:10px;" class="row row-wrap">
         <button id="generateSmsBtn" class="btn btn-primary">Generate SMS</button>
-        <button id="saveLogsBtn" class="btn btn-ghost">Save Log (for SMS Logs)</button>
+        <button id="saveLogsBtn" class="btn btn-ghost">Save Log</button>
+        <button id="downloadCsvBtn" class="btn btn-ghost">Download CSV (Bulk)</button>
+        <button id="sendViaGatewayBtn" class="btn btn-primary">Send via Gateway</button>
       </div>
     </section>
 
@@ -117,7 +121,10 @@ Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, was
     <!-- GENERATED MESSAGES -->
     <section class="card">
       <h3>Generated Messages</h3>
-      <p class="small">Copy each message and paste into your SMS app or bulk SMS system.</p>
+      <p class="small">
+        Messages zinazoonekana hapa ndizo zitakazotumwa kwa gateway. Hakikisha ziko sahihi kabla ya kubofya
+        <strong>Send via Gateway</strong>.
+      </p>
       <div id="messagesList" class="list-box"></div>
     </section>
   </main>
@@ -131,4 +138,6 @@ Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, was
 <!-- App scripts -->
 <script src="./js/database.js"></script>
 <script src="./js/sms.js"></script>
+</body>
+</html>
 
