@@ -3,19 +3,31 @@
 
 var $ = function(id){ return document.getElementById(id); };
 
+/* Simple toast for notifications */
+function toast(text){
+  console.log(text);
+  var el = document.createElement("div");
+  el.textContent = text;
+  el.style.cssText =
+    "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
+    "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2200);
+}
+
 var ROLES = ["admin", "headmaster", "academic", "class_teacher"];
 
 function roleLabel(role){
   switch(role){
-    case "admin":        return "Admin (System Owner)";
-    case "headmaster":   return "Headmaster";
-    case "academic":     return "Academic Officer";
-    case "class_teacher":return "Class Teacher";
-    default:             return "Unassigned";
+    case "admin":         return "Admin (System Owner)";
+    case "headmaster":    return "Headmaster";
+    case "academic":      return "Academic Officer";
+    case "class_teacher": return "Class Teacher";
+    default:              return "Unassigned";
   }
 }
 
-/* ===== MAIN AUTH GUARD ===== */
+/* ===== AUTH GUARD ===== */
 auth.onAuthStateChanged(function(user){
   if (!user){
     window.location.href = "index.html";
@@ -27,8 +39,12 @@ auth.onAuthStateChanged(function(user){
 /* ===== INIT ADMIN ===== */
 async function initAdmin(user){
   try{
-    // 1) SOMA STAFF DOC YA USER HUYU
-    var staffDoc = await getDocById(col.staff, user.uid);
+    // 1) SOMA STAFF DOC YA USER HUYU (direct Firestore)
+    var snap = await col.staff.doc(user.uid).get();
+    var staffDoc = snap.exists ? (function(){
+      var d = snap.data(); d.id = snap.id; return d;
+    })() : null;
+
     if (!staffDoc){
       // kama hana doc, muundie ya basic (unassigned, inactive)
       staffDoc = {
@@ -40,7 +56,7 @@ async function initAdmin(user){
         active: false,
         updated_at: new Date().toISOString()
       };
-      await setDocById(col.staff, user.uid, staffDoc);
+      await col.staff.doc(user.uid).set(staffDoc, { merge:true });
     }
 
     var myRole  = staffDoc.role || "none";
@@ -55,19 +71,17 @@ async function initAdmin(user){
 
     var warn = $("roleWarning");
 
-    // kama sio active kabisa
+    // kama akaunti imezimwa
     if (!active){
       if (warn){
         warn.textContent =
           "Akaunti yako imewekwa kama INACTIVE. Mwone Admin wa shule " +
           "aku-activate ili uweze kutumia mfumo kikamilifu.";
       }
-      // bado tunaendelea kusoma, lakini tuna-block kazi za admin
-      return;
     }
 
     // 3) CHECK kama ana ruhusa ya admin
-    var isAdminLike = (myRole === "admin" || myRole === "headmaster");
+    var isAdminLike = active && (myRole === "admin" || myRole === "headmaster");
 
     if (!isAdminLike){
       if (warn){
@@ -75,10 +89,9 @@ async function initAdmin(user){
           "Role yako ni: "+roleLabel(myRole)+". Huna ruhusa kamili ya Admin. " +
           "Unaweza tu kuona taarifa zako. Mwone Admin wa shule kubadilisha role.";
       }
-      // mtu asiye admin/headmaster haoni tables za chini
     }else{
       if (warn) warn.textContent = "";
-      // load all admin features
+      // load full admin features
       await loadStaffTable();
       await loadPendingTable();
       await loadSettings();
@@ -108,7 +121,8 @@ async function loadStaffTable(){
   tbody.innerHTML = "<tr><td colspan='6'>Loading staff...</td></tr>";
 
   try{
-    var staffList = await getAll(col.staff); // -> [{id, ...data}]
+    // getAll inategemea col.staff (collection ref), kama marks/sms
+    var staffList = await getAll(col.staff);
     if (!staffList.length){
       tbody.innerHTML = "<tr><td colspan='6'>Hakuna staff kwenye collection 'staff' bado.</td></tr>";
       return;
@@ -189,15 +203,15 @@ function attachStaffHandlers(){
   });
 }
 
-/* ==== helper: updateStaff with merge ==== */
+/* ==== helper: updateStaff (direct Firestore) ==== */
 async function updateStaff(uid, partial){
   try{
-    var existing = await getDocById(col.staff, uid) || { id: uid };
+    var snap = await col.staff.doc(uid).get();
+    var existing = snap.exists ? snap.data() : {};
     var data = Object.assign({}, existing, partial, {
-      id: uid,
       updated_at: new Date().toISOString()
     });
-    await setDocById(col.staff, uid, data);
+    await col.staff.doc(uid).set(data, { merge:true });
     console.log("updated staff", uid, partial);
   }catch(err){
     console.error("updateStaff error:", err);
@@ -218,7 +232,7 @@ async function loadPendingTable(){
     // pending = wale ambao role ni none/empty AU active=false
     var pending = staffList.filter(function(s){
       var role = s.role || "none";
-      var active = (s.active !== false); // default true
+      var active = (s.active !== false);
       return (role === "none" || !active);
     });
 
@@ -278,7 +292,6 @@ function attachPendingHandlers(){
 
       await updateStaff(uid, { role: newRole, active: active });
       toast("Staff updated.");
-      // reload tables
       await loadStaffTable();
       await loadPendingTable();
     };
@@ -290,16 +303,17 @@ function attachPendingHandlers(){
    ================== */
 async function loadSettings(){
   try{
-    var s = await getDocById(col.settings, "global");
-    if (!s) s = {};
+    // tumetegemea col.settings ni collection ref: db.collection("settings")
+    var snap = await col.settings.doc("global").get();
+    var s = snap.exists ? snap.data() : {};
 
-    if ($("setSchoolName"))   $("setSchoolName").value   = s.school_name  || "";
-    if ($("setSchoolMotto"))  $("setSchoolMotto").value  = s.school_motto || "";
-    if ($("setSchoolAddress"))$("setSchoolAddress").value= s.school_addr  || "";
-    if ($("setSchoolPhone"))  $("setSchoolPhone").value  = s.school_phone || "";
-    if ($("setSmsProvider"))  $("setSmsProvider").value  = s.sms_provider || "Beem Africa";
-    if ($("setAcademicYear")) $("setAcademicYear").value = s.academic_year|| "";
-    if ($("setGradingNote"))  $("setGradingNote").value  = s.grading_note || "";
+    if ($("setSchoolName"))    $("setSchoolName").value    = s.school_name  || "";
+    if ($("setSchoolMotto"))   $("setSchoolMotto").value   = s.school_motto || "";
+    if ($("setSchoolAddress")) $("setSchoolAddress").value = s.school_addr  || "";
+    if ($("setSchoolPhone"))   $("setSchoolPhone").value   = s.school_phone || "";
+    if ($("setSmsProvider"))   $("setSmsProvider").value   = s.sms_provider || "Beem Africa";
+    if ($("setAcademicYear"))  $("setAcademicYear").value  = s.academic_year|| "";
+    if ($("setGradingNote"))   $("setGradingNote").value   = s.grading_note || "";
 
     var btn = $("saveSettingsBtn");
     if (btn){
@@ -315,17 +329,17 @@ async function loadSettings(){
 async function saveSettings(){
   try{
     var data = {
-      school_name:   ($("setSchoolName")   || {}).value || "",
-      school_motto:  ($("setSchoolMotto")  || {}).value || "",
-      school_addr:   ($("setSchoolAddress")|| {}).value || "",
-      school_phone:  ($("setSchoolPhone")  || {}).value || "",
-      sms_provider:  ($("setSmsProvider")  || {}).value || "",
-      academic_year: ($("setAcademicYear") || {}).value || "",
-      grading_note:  ($("setGradingNote")  || {}).value || "",
+      school_name:   ($("setSchoolName")    || {}).value || "",
+      school_motto:  ($("setSchoolMotto")   || {}).value || "",
+      school_addr:   ($("setSchoolAddress") || {}).value || "",
+      school_phone:  ($("setSchoolPhone")   || {}).value || "",
+      sms_provider:  ($("setSmsProvider")   || {}).value || "",
+      academic_year: ($("setAcademicYear")  || {}).value || "",
+      grading_note:  ($("setGradingNote")   || {}).value || "",
       updated_at:    new Date().toISOString()
     };
 
-    await setDocById(col.settings, "global", data);
+    await col.settings.doc("global").set(data, { merge:true });
     var st = $("settingsStatus");
     if (st) st.textContent = "Settings saved successfully.";
     toast("System settings zimeshifadhiwa.");
@@ -347,9 +361,9 @@ async function loadLogsOverview(){
       getAll(col.report_cards),
       getAll(col.behaviour)
     ]);
-    var smsCount   = res[0] ? res[0].length : 0;
-    var repCount   = res[1] ? res[1].length : 0;
-    var behCount   = res[2] ? res[2].length : 0;
+    var smsCount = res[0] ? res[0].length : 0;
+    var repCount = res[1] ? res[1].length : 0;
+    var behCount = res[2] ? res[2].length : 0;
 
     if ($("logSmsCount"))       $("logSmsCount").value       = String(smsCount);
     if ($("logReportsCount"))   $("logReportsCount").value   = String(repCount);
