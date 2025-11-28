@@ -1,10 +1,11 @@
 // js/database.js
 // Firebase config + helpers for UKSS
 
-// ----- 1. CONFIG -----
-var firebaseConfig = {
-  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvVek",
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
   authDomain: "school-results-management.firebaseapp.com",
+  databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
   projectId: "school-results-management",
   storageBucket: "school-results-management.firebasestorage.app",
   messagingSenderId: "755154296958",
