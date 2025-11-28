@@ -19,19 +19,18 @@ firebase.initializeApp(firebaseConfig);
 window.auth = firebase.auth();
 window.db   = firebase.firestore();
 
-window.col = {
+const col = {
   classes:      "classes",
   students:     "students",
   subjects:     "subjects",
-  exams:        "exams",
-  marks:        "marks",
   report_cards: "report_cards",
   behaviour:    "behaviour",
   sms_logs:     "sms_logs",
-  staff:        "staff",      // 🔹 staff collection
-  settings:     "settings",   // 🔹 system settings
-  admins:       "admins"
+  staff:        "staff",
+  settings:     "settings",
+  exams:        "exams"      // 👈 mpya kwa exam registration
 };
+
 
 
 const col = {
