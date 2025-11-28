@@ -1,9 +1,9 @@
 // js/database.js
-// Uses Firebase v8 CDN (firebase-app.js, auth.js, firestore.js MUST be loaded before this file)
+// Firebase config + helpers for UKSS
 
-// ----- 1. Firebase config -----
+// ----- 1. CONFIG -----
 var firebaseConfig = {
-  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
+  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvVek",
   authDomain: "school-results-management.firebaseapp.com",
   projectId: "school-results-management",
   storageBucket: "school-results-management.firebasestorage.app",
@@ -12,46 +12,64 @@ var firebaseConfig = {
   measurementId: "G-MDN4Q3C22J"
 };
 
-// ----- 2. Init app -----
-firebase.initializeApp(firebaseConfig);
+// ----- 2. INIT APP (avoid double init) -----
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// GLOBAL instances
-window.auth = firebase.auth();
-window.db   = firebase.firestore();
+// ----- 3. CORE OBJECTS -----
+const auth = firebase.auth();
+const db   = firebase.firestore();
 
+// Collection keys as STRINGS (used by getAll & others)
 const col = {
   classes:      "classes",
   students:     "students",
   subjects:     "subjects",
+  exams:        "exams",          // for exam registration
+  marks:        "marks",
   report_cards: "report_cards",
   behaviour:    "behaviour",
   sms_logs:     "sms_logs",
   staff:        "staff",
-  settings:     "settings",
-  exams:        "exams"      // 👈 mpya kwa exam registration
+  settings:     "settings"
 };
 
+// ----- 4. GENERIC HELPERS -----
+// Zitasomwa na marks.js, sms.js, admin.js, academic.js, n.k.
 
+async function getAll(collectionPath){
+  // collectionPath ni string, mfano "students"
+  const snap = await db.collection(collectionPath).get();
+  return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+}
 
-// ----- 4. Helper functions (available globally) -----
-window.getAll = async function getAll(colName){
-  const snap = await db.collection(colName).get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-};
-
-window.getDocById = async function getDocById(colName, id){
-  const docRef = db.collection(colName).doc(id);
-  const snap   = await docRef.get();
-  if (!snap.exists) return null;
-  return { id: snap.id, ...snap.data() };
-};
-
-window.setDocById = async function setDocById(colName, id, data){
-  const docRef = db.collection(colName).doc(id);
-  await docRef.set(data, { merge:true });
-};
-
-window.addCollectionDoc = async function addCollectionDoc(colName, data){
-  const ref = await db.collection(colName).add(data);
+async function addCollectionDoc(collectionPath, data){
+  const ref = await db.collection(collectionPath).add(data);
   return ref.id;
-};
+}
+
+async function getDocById(collectionPath, id){
+  const snap = await db.collection(collectionPath).doc(id).get();
+  if (!snap.exists) return null;
+  return Object.assign({ id: snap.id }, snap.data());
+}
+
+async function setDocById(collectionPath, id, data){
+  await db.collection(collectionPath).doc(id).set(data, { merge: true });
+}
+
+async function deleteDocById(collectionPath, id){
+  await db.collection(collectionPath).doc(id).delete();
+}
+
+// ----- 5. EXPOSE GLOBALS -----
+window.auth = auth;
+window.db   = db;
+window.col  = col;
+
+window.getAll          = getAll;
+window.addCollectionDoc= addCollectionDoc;
+window.getDocById      = getDocById;
+window.setDocById      = setDocById;
+window.deleteDocById   = deleteDocById;
