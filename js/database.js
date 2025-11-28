@@ -33,20 +33,6 @@ const col = {
 
 
 
-const col = {
-  classes:      "classes",
-  students:     "students",
-  subjects:     "subjects",
-  report_cards: "report_cards",
-  behaviour:    "behaviour",
-  sms_logs:     "sms_logs",
-  staff:        "staff",      // 🔹 mpya
-  settings:     "settings"    // 🔹 mpya
-};
-
-
-
-
 // ----- 4. Helper functions (available globally) -----
 window.getAll = async function getAll(colName){
   const snap = await db.collection(colName).get();
