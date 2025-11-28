@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Academic Desk</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html">🧭 Behaviour</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+      <a href="academic.html" class="active">🎓 Academic</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div>
+        <h2>🎓 Academic Officer — UMUJA KINGORI SEC</h2>
+        <p class="small">
+          Hapa Academic Officer anasimamia masuala yote ya taaluma: usajili wa mitihani, approval ya wanafunzi,
+          na forms za matokeo (top 10 & last, report forms za wanafunzi, pamoja na Centre Overall Performance).
+        </p>
+      </div>
+      <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+    </header>
+
+    <!-- YOUR ROLE INFO -->
+    <section class="card">
+      <h3>Your Role</h3>
+      <p class="small" id="roleInfo">
+        Loading...
+      </p>
+      <p id="roleWarning" class="small" style="margin-top:4px;color:#f97373;"></p>
+    </section>
+
+    <!-- 1) EXAM REGISTRATION -->
+    <section class="card">
+      <h3>1. Register Examination</h3>
+      <p class="small">
+        Sajili mitihani yote rasmi ya shule (Midterm, Terminal, Annual n.k.). Mitihani hii itatumika
+        kwenye Marks, Ranking, Results na Report Forms. Weka exam moja kama <strong>Current</strong>.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Exam Code (eg. annual_2025)</label>
+          <input id="exCode" class="input" placeholder="eg. annual_2025" />
+        </div>
+        <div class="field">
+          <label class="label">Exam Name</label>
+          <input id="exName" class="input" placeholder="eg. Annual Examination 2025" />
+        </div>
+        <div class="field">
+          <label class="label">Level</label>
+          <select id="exLevel" class="input">
+            <option value="all">All Forms (I–IV)</option>
+            <option value="form1">Form I</option>
+            <option value="form2">Form II</option>
+            <option value="form3">Form III</option>
+            <option value="form4">Form IV</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">Term / Type</label>
+          <select id="exTerm" class="input">
+            <option value="midterm">Midterm</option>
+            <option value="terminal">Terminal</option>
+            <option value="annual">Annual</option>
+            <option value="mock">Mock</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">Year</label>
+          <input id="exYear" class="input" type="number" placeholder="eg. 2025" />
+        </div>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:10px;">
+        <button id="addExamBtn" class="btn btn-primary">Save / Register Exam</button>
+        <button id="setCurrentExamBtn" class="btn btn-ghost">Set as Current Exam</button>
+        <span id="examStatus" class="small"></span>
+      </div>
+
+      <div class="matrix-wrap" style="margin-top:12px;">
+        <table class="table" id="examsTable">
+          <thead>
+          <tr>
+            <th>Current</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Level</th>
+            <th>Type</th>
+            <th>Year</th>
+            <th>Registered</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="7">Loading exams...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 2) APPROVE STUDENTS REGISTRATION -->
+    <section class="card">
+      <h3>2. Approve Students Registration</h3>
+      <p class="small">
+        Wanafunzi wapya au waliorekebishwa wataonekana hapa kama <strong>pending</strong>.
+        Waki-approve wanageuka kuwa “active” na wanaweza kuonekana kwenye Marks, Results na Reports.
+        Tunatumia field <code>approved = true/false</code> kwenye collection <code>students</code>.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Filter by Class</label>
+          <select id="approveClassFilter" class="input">
+            <option value="all">All classes</option>
+          </select>
+        </div>
+        <button id="reloadPendingBtn" class="btn btn-primary">Reload Pending Students</button>
+      </div>
+
+      <div class="matrix-wrap" style="margin-top:10px;">
+        <table class="table" id="pendingStudentsTable">
+          <thead>
+          <tr>
+            <th>Adm</th>
+            <th>Name</th>
+            <th>Class</th>
+            <th>Gender</th>
+            <th>Guardian Phone</th>
+            <th>Status</th>
+            <th>Approve</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="7">Loading pending students...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3) PRINTING & ANALYSIS VIEWS -->
+    <section class="card">
+      <h3>3. Printing & Analysis Views</h3>
+      <p class="small">
+        Forms za uchapishaji matokeo zenye muundo kama wa NECTA:
+        <br/>• Top 10 & Last Students per class
+        <br/>• Form ya Maendeleo ya Taaluma ya Mwanafunzi (Report Form)
+        <br/>• Results ya shule per class zikiwa na Centre Overall Performance & Subject Performance.
+      </p>
+
+      <div class="row row-wrap">
+        <div class="field">
+          <label class="label">Select Exam</label>
+          <select id="printExamSelect" class="input">
+            <!-- options from exams -->
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">Select Class</label>
+          <select id="printClassSelect" class="input">
+            <!-- classes from db -->
+          </select>
+        </div>
+      </div>
+
+      <div class="row row-wrap" style="margin-top:10px;">
+        <button id="openTopLastBtn" class="btn btn-primary">
+          Top 10 & Last Students (per class)
+        </button>
+        <button id="openReportFormBtn" class="btn btn-ghost">
+          Report Form (Maendeleo ya Taaluma ya Mwanafunzi)
+        </button>
+        <button id="openSchoolResultsBtn" class="btn btn-ghost">
+          School Results Form (Centre Performance)
+        </button>
+      </div>
+
+      <p class="small" style="margin-top:8px;">
+        Kwa sasa buttons hizi zinafungua pages zetu za
+        <strong>ranking.html</strong>, <strong>report.html</strong> na
+        <strong>results.html</strong> zikiwa zimepakiwa na filters kwa exam & class.
+        Baadaye tunaweza kubadilisha layouts zikafanana moja kwa moja na sample za PDF umezituma.
+      </p>
+    </section>
+
+  </main>
+</div>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- App scripts -->
+<script src="./js/database.js"></script>
+<script src="./js/academic.js"></script>
+</body>
+</html>
