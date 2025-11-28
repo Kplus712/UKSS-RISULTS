@@ -5,52 +5,101 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UKSS — Login</title>
   <link rel="stylesheet" href="./style.css" />
+  <style>
+    .login-wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle at top,#053321,#020816);
+      color:#e2e8f0;
+      padding:16px;
+    }
+    .login-card{
+      width:100%;
+      max-width:420px;
+      background:rgba(8,47,35,0.96);
+      border-radius:18px;
+      padding:24px 22px 22px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.55);
+      border:1px solid rgba(148,163,184,0.25);
+    }
+    .login-logo{
+      display:flex;align-items:center;gap:10px;margin-bottom:8px;
+    }
+    .login-badge{
+      width:44px;height:44px;border-radius:14px;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:20px;color:#022c22;
+    }
+    .login-title{
+      font-size:20px;font-weight:700;
+    }
+    .login-sub{
+      font-size:13px;color:#9ca3af;
+    }
+    .login-field{margin-top:12px;}
+    .login-label{
+      font-size:13px;margin-bottom:4px;display:block;color:#cbd5f5;
+    }
+    .login-input{
+      width:100%;padding:10px 11px;border-radius:10px;
+      border:1px solid rgba(148,163,184,0.4);
+      background:#020817;color:#e5e7eb;
+      outline:none;
+    }
+    .login-input:focus{border-color:#22c55e;}
+    .login-btn{
+      width:100%;margin-top:18px;
+      padding:10px 14px;border-radius:999px;border:none;
+      font-weight:700;font-size:15px;
+      background:linear-gradient(90deg,#22c55e,#16a34a);
+      color:#022c22;cursor:pointer;
+    }
+    .login-btn[disabled]{opacity:0.5;cursor:not-allowed;}
+    .login-footer{
+      margin-top:10px;font-size:12px;color:#9ca3af;text-align:center;
+    }
+    .login-error{
+      margin-top:8px;font-size:12px;color:#fecaca;min-height:16px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="page-center">
-  <div class="card">
-    <div class="brand">
-      <div class="brand-badge">UK</div>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-badge">UK</div>
       <div>
-        <div class="brand-title">UKSS — Results System</div>
-        <div class="brand-sub">Secondary School Results • Form I–IV</div>
+        <div class="login-title">UKSS Results System</div>
+        <div class="login-sub">UMOJA KINGORI SECONDARY — Staff Login</div>
       </div>
     </div>
 
-    <div style="margin-bottom:10px">
-      <div class="label">Email</div>
-      <input id="username" class="input" type="email" placeholder="admin@example.com" />
-    </div>
+    <form id="loginForm">
+      <div class="login-field">
+        <label class="login-label">Email</label>
+        <input type="email" id="email" class="login-input" required placeholder="you@school.ac.tz" />
+      </div>
 
-    <div style="margin-bottom:4px">
-      <div class="label">Password</div>
-      <input id="password" class="input" type="password" placeholder="••••••••" />
-    </div>
+      <div class="login-field">
+        <label class="login-label">Password</label>
+        <input type="password" id="password" class="login-input" required placeholder="••••••••" />
+      </div>
 
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="login()">Login</button>
-      <button class="btn btn-ghost" type="button"
-              onclick="username.value='';password.value='';">
-        Clear
-      </button>
-    </div>
+      <button id="loginBtn" type="submit" class="login-btn">Login</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
 
-    <div id="loginMessage" class="msg">
-      Andika akaunti ya admin uliyosajili kwenye Firebase Authentication.
-    </div>
-
-    <div class="footer">
-      © <span id="year"></span> UKSS • Designed for Tanzanian Secondary Schools
+    <div class="login-footer">
+      Accounts husimamiwa na Admin. Ukisahau password, mwone Academic Officer / Headmaster.
     </div>
   </div>
 </div>
 
-<script>
-  document.getElementById('year').textContent = new Date().getFullYear();
-</script>
-
-<!-- Firebase CDN v8 -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
