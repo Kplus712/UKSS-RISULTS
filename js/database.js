@@ -59,3 +59,4 @@ async function getDocById(collectionRef, id){
   if (!doc.exists) return null;
   return Object.assign({ id: doc.id }, doc.data());
 }
+
