@@ -1,76 +1,61 @@
 // js/database.js
-// Firebase config + helpers for UKSS
+// Firebase init + helpers for UKSS
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
+// CONFIG YAKO YA PROJECT
+// (tumia ile uliyoniwekea awali)
+var firebaseConfig = {
+  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvVek",
   authDomain: "school-results-management.firebaseapp.com",
-  databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
   projectId: "school-results-management",
-  storageBucket: "school-results-management.firebasestorage.app",
+  storageBucket: "school-results-management.appspot.com",
   messagingSenderId: "755154296958",
   appId: "1:755154296958:web:e4c5f9bc0e6cce3e9cf82f",
   measurementId: "G-MDN4Q3C22J"
 };
 
-// ----- 2. INIT APP (avoid double init) -----
+// Initialize Firebase (v8 style)
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-// ----- 3. CORE OBJECTS -----
-const auth = firebase.auth();
-const db   = firebase.firestore();
+console.log("Firebase initialized");
 
-// Collection keys as STRINGS (used by getAll & others)
-const col = {
-  classes:      "classes",
-  students:     "students",
-  subjects:     "subjects",
-  exams:        "exams",          // for exam registration
-  marks:        "marks",
-  report_cards: "report_cards",
-  behaviour:    "behaviour",
-  sms_logs:     "sms_logs",
-  staff:        "staff",
-  settings:     "settings"
+// GLOBAL AUTH & DB
+var auth = firebase.auth();
+var db   = firebase.firestore();
+
+// Collections shortcuts — hizi ndizo tunaziita kama col.classes n.k.
+var col = {
+  classes      : db.collection("classes"),
+  students     : db.collection("students"),
+  subjects     : db.collection("subjects"),
+  exams        : db.collection("exams"),
+  marks        : db.collection("marks"),
+  report_cards : db.collection("report_cards"),
+  behaviour    : db.collection("behaviour"),
+  sms_logs     : db.collection("sms_logs"),
+  staff        : db.collection("staff"),
+  settings     : db.collection("settings")
 };
 
-// ----- 4. GENERIC HELPERS -----
-// Zitasomwa na marks.js, sms.js, admin.js, academic.js, n.k.
+// ===== UTILITY FUNCTIONS =====
 
-async function getAll(collectionPath){
-  // collectionPath ni string, mfano "students"
-  const snap = await db.collection(collectionPath).get();
-  return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+// Soma docs zote za collection
+async function getAll(collectionRef){
+  var snap = await collectionRef.get();
+  return snap.docs.map(function(doc){
+    return Object.assign({ id: doc.id }, doc.data());
+  });
 }
 
-async function addCollectionDoc(collectionPath, data){
-  const ref = await db.collection(collectionPath).add(data);
-  return ref.id;
+// Ongeza doc mpya kwenye collection
+function addCollectionDoc(collectionRef, data){
+  return collectionRef.add(data);
 }
 
-async function getDocById(collectionPath, id){
-  const snap = await db.collection(collectionPath).doc(id).get();
-  if (!snap.exists) return null;
-  return Object.assign({ id: snap.id }, snap.data());
+// Pata doc moja kwa id
+async function getDocById(collectionRef, id){
+  var doc = await collectionRef.doc(id).get();
+  if (!doc.exists) return null;
+  return Object.assign({ id: doc.id }, doc.data());
 }
-
-async function setDocById(collectionPath, id, data){
-  await db.collection(collectionPath).doc(id).set(data, { merge: true });
-}
-
-async function deleteDocById(collectionPath, id){
-  await db.collection(collectionPath).doc(id).delete();
-}
-
-// ----- 5. EXPOSE GLOBALS -----
-window.auth = auth;
-window.db   = db;
-window.col  = col;
-
-window.getAll          = getAll;
-window.addCollectionDoc= addCollectionDoc;
-window.getDocById      = getDocById;
-window.setDocById      = setDocById;
-window.deleteDocById   = deleteDocById;
