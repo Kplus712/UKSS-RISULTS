@@ -1,147 +1,175 @@
 // js/ranking.js
-// Top 10 & Last 10 based on report_cards.mean_score
+// Class ranking printing view (Top 10 & Last 10)
 
-var EXAM_ID = "annual_2025";
 var $ = function(id){ return document.getElementById(id); };
 
-var store = {
-  classes: [],
-  students: [],
-  reports: []
-};
-
-/* ===== AUTH GUARD ===== */
-auth.onAuthStateChanged(function(user){
-  if (!user){
-    window.location.href = "index.html";
-  }
-});
-
-/* ===== TOAST ===== */
-function toast(text){
-  console.log(text);
-  var el = document.createElement("div");
-  el.textContent = text;
-  el.style.cssText =
-    "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
-    "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
-  document.body.appendChild(el);
-  setTimeout(function(){ el.remove(); }, 2200);
+function toastLog(msg){
+  console.log("[RANK]", msg);
 }
 
-/* ===== LOAD DATA ===== */
-async function refreshStore(){
+/* ===== GET QUERY PARAMS ===== */
+function getQuery(){
+  var q = new URLSearchParams(window.location.search);
+  return {
+    examId: q.get("exam") || "",     // exam code, eg. annual_2025
+    classId: q.get("class") || "",   // class ID
+    view: q.get("view") || "all"
+  };
+}
+
+/* ===== MAIN INIT ===== */
+auth.onAuthStateChanged(function(user){
+  if (!user){
+    // ukifungulia bila login, mrudishe login
+    window.location.href = "index.html";
+    return;
+  }
+  initRanking();
+});
+
+async function initRanking(){
   try{
+    var query = getQuery();
+    if (!query.examId || !query.classId){
+      alert("Missing exam or class in URL. Tafadhali fungua page hii kupitia Academic → Top 10 & Last.");
+      return;
+    }
+
+    // weka meta text
+    var now = new Date();
+    if ($("metaPrinted")){
+      $("metaPrinted").textContent = now.toLocaleString();
+    }
+    $("viewMode").value = query.view || "all";
+
+    $("viewMode").onchange = function(){
+      renderRanking(currentList, $("viewMode").value);
+    };
+
+    // load data
     var res = await Promise.all([
       getAll(col.classes),
       getAll(col.students),
-      getAll(col.report_cards)
+      getAll(col.report_cards),
+      getAll(col.exams || "exams")
     ]);
-    store.classes  = res[0];
-    store.students = res[1];
-    store.reports  = res[2];
-  }catch(err){
-    console.error("refreshStore ranking error:", err);
-    toast("Imeshindikana kusoma data za ranking.");
-  }
-}
 
-/* ===== SELECTORS ===== */
-function fillClassSelect(){
-  var sel = $("classSelect");
-  if (!sel) return;
-  if (!store.classes.length){
-    sel.innerHTML = '<option value="">No classes</option>';
-    return;
-  }
-  sel.innerHTML = store.classes
-    .map(function(c){ return '<option value="'+c.id+'">'+c.name+'</option>'; })
-    .join("");
-}
+    var classes  = res[0];
+    var students = res[1];
+    var reports  = res[2];
+    var exams    = res[3];
 
-/* ===== RENDER HELPERS ===== */
-function renderTable(tbodyEl, list, isTop){
-  tbodyEl.innerHTML = "";
-  if (!list.length){
-    tbodyEl.innerHTML =
-      '<tr><td colspan="7">'+(isTop ? "No students for this filter." : "No students for this filter.")+'</td></tr>';
-    return;
-  }
+    var cls = classes.find(function(c){ return c.id === query.classId; }) || {};
+    var ex  = exams.find(function(e){ return e.id === query.examId; }) || { id: query.examId, name: query.examId };
 
-  list.forEach(function(r, idx){
-    var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
-    var cls = store.classes.find(function(c){ return c.id === r.class_id; }) || {};
+    if ($("metaExam"))  $("metaExam").textContent  = ex.name || ex.id;
+    if ($("metaClass")) $("metaClass").textContent = cls.name || cls.id || query.classId;
+    if ($("rankExamTitle")){
+      $("rankExamTitle").textContent =
+        "FORM "+(cls.level || "")+" "+(ex.name || ex.id).toUpperCase()+" — CLASS RANKING";
+    }
 
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>"+(idx+1)+"</td>"+
-      "<td>"+(r.admission_no || "")+"</td>"+
-      "<td>"+(stu.first_name || "")+" "+(stu.last_name || "")+"</td>"+
-      "<td>"+(cls.name || "")+"</td>"+
-      "<td>"+(r.total_marks || "")+"</td>"+
-      "<td>"+(r.mean_score || "")+"</td>"+
-      "<td>"+(r.grade || "")+"</td>";
-    tbodyEl.appendChild(tr);
-  });
-}
+    // filter report_cards kwa exam + class
+    var list = reports.filter(function(r){
+      var okExam  = (!r.exam_id && r.exam === query.examId) || r.exam_id === query.examId;
+      var okClass = r.class_id === query.classId;
+      return okExam && okClass;
+    });
 
-/* ===== BUILD RANKING ===== */
-function buildRanking(){
-  var examId  = ($("examSelect") || {}).value || EXAM_ID;
-  var classId = ($("classSelect") || {}).value;
+    if (!list.length){
+      var tbody = $("rankingTable").querySelector("tbody");
+      tbody.innerHTML = "<tr><td colspan='11' style='text-align:center;'>Hakuna report cards kwa exam/class hii. Hakikisha ume-run Generate Reports.</td></tr>";
+      return;
+    }
 
-  if (!classId){
-    toast("Chagua class kwanza.");
-    return;
-  }
-
-  // chukua reports za exam + class husika
-  var list = store.reports.filter(function(r){
-    if (r.exam_id && r.exam_id !== examId) return false;
-    return r.class_id === classId;
-  });
-
-  if (!list.length){
-    toast("Hakuna report cards kwa exam hii na class hiyo. Generate reports kwenye Marks.");
-  }
-
-  // sort kwa mean_score descending
-  list.sort(function(a,b){
-    return (b.mean_score || 0) - (a.mean_score || 0);
-  });
-
-  var top10  = list.slice(0,10);
-  var last10 = list.slice().reverse().slice(0,10);
-
-  var topBody  = $("topTable").querySelector("tbody");
-  var lastBody = $("lastTable").querySelector("tbody");
-
-  renderTable(topBody,  top10,  true);
-  renderTable(lastBody, last10, false);
-}
-
-/* ===== INIT ===== */
-document.addEventListener("DOMContentLoaded", function(){
-  (async function init(){
-    await refreshStore();
-    fillClassSelect();
-
-    if ($("applyBtn")) $("applyBtn").onclick = buildRanking;
-    if ($("classSelect")) $("classSelect").onchange = buildRanking;
-
-    var logoutBtn = $("logoutBtn");
-    if (logoutBtn){
-      logoutBtn.onclick = function(){
-        auth.signOut().then(function(){
-          window.location.href = "index.html";
-        });
+    // join na students
+    list = list.map(function(r){
+      var stu = students.find(function(s){ return s.id === r.student_id; }) || {};
+      var clsName = cls.name || r.class_name || query.classId;
+      return {
+        id: r.id,
+        admission_no: r.admission_no || "",
+        name: (stu.first_name || "")+" "+(stu.last_name || ""),
+        sex: stu.gender || "",
+        class_name: clsName,
+        total: r.total_marks || 0,
+        mean: r.mean_score || 0,
+        grade: r.grade || "",
+        position: 0,       // tutaweka baada ya sort
+        remark: r.remark || ""
       };
+    });
+
+    // sort by total desc
+    list.sort(function(a,b){
+      if (b.total !== a.total) return b.total - a.total;
+      return (a.admission_no+"").localeCompare(b.admission_no+"");
+    });
+
+    // assign positions (ties = same position)
+    var currentPos = 0;
+    var lastTotal  = null;
+    list.forEach(function(item, idx){
+      if (item.total !== lastTotal){
+        currentPos = idx + 1;
+        lastTotal = item.total;
+      }
+      item.position = currentPos;
+    });
+
+    window.currentList = list; // store globally for re-render
+    if ($("metaTotal")) $("metaTotal").textContent = String(list.length);
+
+    renderRanking(list, query.view || "all");
+  }catch(err){
+    console.error("initRanking error:", err);
+    alert("Imeshindikana kupakia ranking. Angalia console.");
+  }
+}
+
+/* ===== RENDER TABLE ===== */
+function renderRanking(list, viewMode){
+  var tbody = $("rankingTable").querySelector("tbody");
+  if (!list || !list.length){
+    tbody.innerHTML = "<tr><td colspan='11' style='text-align:center;'>No data.</td></tr>";
+    return;
+  }
+
+  var rows = list.slice(); // copy
+
+  if (viewMode === "top_last"){
+    var top = rows.slice(0, 10);
+    var last = rows.slice(-10);
+    rows = top.concat(last);
+  }
+
+  tbody.innerHTML = "";
+  rows.forEach(function(item, index){
+    var tr = document.createElement("tr");
+
+    var flagHTML = "";
+    if (viewMode === "top_last"){
+      if (item.position <= 10){
+        flagHTML = "<span class='tag-top'>TOP "+item.position+"</span>";
+      }else if (item.position >= list.length - 9){
+        flagHTML = "<span class='tag-last'>LAST</span>";
+      }
     }
 
-    // load default ranking kama kuna class ya kwanza
-    if (store.classes.length){
-      $("classSelect").value = store.classes[0].id;
-      buildRanking();
-    }
-  })();
-});
+    tr.innerHTML =
+      "<td style='text-align:center;'>"+(index+1)+"</td>"+
+      "<td>"+item.admission_no+"</td>"+
+      "<td>"+item.name+"</td>"+
+      "<td style='text-align:center;'>"+item.sex+"</td>"+
+      "<td style='text-align:center;'>"+item.class_name+"</td>"+
+      "<td style='text-align:right;'>"+item.total+"</td>"+
+      "<td style='text-align:right;'>"+item.mean.toFixed ? item.mean.toFixed(2) : item.mean+"</td>"+
+      "<td style='text-align:center;'>"+item.grade+"</td>"+
+      "<td style='text-align:center;'>"+item.position+"</td>"+
+      "<td>"+(item.remark || "")+"</td>"+
+      "<td style='text-align:center;'>"+flagHTML+"</td>";
+
+    tbody.appendChild(tr);
+  });
+}
+
