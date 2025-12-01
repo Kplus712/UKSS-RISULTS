@@ -1,264 +1,252 @@
 // js/report.js
-// Results listing + single report card modal (with Behaviour)
-// Uses global firebase auth, db, col, getAll, getDocById from database.js
+// Single student report form (Maendeleo ya Taaluma)
 
-var EXAM_ID = "annual_2025";
 var $ = function(id){ return document.getElementById(id); };
 
-var store = {
-  classes: [],
-  students: [],
-  subjects: [],
-  reports: []
-};
+function qparam(){
+  var p = new URLSearchParams(window.location.search);
+  return {
+    examId:   p.get("exam")   || "",
+    classId:  p.get("class")  || "",
+    studentId:p.get("student")|| "",
+    adm:      p.get("adm")    || ""
+  };
+}
 
-/* ========== AUTH GUARD ========== */
+/* ===== AUTH GUARD ===== */
 auth.onAuthStateChanged(function(user){
   if (!user){
     window.location.href = "index.html";
+    return;
   }
+  initReport();
 });
 
-/* ========== TOAST ========== */
-function toast(text){
-  console.log(text);
-  var el = document.createElement("div");
-  el.textContent = text;
-  el.style.cssText =
-    "position:fixed;right:16px;bottom:16px;background:#11b86a;color:#00150b;" +
-    "padding:8px 12px;border-radius:8px;font-size:13px;z-index:9999;";
-  document.body.appendChild(el);
-  setTimeout(function(){ el.remove(); }, 2200);
-}
+var allClasses = [];
+var allStudents = [];
+var allReports = [];
+var allBehaviour = [];
+var allExams = [];
+var currentExamId = "";
+var currentClassId = "";
+var currentStudentId = "";
 
-/* ========== LOAD DATA ========== */
-async function refreshStore(){
+/* ===== MAIN INIT ===== */
+async function initReport(){
   try{
+    var qp = qparam();
+
     var res = await Promise.all([
       getAll(col.classes),
       getAll(col.students),
-      getAll(col.subjects),
-      getAll(col.report_cards)
+      getAll(col.report_cards),
+      getAll(col.behaviour || "behaviour"),
+      getAll(col.exams || "exams")
     ]);
-    store.classes  = res[0];
-    store.students = res[1];
-    store.subjects = res[2];
-    store.reports  = res[3];
-  }catch(err){
-    console.error("refreshStore (results) error:", err);
-    toast("Imeshindikana kusoma report cards kutoka Firestore.");
-  }
-}
 
-/* ========== FILTERS & TABLE ========== */
-function fillClassFilter(){
-  var sel = $("classSelect");
-  if (!sel) return;
-  var options = ['<option value="">All classes</option>'];
-  store.classes.forEach(function(c){
-    options.push('<option value="'+c.id+'">'+c.name+'</option>');
-  });
-  sel.innerHTML = options.join("");
-}
+    allClasses    = res[0];
+    allStudents   = res[1];
+    allReports    = res[2];
+    allBehaviour  = res[3] || [];
+    allExams      = res[4] || [];
 
-function applyFilters(){
-  var examId  = $("examSelect").value || EXAM_ID;
-  var classId = $("classSelect").value;
-  var q       = ($("searchBox").value || "").toLowerCase();
+    // default exam/class from query or first available
+    currentExamId  = qp.examId || (allExams[0] && allExams[0].id) || "";
+    currentClassId = qp.classId || (allClasses[0] && allClasses[0].id) || "";
 
-  var list = store.reports.filter(function(r){
-    if (r.exam_id && r.exam_id !== examId) return false;
-    if (classId && r.class_id !== classId) return false;
-    var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
-    var name = ((stu.first_name || "") + " " + (stu.last_name || "")).toLowerCase();
-    var adm  = (r.admission_no || "").toLowerCase();
-    if (q && !(name.includes(q) || adm.includes(q))) return false;
-    return true;
-  });
+    // ===== FILL SELECTS =====
+    fillExamSelect();
+    fillClassSelect();
+    fillStudentSelect(qp);
 
-  renderTable(list);
-}
-
-function renderTable(list){
-  var tbody = $("resultsTable").querySelector("tbody");
-  tbody.innerHTML = "";
-
-  if (!list.length){
-    tbody.innerHTML = '<tr><td colspan="7">No report cards found. Hakikisha ume-generate reports kwenye Marks page.</td></tr>';
-    return;
-  }
-
-  list.forEach(function(r){
-    var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
-    var cls = store.classes.find(function(c){ return c.id === r.class_id; }) || {};
-
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>"+(r.admission_no || "")+"</td>"+
-      "<td>"+(stu.first_name || "")+" "+(stu.last_name || "")+"</td>"+
-      "<td>"+(cls.name || "")+"</td>"+
-      "<td>"+(r.total_marks || "")+"</td>"+
-      "<td>"+(r.mean_score || "")+"</td>"+
-      "<td>"+(r.grade || "")+"</td>"+
-      '<td><button class="btn btn-ghost btn-sm" data-report-id="'+r.id+'">View</button></td>';
-
-    tbody.appendChild(tr);
-  });
-
-  Array.prototype.forEach.call(
-    tbody.querySelectorAll("button[data-report-id]"),
-    function(btn){
-      btn.onclick = function(){
-        var repId = btn.getAttribute("data-report-id");
-        openReport(repId);
+    // handlers
+    if ($("examSelect")){
+      $("examSelect").onchange = function(){
+        currentExamId = this.value;
+        fillStudentSelect({});
+        renderCurrent();
       };
     }
-  );
-}
-
-/* ========== HELPER: behaviour label ========== */
-function behaviourLabel(score){
-  if (score == null) return "-";
-  if (score === 5) return "Excellent";
-  if (score === 4) return "Very Good";
-  if (score === 3) return "Good";
-  if (score === 2) return "Fair";
-  if (score === 1) return "Poor";
-  return String(score);
-}
-
-/* ========== REPORT CARD MODAL ========== */
-async function openReport(reportId){
-  var r = store.reports.find(function(x){ return x.id === reportId; });
-  if (!r){
-    toast("Report haijapatikana.");
-    return;
-  }
-  var stu = store.students.find(function(s){ return s.id === r.student_id; }) || {};
-  var cls = store.classes.find(function(c){ return c.id === r.class_id; }) || {};
-
-  $("rpName").textContent  = (stu.first_name || "")+" "+(stu.last_name || "");
-  $("rpAdm").textContent   = r.admission_no || "";
-  $("rpClass").textContent = cls.name || "";
-  $("rpExam").textContent  = r.exam_id || EXAM_ID;
-  $("rpTotal").textContent = r.total_marks || "";
-  $("rpMean").textContent  = r.mean_score || "";
-  $("rpGrade").textContent = r.grade || "";
-  $("rpWeak").textContent  = (r.weak_subjects && r.weak_subjects.length)
-    ? r.weak_subjects.join(", ")
-    : "None";
-
-  // SUBJECT MARKS
-  var tbody = $("rpSubjectsTable").querySelector("tbody");
-  tbody.innerHTML = "";
-
-  try{
-    var markId = EXAM_ID+"_"+r.class_id+"_"+r.student_id;
-    var markDoc = await getDocById(col.marks, markId);
-    if (markDoc && markDoc.subject_marks){
-      store.subjects.forEach(function(sub){
-        var m = markDoc.subject_marks[sub.id] || {};
-        var tr = document.createElement("tr");
-        tr.innerHTML =
-          "<td>"+(sub.code || sub.id)+" — "+sub.name+"</td>"+
-          "<td>"+(m.ca   != null ? m.ca   : "")+"</td>"+
-          "<td>"+(m.exam != null ? m.exam : "")+"</td>"+
-          "<td>"+(m.total!= null ? m.total: "")+"</td>";
-        tbody.appendChild(tr);
-      });
-    }else{
-      tbody.innerHTML = "<tr><td colspan='4'>No subject breakdown found for this report.</td></tr>";
+    if ($("classSelect")){
+      $("classSelect").onchange = function(){
+        currentClassId = this.value;
+        fillStudentSelect({});
+        renderCurrent();
+      };
     }
-  }catch(err){
-    console.error("openReport marks error:", err);
-    tbody.innerHTML = "<tr><td colspan='4'>Error loading subject marks.</td></tr>";
-  }
-
-  // BEHAVIOUR
-  try{
-    var behId  = EXAM_ID+"_"+r.class_id+"_"+r.student_id;
-    var behDoc = await getDocById(col.behaviour, behId);
-
-    if (behDoc && behDoc.ratings){
-      var rt = behDoc.ratings;
-      var lines = [];
-
-      if (rt.discipline != null)
-        lines.push("Discipline: "+behaviourLabel(rt.discipline)+" ("+rt.discipline+"/5)");
-      if (rt.cleanliness != null)
-        lines.push("Personal Cleanliness: "+behaviourLabel(rt.cleanliness)+" ("+rt.cleanliness+"/5)");
-      if (rt.diligence != null)
-        lines.push("Diligence: "+behaviourLabel(rt.diligence)+" ("+rt.diligence+"/5)");
-      if (rt.punctuality != null)
-        lines.push("Punctuality: "+behaviourLabel(rt.punctuality)+" ("+rt.punctuality+"/5)");
-      if (rt.cooperation != null)
-        lines.push("Cooperation: "+behaviourLabel(rt.cooperation)+" ("+rt.cooperation+"/5)");
-      if (rt.academics != null)
-        lines.push("Academic Attitude: "+behaviourLabel(rt.academics)+" ("+rt.academics+"/5)");
-      if (rt.sports != null)
-        lines.push("Sports & Activities: "+behaviourLabel(rt.sports)+" ("+rt.sports+"/5)");
-      if (rt.care != null)
-        lines.push("Care for School Property: "+behaviourLabel(rt.care)+" ("+rt.care+"/5)");
-      if (rt.honesty != null)
-        lines.push("Honesty: "+behaviourLabel(rt.honesty)+" ("+rt.honesty+"/5)");
-
-      $("rpBehaviour").innerHTML = lines.length ? lines.join("<br>") : "Not recorded.";
-      $("rpTeacherComment").textContent = behDoc.teacher_comment || "Not recorded.";
-      $("rpHeadComment").textContent    = behDoc.head_comment    || "Not recorded.";
-    }else{
-      $("rpBehaviour").textContent      = "Not recorded.";
-      $("rpTeacherComment").textContent = "Not recorded.";
-      $("rpHeadComment").textContent    = "Not recorded.";
+    if ($("studentSelect")){
+      $("studentSelect").onchange = function(){
+        currentStudentId = this.value;
+        renderCurrent();
+      };
     }
-  }catch(err2){
-    console.error("openReport behaviour error:", err2);
-    $("rpBehaviour").textContent      = "Error loading behaviour.";
-    $("rpTeacherComment").textContent = "";
-    $("rpHeadComment").textContent    = "";
-  }
 
-  $("reportOverlay").classList.remove("hidden");
-}
-
-/* ========== INIT & EVENTS ========== */
-document.addEventListener("DOMContentLoaded", function(){
-  (async function init(){
-    await refreshStore();
-    fillClassFilter();
-    applyFilters();
-
-    if ($("filterBtn")) $("filterBtn").onclick = applyFilters;
-    if ($("searchBox")) $("searchBox").onkeyup = function(e){
-      if (e.key === "Enter") applyFilters();
+    $("prevBtn").onclick = function(){
+      stepStudent(-1);
+    };
+    $("nextBtn").onclick = function(){
+      stepStudent(1);
     };
 
-    var closeBtn = $("closeReportBtn");
-    if (closeBtn){
-      closeBtn.onclick = function(){
-        $("reportOverlay").classList.add("hidden");
-      };
-    }
-    var overlay = $("reportOverlay");
-    if (overlay){
-      overlay.addEventListener("click", function(e){
-        if (e.target === overlay) overlay.classList.add("hidden");
-      });
-    }
+    renderCurrent();
+  }catch(err){
+    console.error("initReport error:", err);
+    alert("Imeshindikana kupakia report form. Angalia console.");
+  }
+}
 
-    var printBtn = $("printBtn");
-    if (printBtn){
-      printBtn.onclick = function(){
-        window.print();
-      };
-    }
+/* ===== SELECT HELPERS ===== */
+function fillExamSelect(){
+  var sel = $("examSelect");
+  if (!sel) return;
 
-    var logoutBtn = $("logoutBtn");
-    if (logoutBtn){
-      logoutBtn.onclick = function(){
-        auth.signOut().then(function(){
-          window.location.href = "index.html";
-        });
-      };
-    }
-  })();
-});
+  if (!allExams.length){
+    sel.innerHTML = "<option value=''>No exams</option>";
+    return;
+  }
+
+  sel.innerHTML = allExams.map(function(ex){
+    var label = ex.name || ex.id;
+    var selAttr = (ex.id === currentExamId) ? " selected" : "";
+    return "<option value='"+ex.id+"'"+selAttr+">"+label+"</option>";
+  }).join("");
+}
+
+function fillClassSelect(){
+  var sel = $("classSelect");
+  if (!sel) return;
+
+  if (!allClasses.length){
+    sel.innerHTML = "<option value=''>No classes</option>";
+    return;
+  }
+
+  sel.innerHTML = allClasses.map(function(c){
+    var selAttr = (c.id === currentClassId) ? " selected" : "";
+    return "<option value='"+c.id+"'"+selAttr+">"+(c.name || c.id)+"</option>";
+  }).join("");
+}
+
+function fillStudentSelect(qp){
+  var sel = $("studentSelect");
+  if (!sel) return;
+
+  var list = allStudents.filter(function(s){
+    return s.class_id === currentClassId;
+  });
+
+  if (!list.length){
+    sel.innerHTML = "<option value=''>No students</option>";
+    currentStudentId = "";
+    return;
+  }
+
+  // sort by admission
+  list.sort(function(a,b){
+    return (a.admission_no+"").localeCompare(b.admission_no+"");
+  });
+
+  // pick default: by query adm/student, or first
+  if (qp && qp.studentId){
+    currentStudentId = qp.studentId;
+  }else if (qp && qp.adm){
+    var m = list.find(function(s){ return (s.admission_no+"") === qp.adm; });
+    currentStudentId = m ? m.id : list[0].id;
+  }else if (!currentStudentId){
+    currentStudentId = list[0].id;
+  }
+
+  sel.innerHTML = list.map(function(s){
+    var label = (s.admission_no || "")+" — "+(s.first_name || "")+" "+(s.last_name || "");
+    var selAttr = (s.id === currentStudentId) ? " selected" : "";
+    return "<option value='"+s.id+"'"+selAttr+">"+label+"</option>";
+  }).join("");
+}
+
+/* ===== NAVIGATE PREV/NEXT ===== */
+function stepStudent(direction){
+  var sel = $("studentSelect");
+  if (!sel || !sel.options.length) return;
+  var idx = sel.selectedIndex;
+  var next = idx + direction;
+  if (next < 0 || next >= sel.options.length) return;
+  sel.selectedIndex = next;
+  currentStudentId = sel.value;
+  renderCurrent();
+}
+
+/* ===== RENDER CARD ===== */
+function renderCurrent(){
+  if (!currentExamId || !currentClassId || !currentStudentId) return;
+
+  var cls   = allClasses.find(function(c){ return c.id === currentClassId; }) || {};
+  var stu   = allStudents.find(function(s){ return s.id === currentStudentId; }) || {};
+  var exam  = allExams.find(function(e){ return e.id === currentExamId; }) || { id: currentExamId };
+
+  // report_card for this exam/class/student
+  var rep = allReports.find(function(r){
+    var okExam = (r.exam_id === currentExamId) || (!r.exam_id && r.exam === currentExamId);
+    return okExam && r.class_id === currentClassId && r.student_id === currentStudentId;
+  }) || {};
+
+  // behaviour record (simple approach: last one for this student & exam)
+  var behave = allBehaviour.find(function(b){
+    if (b.student_id !== currentStudentId) return false;
+    if (b.exam_id && b.exam_id !== currentExamId) return false;
+    return true;
+  }) || {};
+
+  // ===== HEADER / META =====
+  if ($("repExamName")) $("repExamName").textContent = exam.name || exam.id || "";
+  if ($("metaStudentName")) $("metaStudentName").textContent =
+    (stu.first_name || "")+" "+(stu.last_name || "");
+  if ($("metaAdmForm")) $("metaAdmForm").textContent =
+    (stu.admission_no || "")+" / "+(cls.level || "Form ?");
+  if ($("metaSex")) $("metaSex").textContent = stu.gender || "";
+  if ($("metaClass")) $("metaClass").textContent = cls.name || cls.id || "";
+
+  if ($("metaClassTeacher")) $("metaClassTeacher").textContent =
+    (cls.class_teacher_name || behave.class_teacher_name || "");
+  if ($("metaExamDate")) $("metaExamDate").textContent = exam.date || exam.exam_date || "";
+  if ($("metaYear")) $("metaYear").textContent = exam.year || new Date().getFullYear();
+
+  // ===== SUBJECT TABLE =====
+  var tbody = $("subjectsTable").querySelector("tbody");
+  var subjects = rep.subjects || rep.subject_summary || [];
+
+  if (!subjects.length){
+    tbody.innerHTML = "<tr><td colspan='5'>Hakuna breakdown ya masomo kwenye report card hii. Hakikisha ume-update structure ya report_cards.</td></tr>";
+  }else{
+    tbody.innerHTML = "";
+    subjects.forEach(function(sub, idx){
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>"+(idx+1)+"</td>"+
+        "<td class='subj-name'>"+(sub.name || sub.subject_name || sub.code || "")+"</td>"+
+        "<td>"+(sub.marks != null ? sub.marks : (sub.score || ""))+"</td>"+
+        "<td>"+(sub.grade || "")+"</td>"+
+        "<td style='text-align:left;'>"+(sub.remark || "")+"</td>";
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ===== TOTALS & BEHAVIOUR =====
+  if ($("metaTotal"))   $("metaTotal").textContent   = rep.total_marks != null ? rep.total_marks : "";
+  if ($("metaMean"))    $("metaMean").textContent    = rep.mean_score != null ? rep.mean_score : "";
+  if ($("metaGrade"))   $("metaGrade").textContent   = rep.grade || "";
+  if ($("metaPosition"))$("metaPosition").textContent= rep.position || rep.rank || "";
+
+  if ($("metaClassRemark")) $("metaClassRemark").textContent =
+    rep.remark || behave.class_comment || "";
+
+  if ($("metaBehaviour")) $("metaBehaviour").textContent =
+    behave.summary || behave.behaviour || behave.remark || " ";
+
+  if ($("metaClosed")) $("metaClosed").textContent =
+    exam.closed_date || behave.closed_date || "";
+  if ($("metaOpening")) $("metaOpening").textContent =
+    exam.opening_date || behave.opening_date || "";
+  if ($("metaAdvice")) $("metaAdvice").textContent =
+    behave.advice || "";
+}
+
