@@ -6,10 +6,10 @@ var $ = function(id){ return document.getElementById(id); };
 function qparam(){
   var p = new URLSearchParams(window.location.search);
   return {
-    examId:   p.get("exam")   || "",
-    classId:  p.get("class")  || "",
-    studentId:p.get("student")|| "",
-    adm:      p.get("adm")    || ""
+    examId:    p.get("exam")    || "",
+    classId:   p.get("class")   || "",
+    studentId: p.get("student") || "",
+    adm:       p.get("adm")     || ""
   };
 }
 
@@ -22,13 +22,15 @@ auth.onAuthStateChanged(function(user){
   initReport();
 });
 
-var allClasses = [];
-var allStudents = [];
-var allReports = [];
+var allClasses   = [];
+var allStudents  = [];
+var allReports   = [];
 var allBehaviour = [];
-var allExams = [];
-var currentExamId = "";
-var currentClassId = "";
+var allExams     = [];
+var allMarks     = [];
+
+var currentExamId    = "";
+var currentClassId   = "";
 var currentStudentId = "";
 
 /* ===== MAIN INIT ===== */
@@ -41,20 +43,20 @@ async function initReport(){
       getAll(col.students),
       getAll(col.report_cards),
       getAll(col.behaviour || "behaviour"),
-      getAll(col.exams || "exams")
+      getAll(col.exams || "exams"),
+      getAll(col.marks || "marks")
     ]);
 
-    allClasses    = res[0];
-    allStudents   = res[1];
-    allReports    = res[2];
-    allBehaviour  = res[3] || [];
-    allExams      = res[4] || [];
+    allClasses   = res[0];
+    allStudents  = res[1];
+    allReports   = res[2];
+    allBehaviour = res[3] || [];
+    allExams     = res[4] || [];
+    allMarks     = res[5] || [];
 
-    // default exam/class from query or first available
-    currentExamId  = qp.examId || (allExams[0] && allExams[0].id) || "";
+    currentExamId  = qp.examId  || (allExams[0]   && allExams[0].id)   || "";
     currentClassId = qp.classId || (allClasses[0] && allClasses[0].id) || "";
 
-    // ===== FILL SELECTS =====
     fillExamSelect();
     fillClassSelect();
     fillStudentSelect(qp);
@@ -81,12 +83,14 @@ async function initReport(){
       };
     }
 
-    $("prevBtn").onclick = function(){
-      stepStudent(-1);
-    };
-    $("nextBtn").onclick = function(){
-      stepStudent(1);
-    };
+    var prev = $("prevBtn");
+    var next = $("nextBtn");
+    if (prev){
+      prev.onclick = function(){ stepStudent(-1); };
+    }
+    if (next){
+      next.onclick = function(){ stepStudent(1); };
+    }
 
     renderCurrent();
   }catch(err){
@@ -106,9 +110,9 @@ function fillExamSelect(){
   }
 
   sel.innerHTML = allExams.map(function(ex){
-    var label = ex.name || ex.id;
-    var selAttr = (ex.id === currentExamId) ? " selected" : "";
-    return "<option value='"+ex.id+"'"+selAttr+">"+label+"</option>";
+    var label  = ex.name || ex.id;
+    var selAtt = (ex.id === currentExamId) ? " selected" : "";
+    return "<option value='"+ex.id+"'"+selAtt+">"+label+"</option>";
   }).join("");
 }
 
@@ -122,8 +126,8 @@ function fillClassSelect(){
   }
 
   sel.innerHTML = allClasses.map(function(c){
-    var selAttr = (c.id === currentClassId) ? " selected" : "";
-    return "<option value='"+c.id+"'"+selAttr+">"+(c.name || c.id)+"</option>";
+    var selAtt = (c.id === currentClassId) ? " selected" : "";
+    return "<option value='"+c.id+"'"+selAtt+">"+(c.name || c.id)+"</option>";
   }).join("");
 }
 
@@ -141,12 +145,11 @@ function fillStudentSelect(qp){
     return;
   }
 
-  // sort by admission
+  // sort kwa namba ya mtahiniwa
   list.sort(function(a,b){
     return (a.admission_no+"").localeCompare(b.admission_no+"");
   });
 
-  // pick default: by query adm/student, or first
   if (qp && qp.studentId){
     currentStudentId = qp.studentId;
   }else if (qp && qp.adm){
@@ -157,17 +160,17 @@ function fillStudentSelect(qp){
   }
 
   sel.innerHTML = list.map(function(s){
-    var label = (s.admission_no || "")+" — "+(s.first_name || "")+" "+(s.last_name || "");
-    var selAttr = (s.id === currentStudentId) ? " selected" : "";
-    return "<option value='"+s.id+"'"+selAttr+">"+label+"</option>";
+    var label  = (s.admission_no || "")+" — "+(s.first_name || "")+" "+(s.last_name || "");
+    var selAtt = (s.id === currentStudentId) ? " selected" : "";
+    return "<option value='"+s.id+"'"+selAtt+">"+label+"</option>";
   }).join("");
 }
 
-/* ===== NAVIGATE PREV/NEXT ===== */
+/* ===== PREV / NEXT STUDENT ===== */
 function stepStudent(direction){
   var sel = $("studentSelect");
   if (!sel || !sel.options.length) return;
-  var idx = sel.selectedIndex;
+  var idx  = sel.selectedIndex;
   var next = idx + direction;
   if (next < 0 || next >= sel.options.length) return;
   sel.selectedIndex = next;
@@ -175,28 +178,26 @@ function stepStudent(direction){
   renderCurrent();
 }
 
-/* ===== RENDER CARD ===== */
+/* ===== RENDER REPORT CARD ===== */
 function renderCurrent(){
   if (!currentExamId || !currentClassId || !currentStudentId) return;
 
-  var cls   = allClasses.find(function(c){ return c.id === currentClassId; }) || {};
-  var stu   = allStudents.find(function(s){ return s.id === currentStudentId; }) || {};
-  var exam  = allExams.find(function(e){ return e.id === currentExamId; }) || { id: currentExamId };
+  var cls  = allClasses.find(function(c){ return c.id === currentClassId; }) || {};
+  var stu  = allStudents.find(function(s){ return s.id === currentStudentId; }) || {};
+  var exam = allExams.find(function(e){ return e.id === currentExamId; }) || { id: currentExamId };
 
-  // report_card for this exam/class/student
   var rep = allReports.find(function(r){
     var okExam = (r.exam_id === currentExamId) || (!r.exam_id && r.exam === currentExamId);
     return okExam && r.class_id === currentClassId && r.student_id === currentStudentId;
   }) || {};
 
-  // behaviour record (simple approach: last one for this student & exam)
   var behave = allBehaviour.find(function(b){
     if (b.student_id !== currentStudentId) return false;
     if (b.exam_id && b.exam_id !== currentExamId) return false;
     return true;
   }) || {};
 
-  // ===== HEADER / META =====
+  // header
   if ($("repExamName")) $("repExamName").textContent = exam.name || exam.id || "";
   if ($("metaStudentName")) $("metaStudentName").textContent =
     (stu.first_name || "")+" "+(stu.last_name || "");
@@ -207,23 +208,45 @@ function renderCurrent(){
 
   if ($("metaClassTeacher")) $("metaClassTeacher").textContent =
     (cls.class_teacher_name || behave.class_teacher_name || "");
-  if ($("metaExamDate")) $("metaExamDate").textContent = exam.date || exam.exam_date || "";
-  if ($("metaYear")) $("metaYear").textContent = exam.year || new Date().getFullYear();
+  if ($("metaExamDate")) $("metaExamDate").textContent =
+    exam.date || exam.exam_date || "";
+  if ($("metaYear")) $("metaYear").textContent =
+    exam.year || new Date().getFullYear();
 
   // ===== SUBJECT TABLE =====
-  var tbody = $("subjectsTable").querySelector("tbody");
+  var tbody    = $("subjectsTable").querySelector("tbody");
   var subjects = rep.subjects || rep.subject_summary || [];
 
-  if (!subjects.length){
-    tbody.innerHTML = "<tr><td colspan='5'>Hakuna breakdown ya masomo kwenye report card hii. Hakikisha ume-update structure ya report_cards.</td></tr>";
+  // kama hakuna subjects kwenye report_cards, tumia marks
+  if ((!subjects || !subjects.length) && allMarks && allMarks.length){
+    subjects = allMarks
+      .filter(function(m){
+        var okExam  = (m.exam_id === currentExamId) || (!m.exam_id && m.exam === currentExamId);
+        var okClass = m.class_id === currentClassId;
+        var okStu   = m.student_id === currentStudentId;
+        return okExam && okClass && okStu;
+      })
+      .map(function(m){
+        return {
+          name:  m.subject_name || m.subject || m.code || "",
+          marks: m.total != null ? m.total : (m.marks != null ? m.marks : m.score),
+          grade: m.grade || "",
+          remark:m.remark || m.comment || ""
+        };
+      });
+  }
+
+  if (!subjects || !subjects.length){
+    tbody.innerHTML =
+      "<tr><td colspan='5'>Hakuna breakdown ya masomo kwenye report ya mwanafunzi huyu kwa mtihani huu.</td></tr>";
   }else{
     tbody.innerHTML = "";
     subjects.forEach(function(sub, idx){
       var tr = document.createElement("tr");
       tr.innerHTML =
         "<td>"+(idx+1)+"</td>"+
-        "<td class='subj-name'>"+(sub.name || sub.subject_name || sub.code || "")+"</td>"+
-        "<td>"+(sub.marks != null ? sub.marks : (sub.score || ""))+"</td>"+
+        "<td class='subj-name'>"+(sub.name || "")+"</td>"+
+        "<td>"+(sub.marks != null ? sub.marks : "")+"</td>"+
         "<td>"+(sub.grade || "")+"</td>"+
         "<td style='text-align:left;'>"+(sub.remark || "")+"</td>";
       tbody.appendChild(tr);
@@ -231,10 +254,10 @@ function renderCurrent(){
   }
 
   // ===== TOTALS & BEHAVIOUR =====
-  if ($("metaTotal"))   $("metaTotal").textContent   = rep.total_marks != null ? rep.total_marks : "";
-  if ($("metaMean"))    $("metaMean").textContent    = rep.mean_score != null ? rep.mean_score : "";
-  if ($("metaGrade"))   $("metaGrade").textContent   = rep.grade || "";
-  if ($("metaPosition"))$("metaPosition").textContent= rep.position || rep.rank || "";
+  if ($("metaTotal"))    $("metaTotal").textContent    = rep.total_marks != null ? rep.total_marks : "";
+  if ($("metaMean"))     $("metaMean").textContent     = rep.mean_score != null ? rep.mean_score : "";
+  if ($("metaGrade"))    $("metaGrade").textContent    = rep.grade || "";
+  if ($("metaPosition")) $("metaPosition").textContent = rep.position || rep.rank || "";
 
   if ($("metaClassRemark")) $("metaClassRemark").textContent =
     rep.remark || behave.class_comment || "";
@@ -242,11 +265,12 @@ function renderCurrent(){
   if ($("metaBehaviour")) $("metaBehaviour").textContent =
     behave.summary || behave.behaviour || behave.remark || " ";
 
-  if ($("metaClosed")) $("metaClosed").textContent =
-    exam.closed_date || behave.closed_date || "";
+  if ($("metaClosed"))  $("metaClosed").textContent  =
+    exam.closed_date  || behave.closed_date  || "";
   if ($("metaOpening")) $("metaOpening").textContent =
     exam.opening_date || behave.opening_date || "";
-  if ($("metaAdvice")) $("metaAdvice").textContent =
+  if ($("metaAdvice"))  $("metaAdvice").textContent  =
     behave.advice || "";
 }
+
 
