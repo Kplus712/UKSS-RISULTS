@@ -107,3 +107,25 @@ async function routeByRole(user){
     window.location.href = "marks.html";
   }
 }
+
+auth.signInWithEmailAndPassword(email, password)
+  .then(function(cred){
+    console.log("login success", cred.user.uid);
+    window.location.href = "marks.html"; // au academic.html
+  })
+  .catch(function(err){
+    console.log("login error raw:", err);
+
+    var msg = "Imeshindikana ku-login.";
+    if (err.code === "auth/user-not-found" || err.message.indexOf("EMAIL_NOT_FOUND") !== -1) {
+      msg = "Akaunti hii haijasajiliwa. Mwone admin akufungulie akaunti.";
+    } else if (err.code === "auth/wrong-password" || err.message.indexOf("INVALID_PASSWORD") !== -1) {
+      msg = "Password sio sahihi. Jaribu tena.";
+    } else if (err.code === "auth/invalid-email") {
+      msg = "Email sio sahihi.";
+    } else if (err.message.indexOf("OPERATION_NOT_ALLOWED") !== -1) {
+      msg = "Email/Password signin haijawezeshwa kwenye Firebase Authentication.";
+    }
+
+    alert(msg);
+  });
