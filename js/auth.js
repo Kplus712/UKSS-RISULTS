@@ -1,131 +1,56 @@
 // js/auth.js
-// Handle login + role-based redirect
+// UKSS — Login logic
 
-var $ = function(id){ return document.getElementById(id); };
-
-function showError(msg){
-  var el = $("loginError");
-  if (el) el.textContent = msg || "";
+// auth na db zimetoka js/database.js
+if (!auth) {
+  console.error("Auth not initialized");
 }
 
-/* ===== AUTO-REDIRECT KAMA TAYARI UMELOG-IN ===== */
-auth.onAuthStateChanged(function(user){
-  if (!user) return;
+document.addEventListener("DOMContentLoaded", function () {
+  var emailEl = document.getElementById("emailInput");
+  var passEl  = document.getElementById("passwordInput");
+  var btn     = document.getElementById("loginBtn");
 
-  var path = window.location.pathname.toLowerCase();
-  var onLoginPage =
-    path.endsWith("index.html") ||
-    path.endsWith("/") ||
-    path.indexOf("ukss-risults") !== -1 && !path.match(/\.html$/);
-
-  if (onLoginPage){
-    routeByRole(user);
+  if (!emailEl || !passEl || !btn) {
+    console.error("Login elements not found in DOM");
+    return;
   }
-});
 
-/* ===== SETUP LOGIN FORM ===== */
-function setupLoginForm(){
-  var form = $("loginForm");
-  var btn  = $("loginBtn");
-
-  if (!form || !btn) return;   // kama tuko kwenye page nyingine tuache kimya
-
-  form.addEventListener("submit", function(e){
+  btn.addEventListener("click", function (e) {
     e.preventDefault();
-    showError("");
 
-    var email = ($("email") || {}).value || "";
-    var pass  = ($("password") || {}).value || "";
+    var email = (emailEl.value || "").trim();
+    var password = passEl.value || "";
 
-    if (!email.trim() || !pass){
-      showError("Weka email na password.");
+    if (!email || !password) {
+      alert("Jaza email na password.");
       return;
     }
 
-    btn.disabled = true;
-    btn.textContent = "Logging in...";
-
-    auth.signInWithEmailAndPassword(email.trim(), pass)
-      .then(function(cred){
-        btn.disabled = false;
-        btn.textContent = "Login";
-        routeByRole(cred.user);
+    auth.signInWithEmailAndPassword(email, password)
+      .then(function (cred) {
+        console.log("login success:", cred.user.uid);
+        // baada ya login, nenda kwenye marks/academic
+        window.location.href = "marks.html"; // au academic.html, kulingana na mfumo wako
       })
-      .catch(function(err){
-        console.error("login error", err);
-        btn.disabled = false;
-        btn.textContent = "Login";
+      .catch(function (err) {
+        console.error("login error raw:", err);
 
-        var msg = "Imeshindikana ku-login. Hakikisha email & password ni sahihi.";
-        if (err.code === "auth/user-not-found") msg = "Hakuna akaunti yenye email hii.";
-        if (err.code === "auth/wrong-password") msg = "Nenosiri si sahihi.";
-        if (err.code === "auth/invalid-email") msg = "Email si sahihi.";
+        var msg = "Imeshindikana ku-login. ";
+        if (err.code === "auth/user-not-found" || (err.message && err.message.indexOf("EMAIL_NOT_FOUND") !== -1)) {
+          msg += "Akaunti hii haijasajiliwa. Mwone admin akufungulie akaunti.";
+        } else if (err.code === "auth/wrong-password" || (err.message && err.message.indexOf("INVALID_PASSWORD") !== -1)) {
+          msg += "Password sio sahihi. Jaribu tena.";
+        } else if (err.code === "auth/invalid-email") {
+          msg += "Email sio sahihi.";
+        } else if (err.message && err.message.indexOf("OPERATION_NOT_ALLOWED") !== -1) {
+          msg += "Email/Password signin haijawezeshwa kwenye Firebase Authentication.";
+        } else {
+          msg += "(" + (err.code || "unknown") + ")";
+        }
 
-        showError(msg);
+        alert(msg);
       });
   });
-}
+});
 
-// hakikisha handler inasetup hata kama DOMContentLoaded imeshapita
-if (document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", setupLoginForm);
-} else {
-  setupLoginForm();
-}
-
-/* ===== ROLE-BASED ROUTING ===== */
-async function routeByRole(user){
-  try{
-    var snap = await db.collection(col.staff).doc(user.uid).get();
-    if (!snap.exists){
-      showError("Hakuna staff profile. Mwone Admin akusajili kwenye 'staff'.");
-      return;
-    }
-
-    var staff  = snap.data();
-    var role   = staff.role || "none";
-    var active = (staff.active !== false);
-
-    if (!active){
-      showError("Akaunti yako imewekwa kuwa INACTIVE. Mwone Admin / Headmaster.");
-      return;
-    }
-
-    var target = "marks.html"; // default
-
-    if (role === "admin" || role === "headmaster"){
-      target = "admin.html";
-    } else if (role === "academic"){
-      target = "academic.html";
-    } else if (role === "class_teacher"){
-      target = "marks.html";
-    }
-
-    window.location.href = target;
-  }catch(err){
-    console.error("routeByRole error:", err);
-    window.location.href = "marks.html";
-  }
-}
-
-auth.signInWithEmailAndPassword(email, password)
-  .then(function(cred){
-    console.log("login success", cred.user.uid);
-    window.location.href = "marks.html"; // au academic.html
-  })
-  .catch(function(err){
-    console.log("login error raw:", err);
-
-    var msg = "Imeshindikana ku-login.";
-    if (err.code === "auth/user-not-found" || err.message.indexOf("EMAIL_NOT_FOUND") !== -1) {
-      msg = "Akaunti hii haijasajiliwa. Mwone admin akufungulie akaunti.";
-    } else if (err.code === "auth/wrong-password" || err.message.indexOf("INVALID_PASSWORD") !== -1) {
-      msg = "Password sio sahihi. Jaribu tena.";
-    } else if (err.code === "auth/invalid-email") {
-      msg = "Email sio sahihi.";
-    } else if (err.message.indexOf("OPERATION_NOT_ALLOWED") !== -1) {
-      msg = "Email/Password signin haijawezeshwa kwenye Firebase Authentication.";
-    }
-
-    alert(msg);
-  });
