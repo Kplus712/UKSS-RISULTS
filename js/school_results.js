@@ -250,4 +250,109 @@ function resetTables(msg) {
     tbody.innerHTML = "<tr><td colspan='13'>" + (msg || "No data.") + "</td></tr>";
   }
 }
+// ================================
+// CLASS PERFORMANCE SUMMARY
+// ================================
+var classStats = {}; // class_id → {reg, sat, passed, gpa...}
+
+cards.forEach(r => {
+  var cls = r.class_id || "N/A";
+  if (!classStats[cls]) {
+    classStats[cls] = {
+      reg: 0, sat: 0, passed: 0,
+      gpaSum: 0, gpaCount: 0
+    };
+  }
+  var s = classStats[cls];
+  s.reg++;
+
+  var g = (r.grade || "").toUpperCase();
+  var absent = r.absent === true;
+
+  if (!absent) {
+    s.sat++;
+    if (g && g !== "F") s.passed++;
+    var p = gradeToPoints(g);
+    if (p != null) { s.gpaSum += p; s.gpaCount++; }
+  }
+});
+
+// render table
+var cBody = document.querySelector("#classTable tbody");
+cBody.innerHTML = "";
+
+var classArr = Object.keys(classStats).map(cls => {
+  var c = classStats[cls];
+  return {
+    class_id: cls,
+    reg: c.reg,
+    sat: c.sat,
+    passed: c.passed,
+    percent: c.sat ? ((c.passed * 100) / c.sat).toFixed(1) : "-",
+    gpa: c.gpaCount ? (c.gpaSum / c.gpaCount).toFixed(3) : "-"
+  };
+});
+
+// rank by GPA
+classArr.sort((a, b) => {
+  let ga = a.gpa === "-" ? 99 : Number(a.gpa);
+  let gb = b.gpa === "-" ? 99 : Number(b.gpa);
+  return ga - gb;
+});
+
+classArr.forEach((c, idx) => {
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    `<td>${c.class_id}</td>
+     <td>${c.reg}</td>
+     <td>${c.sat}</td>
+     <td>${c.passed}</td>
+     <td>${c.percent}%</td>
+     <td>${c.gpa}</td>
+     <td>${idx + 1}</td>`;
+  cBody.appendChild(tr);
+});
+
+// ======================================
+// BEST TEN & LAST TEN
+// ======================================
+
+// sort cards by total descending
+var sorted = [...cards].sort((a, b) => Number(b.total) - Number(a.total));
+
+// BEST 10
+var bestTen = sorted.slice(0, 10);
+var bBody = document.querySelector("#bestTenTable tbody");
+bBody.innerHTML = "";
+bestTen.forEach((s, i) => {
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    `<td>${i + 1}</td>
+     <td>${s.student_name}</td>
+     <td>${s.sex}</td>
+     <td>${s.class_id}</td>
+     <td>${s.total}</td>
+     <td>${s.mean}</td>
+     <td>${s.grade}</td>
+     <td>${s.position}</td>`;
+  bBody.appendChild(tr);
+});
+
+// LAST 10
+var lastTen = sorted.slice(-10);
+var lBody = document.querySelector("#lastTenTable tbody");
+lBody.innerHTML = "";
+lastTen.forEach((s, i) => {
+  var tr = document.createElement("tr");
+  tr.innerHTML =
+    `<td>${i + 1}</td>
+     <td>${s.student_name}</td>
+     <td>${s.sex}</td>
+     <td>${s.class_id}</td>
+     <td>${s.total}</td>
+     <td>${s.mean}</td>
+     <td>${s.grade}</td>
+     <td>${s.position}</td>`;
+  lBody.appendChild(tr);
+});
 
