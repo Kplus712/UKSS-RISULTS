@@ -1,0 +1,234 @@
+<!-- school_results.html -->
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — School Results</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body{
+      background:#00130f;
+      color:#e5e7eb;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    .app{
+      max-width:1200px;
+      margin:16px auto;
+      padding:0 12px 40px;
+    }
+    .page-title{
+      font-size:22px;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .page-sub{
+      font-size:13px;
+      color:#9ca3af;
+      margin-bottom:16px;
+    }
+    .card{
+      background:#020817;
+      border-radius:14px;
+      padding:16px 18px;
+      margin-bottom:16px;
+      box-shadow:0 14px 32px rgba(0,0,0,0.55);
+      border:1px solid rgba(148,163,184,0.28);
+    }
+    .filters{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:flex-end;
+      margin-bottom:8px;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      font-size:13px;
+    }
+    .field label{margin-bottom:4px;}
+    .field select{
+      min-width:160px;
+    }
+    .btn-sm{
+      padding:8px 12px;
+      border-radius:999px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+    }
+    .btn-primary{
+      background:linear-gradient(90deg,#22c55e,#16a34a);
+      color:#022c22;
+    }
+    .btn-ghost{
+      background:rgba(15,23,42,0.85);
+      color:#e5e7eb;
+      border:1px solid rgba(148,163,184,0.4);
+    }
+    .grid-2{
+      display:grid;
+      grid-template-columns:2fr 3fr;
+      gap:12px;
+    }
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    .table th,
+    .table td{
+      border:1px solid rgba(148,163,184,0.5);
+      padding:3px 6px;
+      text-align:center;
+    }
+    .table th{
+      background:rgba(15,23,42,0.9);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.02em;
+    }
+    .table td.left{
+      text-align:left;
+    }
+    .badge{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+    }
+    .badge-good{background:#166534;color:#bbf7d0;}
+    .badge-avg{background:#854d0e;color:#facc15;}
+    .badge-poor{background:#7f1d1d;color:#fecaca;}
+
+    .section-title{
+      font-weight:700;
+      font-size:14px;
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+      color:#d1fae5;
+    }
+    .small{
+      font-size:11px;color:#9ca3af;
+    }
+    @media(max-width:900px){
+      .grid-2{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+    <div>
+      <div class="page-title">School Results — Examination Summary</div>
+      <div class="page-sub">UMOJA KINGORI SECONDARY — NECTA style centre performance</div>
+    </div>
+    <button class="btn-sm btn-ghost" onclick="window.location.href='academic.html'">← Academic</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="card">
+    <div class="filters">
+      <div class="field">
+        <label>Exam</label>
+        <select id="examSelect" class="input"></select>
+      </div>
+      <div class="field">
+        <label>Class (for class sheet)</label>
+        <select id="classSelect" class="input">
+          <option value="">All classes</option>
+        </select>
+      </div>
+      <button id="loadBtn" class="btn-sm btn-primary">Load Results</button>
+      <button class="btn-sm btn-ghost" onclick="window.print()">Print</button>
+    </div>
+    <div class="small">
+      * Centre performance na subject performance hutumia candidates wote wa exam.  
+      * Class results sheet hutumia class uliyochagua.
+    </div>
+  </div>
+
+  <!-- OVERALL PERFORMANCE + SUBJECT PERFORMANCE -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">Examination Centre Overall Performance</div>
+      <table class="table" id="centreTable">
+        <tbody>
+        <tr><th class="left">Total candidates</th><td id="ctTotal">-</td></tr>
+        <tr><th class="left">Total candidates passed</th><td id="ctPassed">-</td></tr>
+        <tr><th class="left">% of total passed candidates</th><td id="ctPercent">-</td></tr>
+        <tr><th class="left">Centre GPA</th><td id="ctGpa">-</td></tr>
+        <tr><th class="left">Competency level</th><td id="ctLevel">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Overall Subject Performance</div>
+      <div class="small" style="margin-bottom:4px;">Based on all report cards of selected exam.</div>
+      <div class="matrix-wrap">
+        <table class="table" id="subjectTable">
+          <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Reg</th>
+            <th>Sat</th>
+            <th>Abs</th>
+            <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th>
+            <th>GPA</th>
+            <th>Level</th>
+            <th>Rank</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="13">No data yet. Click "Load Results".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS RESULTS SHEET -->
+  <div class="card">
+    <div class="section-title">Class Results Sheet</div>
+    <div class="small" style="margin-bottom:4px;">
+      Shows students of selected class for this exam (total, mean, grade, position).
+    </div>
+    <div class="matrix-wrap">
+      <table class="table" id="classTable">
+        <thead>
+        <tr>
+          <th>No</th>
+          <th>Adm</th>
+          <th>Student name</th>
+          <th>Sex</th>
+          <th>Class</th>
+          <th>Total</th>
+          <th>Mean</th>
+          <th>Grade</th>
+          <th>Position</th>
+          <th>Remark</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr><td colspan="10">Choose exam & class then click "Load Results".</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script src="js/database.js"></script>
+<script src="js/school_results.js"></script>
+</body>
+</html>
