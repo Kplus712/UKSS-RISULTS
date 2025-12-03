@@ -1,222 +1,245 @@
-<!-- school_results.html -->
 <!DOCTYPE html>
 <html lang="sw">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — School Results</title>
+  <title>UKSS — School Results Form</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     body{
-      background:#00130f;
+      margin:0;
+      background:#02201a;
+      font-family: "Segoe UI",system-ui,-apple-system,sans-serif;
+    }
+    /* toolbar (haitaprint) */
+    .toolbar{
+      padding:8px 12px;
+      background:#020617;
       color:#e5e7eb;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    }
-    .app{
-      max-width:1200px;
-      margin:16px auto;
-      padding:0 12px 40px;
-    }
-    .page-title{
-      font-size:22px;
-      font-weight:700;
-      margin-bottom:8px;
-    }
-    .page-sub{
-      font-size:13px;
-      color:#9ca3af;
-      margin-bottom:16px;
-    }
-    .card{
-      background:#020817;
-      border-radius:14px;
-      padding:16px 18px;
-      margin-bottom:16px;
-      box-shadow:0 14px 32px rgba(0,0,0,0.55);
-      border:1px solid rgba(148,163,184,0.28);
-    }
-    .filters{
       display:flex;
       flex-wrap:wrap;
-      gap:10px;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .toolbar-left{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
       align-items:flex-end;
-      margin-bottom:8px;
     }
     .field{
       display:flex;
       flex-direction:column;
       font-size:13px;
+      color:#cbd5f5;
     }
-    .field label{margin-bottom:4px;}
+    .field label{margin-bottom:2px;}
     .field select{
       min-width:160px;
     }
-    .btn-sm{
-      padding:8px 12px;
+    .btn{
+      padding:6px 12px;
       border-radius:999px;
       border:none;
       cursor:pointer;
-      font-weight:600;
       font-size:13px;
+      font-weight:600;
     }
     .btn-primary{
       background:linear-gradient(90deg,#22c55e,#16a34a);
       color:#022c22;
     }
     .btn-ghost{
-      background:rgba(15,23,42,0.85);
+      background:transparent;
       color:#e5e7eb;
-      border:1px solid rgba(148,163,184,0.4);
+      border:1px solid rgba(148,163,184,0.5);
     }
-    .grid-2{
-      display:grid;
-      grid-template-columns:2fr 3fr;
-      gap:12px;
+
+    /* A4 sheet style */
+    .sheet-wrap{
+      display:flex;
+      justify-content:center;
+      padding:16px;
     }
-    .table{
+    .sheet{
+      width:1120px;
+      background:#fff8dc; /* light yellow */
+      border:2px solid #000;
+      padding:10px 12px 16px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.7);
+    }
+
+    .sheet-header{
+      text-align:center;
+      font-size:11px;
+      line-height:1.3;
+      margin-bottom:8px;
+    }
+    .sheet-header strong{
+      display:block;
+      text-transform:uppercase;
+    }
+    .sheet-header .exam-title{
+      margin-top:4px;
+      font-weight:700;
+      text-transform:uppercase;
+    }
+
+    .meta-bar{
+      font-size:10px;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+
+    table.nec-table{
       width:100%;
       border-collapse:collapse;
-      font-size:12px;
+      font-size:10px;
     }
-    .table th,
-    .table td{
-      border:1px solid rgba(148,163,184,0.5);
-      padding:3px 6px;
+    .nec-table th,
+    .nec-table td{
+      border:1px solid #000;
+      padding:3px 4px;
       text-align:center;
     }
-    .table th{
-      background:rgba(15,23,42,0.9);
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:0.02em;
+    .nec-table th{
+      background:#facc6b;
+      font-weight:700;
     }
-    .table td.left{
+    .nec-table td.left,
+    .nec-table th.left{
       text-align:left;
     }
+
+    .block-title{
+      text-align:center;
+      font-size:10px;
+      font-weight:700;
+      text-transform:uppercase;
+      margin:4px 0;
+    }
+
+    .centre-table{
+      margin-bottom:6px;
+    }
+
+    .subject-wrapper{
+      margin-top:4px;
+    }
+
     .badge{
       display:inline-block;
-      padding:2px 6px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:600;
+      padding:1px 4px;
+      border-radius:8px;
+      font-size:9px;
+      border:1px solid #000;
     }
-    .badge-good{background:#166534;color:#bbf7d0;}
-    .badge-avg{background:#854d0e;color:#facc15;}
-    .badge-poor{background:#7f1d1d;color:#fecaca;}
+    .badge-good{background:#bbf7d0;}
+    .badge-avg{background:#facc15;}
+    .badge-poor{background:#fecaca;}
 
-    .section-title{
-      font-weight:700;
-      font-size:14px;
-      margin-bottom:6px;
-      text-transform:uppercase;
-      letter-spacing:0.04em;
-      color:#d1fae5;
-    }
-    .small{
-      font-size:11px;color:#9ca3af;
-    }
-    @media(max-width:900px){
-      .grid-2{grid-template-columns:1fr;}
+    @media print{
+      body{background:#ffffff;}
+      .toolbar{display:none;}
+      .sheet-wrap{padding:0;}
+      .sheet{
+        width:100%;
+        box-shadow:none;
+        border-width:1px;
+      }
     }
   </style>
 </head>
 <body>
 
-<div class="app">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
-    <div>
-      <div class="page-title">School Results — Examination Summary</div>
-      <div class="page-sub">UMOJA KINGORI SECONDARY — NECTA style centre performance</div>
+<!-- TOP TOOLBAR (haiprintwi) -->
+<div class="toolbar">
+  <div class="toolbar-left">
+    <div style="font-weight:700;font-size:14px;">UKSS — School Results Form</div>
+    <div class="field">
+      <label>Exam</label>
+      <select id="examSelect" class="input">
+        <!-- itajazwa na JS kwa kutumia exam_id tofauti zilizopo kwenye report_cards -->
+      </select>
     </div>
-    <button class="btn-sm btn-ghost" onclick="window.location.href='academic.html'">← Academic</button>
+    <button id="loadBtn" class="btn btn-primary">Load Results</button>
   </div>
-
-  <!-- FILTERS -->
-  <div class="card">
-    <div class="filters">
-      <div class="field">
-        <label>Exam</label>
-        <select id="examSelect" class="input"></select>
-      </div>
-      <div class="field">
-        <label>Class (for class sheet)</label>
-        <select id="classSelect" class="input">
-          <option value="">All classes</option>
-        </select>
-      </div>
-      <button id="loadBtn" class="btn-sm btn-primary">Load Results</button>
-      <button class="btn-sm btn-ghost" onclick="window.print()">Print</button>
-    </div>
-    <div class="small">
-      * Centre performance na subject performance hutumia candidates wote wa exam.  
-      * Class results sheet hutumia class uliyochagua.
-    </div>
+  <div>
+    <button class="btn btn-ghost" onclick="window.location.href='academic.html'">← Academic</button>
+    <button class="btn btn-primary" onclick="window.print()">Print</button>
   </div>
+</div>
 
-  <!-- OVERALL PERFORMANCE + SUBJECT PERFORMANCE -->
-  <div class="grid-2">
-    <div class="card">
-      <div class="section-title">Examination Centre Overall Performance</div>
-      <table class="table" id="centreTable">
-        <tbody>
-        <tr><th class="left">Total candidates</th><td id="ctTotal">-</td></tr>
-        <tr><th class="left">Total candidates passed</th><td id="ctPassed">-</td></tr>
-        <tr><th class="left">% of total passed candidates</th><td id="ctPercent">-</td></tr>
-        <tr><th class="left">Centre GPA</th><td id="ctGpa">-</td></tr>
-        <tr><th class="left">Competency level</th><td id="ctLevel">-</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <div class="section-title">Overall Subject Performance</div>
-      <div class="small" style="margin-bottom:4px;">Based on all report cards of selected exam.</div>
-      <div class="matrix-wrap">
-        <table class="table" id="subjectTable">
-          <thead>
-          <tr>
-            <th>Subject</th>
-            <th>Reg</th>
-            <th>Sat</th>
-            <th>Abs</th>
-            <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th>
-            <th>GPA</th>
-            <th>Level</th>
-            <th>Rank</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr><td colspan="13">No data yet. Click "Load Results".</td></tr>
-          </tbody>
-        </table>
+<!-- MAIN SHEET -->
+<div class="sheet-wrap">
+  <div class="sheet">
+    <!-- HEADER kama NECTA -->
+    <div class="sheet-header">
+      <strong>PRESIDENT OFFICE</strong>
+      <strong>REGIONAL ADMINISTRATION AND LOCAL GOVERNMENT</strong>
+      <strong>HALMASHAURI YA WILAYA YA KIBAHA</strong>
+      <strong>UMOJA KINGORI SECONDARY SCHOOL</strong>
+      <div class="exam-title" id="examTitle">
+        EXAMINATION NAME / YEAR
       </div>
     </div>
-  </div>
 
-  <!-- CLASS RESULTS SHEET -->
-  <div class="card">
-    <div class="section-title">Class Results Sheet</div>
-    <div class="small" style="margin-bottom:4px;">
-      Shows students of selected class for this exam (total, mean, grade, position).
+    <div class="meta-bar">
+      CENTRE: <span id="centreName">UMOJA KINGORI</span> &nbsp;&nbsp;
+      EXAM ID: <span id="examIdLabel">-</span> &nbsp;&nbsp;
+      CLASS(ES): <span id="classLabel">ALL</span> &nbsp;&nbsp;
+      CANDIDATES DATA FROM SYSTEM
     </div>
-    <div class="matrix-wrap">
-      <table class="table" id="classTable">
+
+    <!-- BLOCK 1: CENTRE OVERALL PERFORMANCE -->
+    <div class="block-title">EXAMINATION CENTRE OVERALL PERFORMANCE</div>
+    <table class="nec-table centre-table">
+      <tbody>
+      <tr>
+        <th class="left" style="width:60%;">TOTAL CANDIDATES</th>
+        <td id="ctTotal"></td>
+      </tr>
+      <tr>
+        <th class="left">TOTAL CANDIDATES PASSED</th>
+        <td id="ctPassed"></td>
+      </tr>
+      <tr>
+        <th class="left">% OF TOTAL PASSED CANDIDATES</th>
+        <td id="ctPercent"></td>
+      </tr>
+      <tr>
+        <th class="left">CENTRE GPA</th>
+        <td id="ctGpa"></td>
+      </tr>
+      <tr>
+        <th class="left">COMPETENCY LEVEL</th>
+        <td id="ctLevel"></td>
+      </tr>
+      </tbody>
+    </table>
+
+    <!-- BLOCK 2: SUBJECT PERFORMANCE -->
+    <div class="block-title">EXAMINATION CENTRE OVERALL SUBJECT PERFORMANCE</div>
+    <div class="subject-wrapper">
+      <table class="nec-table" id="subjectTable">
         <thead>
         <tr>
-          <th>No</th>
-          <th>Adm</th>
-          <th>Student name</th>
-          <th>Sex</th>
-          <th>Class</th>
-          <th>Total</th>
-          <th>Mean</th>
-          <th>Grade</th>
-          <th>Position</th>
-          <th>Remark</th>
+          <th rowspan="2" class="left">SUBJECTS</th>
+          <th rowspan="2">REG</th>
+          <th rowspan="2">SAT</th>
+          <th rowspan="2">ABS</th>
+          <th colspan="6">GRADE SUMMARY</th>
+          <th rowspan="2">GPA</th>
+          <th rowspan="2">COMPETENCY LEVEL</th>
+          <th rowspan="2">RANK</th>
+        </tr>
+        <tr>
+          <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th>
         </tr>
         </thead>
         <tbody>
-        <tr><td colspan="10">Choose exam & class then click "Load Results".</td></tr>
+        <tr><td colspan="13">Hakuna data bado. Chagua exam kisha bofya "Load Results".</td></tr>
         </tbody>
       </table>
     </div>
@@ -232,3 +255,4 @@
 <script src="js/school_results.js"></script>
 </body>
 </html>
+
