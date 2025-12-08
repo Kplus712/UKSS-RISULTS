@@ -1,40 +1,38 @@
 // js/auth.js
 // Simple Auth Guard + Login handling for UKSS
 
-// Kurasa ambazo hazihitaji login
 const PUBLIC_PAGES = ["login.html"];
 
-// Tafuta jina la file (marks.html, sms.html, n.k.)
-const currentPath = window.location.pathname.split("/").pop() || "index.html";
-const isPublicPage = PUBLIC_PAGES.includes(currentPath);
+const currentPath   = window.location.pathname.split("/").pop() || "index.html";
+const isPublicPage  = PUBLIC_PAGES.includes(currentPath);
 
-// Hakikisha auth ime-load
+// Hakikisha auth ime-load (imetoka database.js)
 if (typeof auth !== "undefined" && auth) {
 
   // ====== AUTH STATE LISTENER ======
   auth.onAuthStateChanged(function(user) {
     if (!user && !isPublicPage) {
-      // hakuna user, lakini page ni protected → mpeleke login
       window.location.href = "login.html";
       return;
     }
 
     if (user && currentPath === "login.html") {
-      // kisha/logged in, akiwa kwenye login → mpeleke home
       window.location.href = "marks.html";
     }
   });
 
-  // ====== LOGOUT BUTTON (kwenye pages kama sms.html, marks.html, …) ======
+  // ====== LOGOUT BUTTON (kurasa za ndani) ======
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function() {
-      auth.signOut().then(function() {
-        window.location.href = "login.html";
-      }).catch(function(err){
-        console.error(err);
-        alert("Failed to logout: " + err.message);
-      });
+      auth.signOut()
+        .then(function() {
+          window.location.href = "login.html";
+        })
+        .catch(function(err) {
+          console.error(err);
+          alert("Failed to logout: " + err.message);
+        });
     });
   }
 
@@ -48,29 +46,35 @@ if (typeof auth !== "undefined" && auth) {
 
     loginForm.addEventListener("submit", function(e){
       e.preventDefault();
-      const email = emailInput.value.trim();
-      const pass  = passwordInput.value;
+
+      const email = (emailInput?.value || "").trim();
+      const pass  = passwordInput?.value || "";
 
       if (!email || !pass){
-        errorBox.textContent = "Andika email na password.";
+        if (errorBox) errorBox.textContent = "Andika email na password.";
         return;
       }
 
-      errorBox.textContent = "";
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Signing in...";
+      if (errorBox) errorBox.textContent = "";
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Signing in...";
+      }
 
       auth.signInWithEmailAndPassword(email, pass)
         .then(function(){
-          // onAuthStateChanged itam-handle redirect
+          // onAuthStateChanged itafanya redirect
         })
         .catch(function(err){
           console.error(err);
-          errorBox.textContent = err.message;
+          if (errorBox) errorBox.textContent = err.message;
         })
         .finally(function(){
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Login";
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Login";
+          }
         });
     });
   }
@@ -78,6 +82,7 @@ if (typeof auth !== "undefined" && auth) {
 } else {
   console.warn("Auth not available. auth.js running in guest mode.");
 }
+
 
 
 
