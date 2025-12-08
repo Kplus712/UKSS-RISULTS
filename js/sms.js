@@ -25,15 +25,15 @@ const statusBar           = document.getElementById("smsStatus");
 // ===== STATE =====
 const classesCol = db.collection("classes");
 
-let subjects   = [];   // [{code, name}]
-let students   = [];   // raw students
-let results    = [];   // computed per student
+let subjects   = [];
+let students   = [];
+let results    = [];
 let generatedMessages = [];
 
 let currentClassId = null;
 let currentExamId  = null;
 
-// ===== SMALL HELPER: STATUS BAR =====
+// ===== STATUS BAR HELPER =====
 function setSmsStatus(type, msg){
   if (!statusBar) return;
   statusBar.classList.remove("hidden","status-info","status-success","status-error");
@@ -119,7 +119,7 @@ async function loadStudents(){
 // ========================== COMPUTE RESULTS ==========================
 function computeResults(){
   const examId = currentExamId;
-  const filter = recipientFilter.value; // all | weak
+  const filter = recipientFilter.value;
 
   let rows = students.map(st=>{
     const examSubjects = st.marks?.[examId]?.subjects || {};
@@ -307,7 +307,7 @@ generateSmsBtn.addEventListener("click", ()=>{
   }
 });
 
-// ========================== SAVE LOGS (to Firestore) ==========================
+// ========================== SAVE LOGS ==========================
 saveLogsBtn.addEventListener("click", async ()=>{
   if (!generatedMessages.length){
     setSmsStatus("error","No messages to log. Generate SMS first.");
@@ -329,7 +329,7 @@ saveLogsBtn.addEventListener("click", async ()=>{
   setSmsStatus("success","SMS logs saved to Firestore.");
 });
 
-// ========================== DOWNLOAD CSV (BULK) ==========================
+// ========================== DOWNLOAD CSV ==========================
 downloadCsvBtn.addEventListener("click", ()=>{
   if (!generatedMessages.length){
     setSmsStatus("error","Generate SMS first.");
@@ -360,16 +360,14 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
     return;
   }
 
-  // check internet (basic check)
   if (!navigator.onLine) {
     setSmsStatus("error","Inaonekana huna mtandao (internet). Unganisha kifaa chako na jaribu tena.");
     return;
   }
 
-  // Beem credentials (ULIZOTOA) – usiziache wazi kwenye public repo kwa muda mrefu.
   const apiKey    = "182165a09d7d6eaf";
   const secretKey = "OGQ2MGVhY2NhOTgzNzdhODYyYTNmYjE4M2VjZmEzYjZmM2E0YzQ2OWFjNWZlNzk1MTVlMGY5NzdiM2ZjNmI5Yw==";
-  const senderId  = "SCHOOL"; // hakikisha hii ime-approve kwenye Beem
+  const senderId  = "SCHOOL";
 
   const payload = {
     source_addr: senderId,
@@ -395,7 +393,6 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
     const data = await res.json();
     console.log("BEEM RESPONSE:", data);
 
-    // simple success check – unaweza kuboresha kulingana na structure ya Beem
     setSmsStatus("success","Request sent to Beem. Check Beem dashboard for delivery status.");
 
     await db.collection("sms_logs").add({
@@ -427,6 +424,7 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
     setSmsStatus("error","Failed to initialise SMS page: " + err.message);
   }
 })();
+
 
 
 
