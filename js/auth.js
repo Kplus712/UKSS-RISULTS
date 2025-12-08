@@ -1,7 +1,11 @@
 // js/auth.js
 // Login / logout / page guard for UKSS
 
+// Pages zinazochukuliwa kama "login pages"
+const LOGIN_PAGES  = ["login.html", "index.html"];
+// Pages zinazoruhusu kutembelewa bila login
 const PUBLIC_PAGES = ["login.html", "index.html"];
+
 const currentPath  = window.location.pathname.split("/").pop() || "index.html";
 const isPublicPage = PUBLIC_PAGES.includes(currentPath);
 
@@ -17,16 +21,20 @@ document.addEventListener("DOMContentLoaded", function () {
   auth.onAuthStateChanged(function (user) {
     console.log("[AUTH] state changed:", user ? user.email : null);
 
+    // Hakuna user, na page si public → peleka login
     if (!user && !isPublicPage) {
       window.location.href = "login.html";
       return;
     }
 
-    if (user && currentPath === "login.html") {
+    // Kuna user, na tupo kwenye mojawapo ya login pages → peleka marks
+    if (user && LOGIN_PAGES.includes(currentPath)) {
+      console.log("[AUTH] logged in on login page, redirecting to marks.html");
       window.location.href = "marks.html";
     }
   });
 
+  // Logout button (kwa marks, sms, results, n.k.)
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function () {
@@ -60,8 +68,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function showError(msg){
     console.error("[AUTH] login error:", msg);
-    if (errorBox) errorBox.textContent = msg;
-    else alert(msg);
+
+    let niceMessage = msg;
+    if (msg && msg.indexOf("INVALID_LOGIN_CREDENTIALS") !== -1) {
+      niceMessage = "Email au password si sahihi. Hakikisha zinafanana na zilizoko Firebase Auth.";
+    }
+
+    if (errorBox) errorBox.textContent = niceMessage;
+    else alert(niceMessage);
   }
 
   loginForm.addEventListener("submit", function (e) {
@@ -77,9 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (typeof auth === "undefined" || !auth) {
-      showError(
-        "System auth is not initialised. Hakikisha firebase-auth.js na database.js zimepakiwa vizuri."
-      );
+      showError("System auth is not initialised. Hakikisha firebase-auth.js na database.js zimepakiwa vizuri.");
       return;
     }
 
@@ -100,6 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .signInWithEmailAndPassword(email, pass)
       .then(function () {
         console.log("[AUTH] signIn success, waiting for onAuthStateChanged");
+        // onAuthStateChanged sasa itakukimbiza marks.html
       })
       .catch(function (err) {
         showError(err.message);
@@ -115,6 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   });
 });
+
 
 
 
