@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UKSS — Login</title>
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      background:radial-gradient(circle at top, #1d4ed8 0, #020617 55%);
+    }
+    .login-card{
+      width:100%;
+      max-width:420px;
+      padding:28px 24px 24px;
+      border-radius:18px;
+      background:rgba(15,23,42,0.95);
+      box-shadow:0 20px 60px rgba(0,0,0,0.55);
+      border:1px solid rgba(148,163,184,0.35);
+    }
+    .login-header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .login-logo{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      color:#111827;
+      font-weight:700;
+    }
+    .login-title{
+      font-size:18px;
+      font-weight:600;
+    }
+    .login-sub{
+      font-size:12px;
+      color:#9ca3af;
+    }
+    .field{
+      margin-bottom:10px;
+    }
+    .field label{
+      font-size:12px;
+      display:block;
+      margin-bottom:3px;
+      color:#e5e7eb;
+    }
+    .input{
+      width:100%;
+      padding:7px 9px;
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,0.4);
+      background:rgba(15,23,42,0.9);
+      color:#f9fafb;
+      font-size:13px;
+    }
+    .btn-primary{
+      width:100%;
+      margin-top:8px;
+    }
+    .error{
+      margin-top:6px;
+      font-size:12px;
+      color:#f97373;
+      min-height:16px;
+    }
+    .foot{
+      margin-top:14px;
+      font-size:11px;
+      color:#6b7280;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+
+  <form id="loginForm" class="login-card">
+    <div class="login-header">
+      <div class="login-logo">UK</div>
+      <div>
+        <div class="login-title">UKSS — Sign in</div>
+        <div class="login-sub">Enter your staff email and password</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" class="input" placeholder="you@school.ac.tz" />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" class="input" placeholder="********" />
+    </div>
+
+    <button id="loginSubmit" class="btn btn-primary" type="submit">Login</button>
+
+    <div id="loginError" class="error"></div>
+
+    <div class="foot">
+      Managed by UK School System · If you forget your password, contact system admin.
+    </div>
+  </form>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <script src="./js/database.js"></script>
+  <script src="./js/auth.js"></script>
+</body>
+</html>
