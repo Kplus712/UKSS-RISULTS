@@ -1,295 +1,399 @@
-// ==============================
-//  UKSS — SMS Engine with BEEM
-// ==============================
+// js/sms.js
+// UKSS — SMS Engine (Results + General) with Beem
 
-const dbClass = db.collection("classes");
+// ===== DOM ELEMENTS =====
+const messageTypeSelect = document.getElementById("messageType");
+const classSelect       = document.getElementById("classSelect");
+const examSelect        = document.getElementById("examSelect");
+const recipientFilter   = document.getElementById("recipientFilter");
+const loadRecipientsBtn = document.getElementById("loadRecipientsBtn");
 
-// UI Elements
-const classSelect = document.getElementById("classSelect");
-const examSelect  = document.getElementById("examSelect");
-const loadBtn     = document.getElementById("loadRecipientsBtn");
+const smsTemplate       = document.getElementById("smsTemplate");
+const closeDateInput    = document.getElementById("closeDate");
+const openDateInput     = document.getElementById("openDate");
 
-const smsTemplate = document.getElementById("smsTemplate");
-const generateSmsBtn = document.getElementById("generateSmsBtn");
-const messagesList = document.getElementById("messagesList");
-
-const tableBody = document.querySelector("#recipientsTable tbody");
-const selectAll = document.getElementById("selectAll");
-
+const generateSmsBtn    = document.getElementById("generateSmsBtn");
+const saveLogsBtn       = document.getElementById("saveLogsBtn");
+const downloadCsvBtn    = document.getElementById("downloadCsvBtn");
 const sendViaGatewayBtn = document.getElementById("sendViaGatewayBtn");
-const downloadCsvBtn = document.getElementById("downloadCsvBtn");
-const saveLogsBtn = document.getElementById("saveLogsBtn");
 
-// STATE
-let recipients = [];
-let subjects = [];
-let examName = "";
-let currentClassId = "";
-let currentExamId = "";
+const recipientsTableBody = document.querySelector("#recipientsTable tbody");
+const selectAllCheckbox   = document.getElementById("selectAll");
+const messagesList        = document.getElementById("messagesList");
+
+// ===== STATE =====
+const classesCol = db.collection("classes");
+
+let subjects   = [];   // [{code, name}]
+let students   = [];   // raw students
+let results    = [];   // computed performance per student (for current exam)
 let generatedMessages = [];
 
-// =============================================
-// LOAD CLASSES
-// =============================================
-async function loadClasses() {
-  const snap = await dbClass.orderBy("name").get();
+let currentClassId = null;
+let currentExamId  = null;
+
+// ========================== LOAD CLASSES & EXAMS ==========================
+async function loadClasses(){
+  const snap = await classesCol.orderBy("name").get();
   classSelect.innerHTML = "";
-  snap.forEach(doc => {
+  snap.forEach(doc=>{
     const opt = document.createElement("option");
     opt.value = doc.id;
     opt.textContent = doc.data().name;
     classSelect.appendChild(opt);
   });
-}
-await loadClasses();
 
-// =============================================
-// LOAD EXAMS WHEN CLASS SELECTED
-// =============================================
-classSelect.addEventListener("change", async () => {
+  if (classSelect.value) {
+    currentClassId = classSelect.value;
+    await loadExams();
+  }
+}
+
+async function loadExams(){
+  examSelect.innerHTML = "";
+  const snap = await classesCol
+    .doc(currentClassId)
+    .collection("exams")
+    .orderBy("createdAt","asc")
+    .get();
+
+  snap.forEach(doc=>{
+    const data = doc.data();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = data.displayName || data.name || doc.id;
+    examSelect.appendChild(opt);
+  });
+
+  currentExamId = examSelect.value || null;
+}
+
+classSelect.addEventListener("change", async ()=>{
   currentClassId = classSelect.value;
   await loadExams();
 });
 
-async function loadExams() {
-  examSelect.innerHTML = "";
-  const snap = await dbClass.doc(classSelect.value)
-    .collection("exams")
-    .orderBy("createdAt", "asc")
-    .get();
-
-  snap.forEach(doc => {
-    const data = doc.data();
-    const opt = document.createElement("option");
-    opt.value = doc.id;
-    opt.textContent = data.displayName || data.name;
-    examSelect.appendChild(opt);
-  });
-}
-
-// =============================================
-// LOAD RECIPIENTS
-// =============================================
-loadBtn.addEventListener("click", async () => {
-  currentClassId = classSelect.value;
-  currentExamId = examSelect.value;
-
-  recipients = [];
-  subjects = [];
-
-  await loadSubjects();
-  await loadStudents();
-
-  renderRecipientsTable();
-});
-
-async function loadSubjects() {
-  const snap = await dbClass
+// ========================== LOAD SUBJECTS & STUDENTS ==========================
+async function loadSubjects(){
+  const snap = await classesCol
     .doc(currentClassId)
     .collection("subjects")
     .orderBy("code")
     .get();
 
-  subjects = snap.docs.map(d => d.data());
+  subjects = snap.docs.map(d=>d.data());
 }
 
-async function loadStudents() {
-  const snap = await dbClass
+async function loadStudents(){
+  const snap = await classesCol
     .doc(currentClassId)
     .collection("students")
     .orderBy("admissionNo")
     .get();
 
-  recipients = snap.docs.map(doc => ({
+  students = snap.docs.map(doc=>({
     id: doc.id,
     ...doc.data()
   }));
-
-  // compute grade + weak subjects
-  recipients = recipients.map(r => computeStudentPerformance(r));
 }
 
-function computeStudentPerformance(student) {
-  const exam = student.marks?.[currentExamId]?.subjects || {};
+// ========================== COMPUTE RESULTS (TOTAL, AVG, DIV, POSITION) ==========================
+function computeResults(){
+  const examId = currentExamId;
+  const filter = recipientFilter.value; // all | weak
 
-  let total = 0;
-  let count = 0;
-  let weak = [];
+  let rows = students.map(st=>{
+    const examSubjects = st.marks?.[examId]?.subjects || {};
 
-  subjects.forEach(s => {
-    const score = exam[s.code] ?? null;
-    if (score !== null) {
-      total += score;
-      count++;
-      if (score < 50) weak.push(`${s.code}:${score}`);
-    }
+    let total = 0;
+    let count = 0;
+
+    subjects.forEach(s=>{
+      const score = examSubjects[s.code] ?? null;
+      if (score !== null && typeof score === "number") {
+        total += score;
+        count++;
+      }
+    });
+
+    const avg = count>0 ? Number((total/count).toFixed(2)) : 0;
+    const division = getDivision(avg);
+
+    return {
+      id: st.id,
+      admissionNo: st.admissionNo,
+      name: st.fullName,
+      className: classSelect.options[classSelect.selectedIndex]?.textContent || "",
+      phone: st.guardianPhone,
+      avg,
+      total,
+      division,
+      raw: st
+    };
   });
 
-  const avg = count > 0 ? Number((total / count).toFixed(2)) : 0;
-  const grade = getGrade(avg);
+  // filter weak students only when asked
+  if (filter === "weak") {
+    rows = rows.filter(r => r.division === "DIV III" || r.division === "DIV IV" || r.division === "DIV 0");
+  }
 
-  return {
-    ...student,
-    total,
-    mean: avg,
-    grade,
-    weakSubjects: weak.join(", ")
-  };
+  // sort for position
+  rows.sort((a,b)=> b.avg - a.avg);
+
+  let lastAvg = null;
+  let lastPos = 0;
+  rows.forEach((r, idx)=>{
+    if (r.avg !== lastAvg){
+      lastPos = idx+1;
+      lastAvg = r.avg;
+    }
+    r.position = lastPos;
+  });
+
+  results = rows;
 }
 
-function getGrade(avg) {
-  if (avg >= 75) return "A";
-  if (avg >= 60) return "B";
-  if (avg >= 45) return "C";
-  if (avg >= 30) return "D";
-  return "E";
+// Division scaling (can adjust)
+function getDivision(avg){
+  if (avg >= 75) return "DIV I";
+  if (avg >= 60) return "DIV II";
+  if (avg >= 45) return "DIV III";
+  if (avg >= 30) return "DIV IV";
+  return "DIV 0";
 }
 
-// =============================================
-// RENDER TABLE
-// =============================================
-function renderRecipientsTable() {
-  tableBody.innerHTML = "";
+// ========================== RENDER RECIPIENT TABLE ==========================
+function renderRecipientsTable(){
+  recipientsTableBody.innerHTML = "";
 
-  recipients.forEach((r, i) => {
+  if (!results.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="8">No recipients loaded.</td>`;
+    recipientsTableBody.appendChild(tr);
+    return;
+  }
+
+  results.forEach(r=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><input type="checkbox" class="rowCheck" data-id="${r.id}" checked /></td>
-      <td>${r.admissionNo}</td>
-      <td>${r.fullName}</td>
-      <td>${classSelect.options[classSelect.selectedIndex].textContent}</td>
-      <td>${r.guardianPhone}</td>
-      <td>${r.grade}</td>
+      <td>${r.admissionNo || ""}</td>
+      <td>${r.name || ""}</td>
+      <td>${r.className || ""}</td>
+      <td>${r.phone || ""}</td>
+      <td>${r.avg}</td>
+      <td>${r.division}</td>
+      <td>${r.position}</td>
     `;
-    tableBody.appendChild(tr);
+    recipientsTableBody.appendChild(tr);
   });
 
-  selectAll.checked = true;
+  selectAllCheckbox.checked = true;
 }
 
-selectAll.addEventListener("change", () => {
-  document.querySelectorAll(".rowCheck").forEach(ch => {
-    ch.checked = selectAll.checked;
+selectAllCheckbox.addEventListener("change", ()=>{
+  document.querySelectorAll(".rowCheck").forEach(ch=>{
+    ch.checked = selectAllCheckbox.checked;
   });
 });
 
-// =============================================
-// GENERATE SMS
-// =============================================
-generateSmsBtn.addEventListener("click", () => {
+// ========================== LOAD RECIPIENTS BUTTON ==========================
+loadRecipientsBtn.addEventListener("click", async ()=>{
+  if (!currentClassId){
+    alert("Select class first.");
+    return;
+  }
+
+  const type = messageTypeSelect.value;
+
+  await loadSubjects();
+  await loadStudents();
+
+  if (type === "results") {
+    if (!examSelect.value){
+      alert("Select exam for results SMS.");
+      return;
+    }
+    currentExamId = examSelect.value;
+    computeResults();
+  } else {
+    // general mode – hatuhitaji exam, lakini bado tunapiga compute ili tuwe na basic info
+    currentExamId = examSelect.value || null;
+    computeResults();
+  }
+
+  renderRecipientsTable();
+  messagesList.innerHTML = "";
   generatedMessages = [];
+});
 
-  const template = smsTemplate.value;
-  const className = classSelect.options[classSelect.selectedIndex].textContent;
-  const examLabel = examSelect.options[examSelect.selectedIndex].textContent;
+// ========================== GENERATE SMS ==========================
+generateSmsBtn.addEventListener("click", ()=>{
+  generatedMessages = [];
+  messagesList.innerHTML = "";
 
-  document.querySelectorAll(".rowCheck:checked").forEach(ch => {
-    const id = ch.dataset.id;
-    const r = recipients.find(x => x.id === id);
+  if (!results.length){
+    alert("Load recipients first.");
+    return;
+  }
 
-    let sms = template
-      .replaceAll("{name}", r.fullName)
-      .replaceAll("{adm}", r.admissionNo)
-      .replaceAll("{class}", className)
-      .replaceAll("{exam}", examLabel)
-      .replaceAll("{total}", r.total)
-      .replaceAll("{mean}", r.mean)
-      .replaceAll("{grade}", r.grade)
-      .replaceAll("{weak}", r.weakSubjects || "-");
+  const tmpl      = smsTemplate.value;
+  const examLabel = examSelect.options[examSelect.selectedIndex]?.textContent || "";
+  const closeDate = closeDateInput.value || "";
+  const openDate  = openDateInput.value || "";
+  const className = classSelect.options[classSelect.selectedIndex]?.textContent || "";
+
+  const selectedChecks = Array.from(document.querySelectorAll(".rowCheck:checked"));
+  if (!selectedChecks.length){
+    alert("Select at least one student.");
+    return;
+  }
+
+  selectedChecks.forEach(ch=>{
+    const id  = ch.dataset.id;
+    const row = results.find(r => r.id === id);
+    if (!row) return;
+
+    let text = tmpl;
+    text = text.replaceAll("{name}", row.name || "");
+    text = text.replaceAll("{adm}", row.admissionNo || "");
+    text = text.replaceAll("{class}", row.className || className);
+    text = text.replaceAll("{exam}", examLabel || "");
+    text = text.replaceAll("{total}", String(row.total || 0));
+    text = text.replaceAll("{mean}", String(row.avg || 0));
+    text = text.replaceAll("{div}", row.division || "");
+    text = text.replaceAll("{pos}", String(row.position || ""));
+    text = text.replaceAll("{close}", closeDate || "");
+    text = text.replaceAll("{open}", openDate || "");
 
     generatedMessages.push({
-      to: r.guardianPhone,
-      text: sms,
-      adm: r.admissionNo
+      to: row.phone,
+      text,
+      adm: row.admissionNo,
+      className: row.className,
+      exam: examLabel
     });
   });
 
-  renderMessages();
-});
-
-function renderMessages() {
-  messagesList.innerHTML = "";
-  generatedMessages.forEach(msg => {
+  // show preview
+  generatedMessages.forEach(msg=>{
     const div = document.createElement("div");
     div.className = "list-item";
     div.innerHTML = `<strong>${msg.to}</strong> — ${msg.text}`;
     messagesList.appendChild(div);
   });
-}
 
-// =============================================
-// BULK SMS — BEEM API
-// =============================================
-sendViaGatewayBtn.addEventListener("click", async () => {
-  if (generatedMessages.length === 0) {
-    alert("Generate SMS first.");
+  if (!generatedMessages.length){
+    alert("No messages generated. Check recipients list.");
+  }
+});
+
+// ========================== SAVE LOGS (to Firestore) ==========================
+saveLogsBtn.addEventListener("click", async ()=>{
+  if (!generatedMessages.length){
+    alert("No messages to log. Generate SMS first.");
     return;
   }
 
-  const apiKey = "e5edb2f2e829e03c";
-  const secretKey = "oKqd6pGuJtQFtZamWYG7zsuLQm22";
-  const senderId = "UKSS"; // must be registered in Beem
-
-  const payload = {
-    source_addr: senderId,
-    schedule_time: "",
-    messages: generatedMessages.map(m => ({
-      recipients: [m.to],
-      message: m.text
-    }))
-  };
-
-  const res = await fetch("https://apis.beem.africa/v1/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Basic " + btoa(e5edb2f2e829e03c + ":" + oKqd6pGuJtQFtZamWYG7zsuLQm22)
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  console.log("BEEM RESPONSE:", data);
-
-  alert("SMS sent! Check console for details.");
-
-  // SAVE LOG
-  saveSmsLogs(data);
-});
-
-// =============================================
-// LOGGING TO FIRESTORE
-// =============================================
-async function saveSmsLogs(response) {
   const doc = {
     timestamp: new Date(),
     classId: currentClassId,
     examId: currentExamId,
-    messages: generatedMessages,
-    response
+    messageType: messageTypeSelect.value,
+    template: smsTemplate.value,
+    closeDate: closeDateInput.value || null,
+    openDate: openDateInput.value || null,
+    messages: generatedMessages
   };
 
   await db.collection("sms_logs").add(doc);
-  alert("Logs saved.");
-}
+  alert("SMS logs saved to Firestore.");
+});
 
-// =============================================
-// DOWNLOAD CSV
-// =============================================
-downloadCsvBtn.addEventListener("click", () => {
+// ========================== DOWNLOAD CSV (BULK) ==========================
+downloadCsvBtn.addEventListener("click", ()=>{
+  if (!generatedMessages.length){
+    alert("Generate SMS first.");
+    return;
+  }
+
   let csv = "Phone,Message\n";
-
-  generatedMessages.forEach(m => {
-    csv += `"${m.to}","${m.text.replace(/"/g, "'")}"\n`;
+  generatedMessages.forEach(m=>{
+    const safeText = (m.text || "").replace(/"/g,"'");
+    csv += `"${m.to}","${safeText}"\n`;
   });
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url  = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
   a.download = "bulk_sms.csv";
   a.click();
 });
+
+// ========================== SEND VIA BEEM ==========================
+sendViaGatewayBtn.addEventListener("click", async ()=>{
+  if (!generatedMessages.length){
+    alert("Generate SMS first.");
+    return;
+  }
+
+  const apiKey    = "YOUR_BEEM_API_KEY";
+  const secretKey = "YOUR_BEEM_SECRET_KEY";
+  const senderId  = "SCHOOL"; // lazima iwe approved kwenye Beem
+
+  const payload = {
+    source_addr: senderId,
+    schedule_time: "",
+    messages: generatedMessages.map(m=>({
+      recipients: [m.to],
+      message: m.text
+    }))
+  };
+
+  try{
+    const res = await fetch("https://apis.beem.africa/v1/send", {
+      method: "POST",
+      headers: {
+        "Content-Type":"application/json",
+        Authorization: "Basic " + btoa(apiKey + ":" + secretKey)
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    console.log("BEEM RESPONSE:", data);
+    alert("SMS sent via Beem. Check console for response.");
+
+    // Save response log
+    await db.collection("sms_logs").add({
+      timestamp: new Date(),
+      classId: currentClassId,
+      examId: currentExamId,
+      messageType: messageTypeSelect.value,
+      response: data,
+      messages: generatedMessages
+    });
+
+  }catch(err){
+    console.error(err);
+    alert("Failed to send via Beem: " + err.message);
+  }
+});
+
+// ========================== INIT ==========================
+(async function init(){
+  try{
+    await loadClasses();
+    if (classSelect.value){
+      currentClassId = classSelect.value;
+      await loadExams();
+    }
+  }catch(err){
+    console.error("Failed to initialise SMS page", err);
+  }
+})();
+
 
 
