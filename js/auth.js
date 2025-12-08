@@ -1,71 +1,83 @@
 // js/auth.js
-// UKSS — Staff Login
+// Simple Auth Guard + Login handling for UKSS
 
-// auth na db zinatoka js/database.js
-if (!auth) {
-  console.error("Auth not initialized");
-}
+// Kurasa ambazo hazihitaji login
+const PUBLIC_PAGES = ["login.html"];
 
-document.addEventListener("DOMContentLoaded", function () {
-  var form     = document.getElementById("loginForm");
-  var emailEl  = document.getElementById("email");
-  var passEl   = document.getElementById("password");
-  var btn      = document.getElementById("loginBtn");
-  var errorEl  = document.getElementById("loginError");
+// Tafuta jina la file (marks.html, sms.html, n.k.)
+const currentPath = window.location.pathname.split("/").pop() || "index.html";
+const isPublicPage = PUBLIC_PAGES.includes(currentPath);
 
-  if (!form || !emailEl || !passEl || !btn) {
-    console.error("Login elements not found in DOM");
-    return;
-  }
+// Hakikisha auth ime-load
+if (typeof auth !== "undefined" && auth) {
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (errorEl) errorEl.textContent = "";
-    btn.disabled = true;
-
-    var email = (emailEl.value || "").trim();
-    var password = passEl.value || "";
-
-    if (!email || !password) {
-      if (errorEl) errorEl.textContent = "Jaza email na password.";
-      btn.disabled = false;
+  // ====== AUTH STATE LISTENER ======
+  auth.onAuthStateChanged(function(user) {
+    if (!user && !isPublicPage) {
+      // hakuna user, lakini page ni protected → mpeleke login
+      window.location.href = "login.html";
       return;
     }
 
-    auth.signInWithEmailAndPassword(email, password)
-      .then(function (cred) {
-        console.log("login success:", cred.user.uid);
-        window.location.href = "marks.html"; // au academic.html ukipenda
-      })
-      .catch(function (err) {
-        // Hapa tunaona kosa halisi
-        console.error("login error raw:", err, "code:", err.code, "message:", err.message);
-
-        var msg = "Imeshindikana ku-login. ";
-
-        if (err.code === "auth/user-not-found" ||
-            (err.message && err.message.indexOf("EMAIL_NOT_FOUND") !== -1)) {
-          msg += "Akaunti hii haijasajiliwa kwenye Firebase Authentication. Mwone admin akufungulie akaunti.";
-        } else if (err.code === "auth/wrong-password" ||
-                   (err.message && err.message.indexOf("INVALID_PASSWORD") !== -1)) {
-          msg += "Password sio sahihi. Jaribu tena.";
-        } else if (err.code === "auth/invalid-email") {
-          msg += "Email sio sahihi. Hakikisha umeandika vizuri.";
-        } else if (err.code === "auth/too-many-requests") {
-          msg += "Maombi mengi sana ya ku-login. Jaribu tena baada ya muda mfupi.";
-        } else if (err.message && err.message.indexOf("OPERATION_NOT_ALLOWED") !== -1) {
-          msg += "Email/Password signin haijawezeshwa kwenye Firebase (Sign-in method → Email/Password).";
-        } else {
-          msg += (err.message || err.code || "");
-        }
-
-        if (errorEl) errorEl.textContent = msg;
-      })
-      .finally(function () {
-        btn.disabled = false;
-      });
+    if (user && currentPath === "login.html") {
+      // kisha/logged in, akiwa kwenye login → mpeleke home
+      window.location.href = "marks.html";
+    }
   });
-});
+
+  // ====== LOGOUT BUTTON (kwenye pages kama sms.html, marks.html, …) ======
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", function() {
+      auth.signOut().then(function() {
+        window.location.href = "login.html";
+      }).catch(function(err){
+        console.error(err);
+        alert("Failed to logout: " + err.message);
+      });
+    });
+  }
+
+  // ====== LOGIN FORM (login.html) ======
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    const emailInput    = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const errorBox      = document.getElementById("loginError");
+    const submitBtn     = document.getElementById("loginSubmit");
+
+    loginForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const pass  = passwordInput.value;
+
+      if (!email || !pass){
+        errorBox.textContent = "Andika email na password.";
+        return;
+      }
+
+      errorBox.textContent = "";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in...";
+
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(function(){
+          // onAuthStateChanged itam-handle redirect
+        })
+        .catch(function(err){
+          console.error(err);
+          errorBox.textContent = err.message;
+        })
+        .finally(function(){
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Login";
+        });
+    });
+  }
+
+} else {
+  console.warn("Auth not available. auth.js running in guest mode.");
+}
 
 
 
