@@ -1,68 +1,123 @@
+// ===== UKSS — Marks & Students (modern flow, single mark per subject) =====
 
-// ===== UKSS — Marks Entry Logic =====
-
-// EXAM inayotumika kwenye page hii
-const EXAM_ID = "annual_2025";
-
-// Firestore ref (hakikisha ipo kwenye database.js)
+// Firestore
 const classesCol = db.collection("classes");
 
 // DOM refs
-const classSelect        = document.getElementById("classSelect");
-const addClassBtn        = document.getElementById("addClassBtn");
-const generateReportsBtn = document.getElementById("generateReportsBtn");
+const classSelect  = document.getElementById("classSelect");
+const examSelect   = document.getElementById("examSelect");
+const addClassBtn  = document.getElementById("addClassBtn");
+const addExamBtn   = document.getElementById("addExamBtn");
 
+const statStudents = document.getElementById("statStudents");
+const statSubjects = document.getElementById("statSubjects");
+const statExamName = document.getElementById("statExamName");
+
+const studentsMiniBody = document.querySelector("#studentsMiniTable tbody");
+const subjectsMiniBody = document.querySelector("#subjectsMiniTable tbody");
+
+const stepClassPill    = document.getElementById("stepClassPill");
+const stepStudentsPill = document.getElementById("stepStudentsPill");
+const stepExamPill     = document.getElementById("stepExamPill");
+const stepMarksPill    = document.getElementById("stepMarksPill");
+
+const tabButtons = document.querySelectorAll(".tab-btn");
+const studentsTab = document.getElementById("studentsTab");
+const marksTab    = document.getElementById("marksTab");
+const pillExamLabel = document.getElementById("pillExamLabel");
+
+const marksMatrixWrap = document.getElementById("marksMatrixWrap");
+
+const generateReportsBtn = document.getElementById("generateReportsBtn");
+const loadSampleBtn      = document.getElementById("loadSampleBtn");
+
+// Student form
 const stuAdmission = document.getElementById("stuAdmission");
 const stuFirst     = document.getElementById("stuFirst");
 const stuLast      = document.getElementById("stuLast");
 const stuPhone     = document.getElementById("stuPhone");
-const stuSex       = document.getElementById("stuSex"); // optional
+const stuSex       = document.getElementById("stuSex");
+const addStudentBtn= document.getElementById("addStudentBtn");
 
-const addStudentBtn = document.getElementById("addStudentBtn");
+// Subject form
+const subCode      = document.getElementById("subCode");
+const subName      = document.getElementById("subName");
+const addSubjectBtn= document.getElementById("addSubjectBtn");
 
-const subCode   = document.getElementById("subCode");
-const subName   = document.getElementById("subName");
-const addSubjectBtn = document.getElementById("addSubjectBtn");
-
-const subjectsListEl = document.getElementById("subjectsList");
-const studentsListEl = document.getElementById("studentsList");
-const marksMatrixWrap = document.getElementById("marksMatrixWrap");
-const loadSampleBtn = document.getElementById("loadSampleBtn");
-
-// Data caches kwa upande wa browser
+// State
 let currentClassId = null;
-let subjects = [];  // [{id, code, name}]
-let students = [];  // [{id, admissionNo, fullName, guardianPhone, sex, marks:{...}}]
+let currentExamId  = null;
 
-// -------------------- HELPERS --------------------
-function toast(msg) {
-  console.log(msg);
-  // Ukiwa na toast ya UI, weka hapa
-  // alert(msg);
-}
+let subjects = []; // {id, code, name}
+let exams    = []; // {id, name, type}
+let students = []; // {id, admissionNo, fullName, sex, guardianPhone, marks:{}}
 
-function sanitizeId(str) {
+// --------- helpers ----------
+function toast(msg){ console.log(msg); }
+
+function sanitizeId(str){
   return (str || "")
     .toUpperCase()
     .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^A-Z0-9_]/g, "");
+    .replace(/\s+/g,"_")
+    .replace(/[^A-Z0-9_]/g,"");
 }
 
-// -------------------- LOAD CLASSES --------------------
-async function loadClasses() {
+function updateStepper(){
+  // 1: kuna class
+  stepClassPill.classList.toggle("active", !!currentClassId);
+
+  // 2: kuna subjects
+  stepStudentsPill.classList.toggle(
+    "active",
+    !!currentClassId && subjects.length > 0
+  );
+
+  // 3: usajili wanafunzi (Form I–IV)
+  stepExamPill.classList.toggle(
+    "active",
+    !!currentClassId && subjects.length > 0 && students.length > 0
+  );
+
+  // 4: mitihani & alama
+  stepMarksPill.classList.toggle(
+    "active",
+    !!currentClassId && subjects.length > 0 && students.length > 0 && !!currentExamId
+  );
+}
+
+// --------- tabs ----------
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    tabButtons.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const target = btn.dataset.tab;
+    if(target==="studentsTab"){
+      studentsTab.style.display="block";
+      marksTab.style.display="none";
+    }else{
+      studentsTab.style.display="none";
+      marksTab.style.display="block";
+    }
+  });
+});
+
+// --------- load classes ----------
+async function loadClasses(){
   classSelect.innerHTML = "";
   const snap = await classesCol.orderBy("name").get();
-  if (snap.empty) {
+
+  if(snap.empty){
     const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "-- No class yet --";
+    opt.value="";
+    opt.textContent="-- Add class first --";
     classSelect.appendChild(opt);
     currentClassId = null;
+    updateStepper();
     return;
   }
 
-  snap.forEach(doc => {
+  snap.forEach(doc=>{
     const data = doc.data();
     const opt = document.createElement("option");
     opt.value = doc.id;
@@ -71,60 +126,95 @@ async function loadClasses() {
   });
 
   currentClassId = classSelect.value || null;
-  if (currentClassId) {
-    await loadClassData();
-  }
+  await loadClassData();
 }
 
-// -------------------- ADD CLASS --------------------
-addClassBtn.addEventListener("click", async () => {
+// --------- add class ----------
+addClassBtn.addEventListener("click", async ()=>{
   const name = prompt("Enter class name e.g. FORM ONE A");
-  if (!name) return;
+  if(!name) return;
+  const id = sanitizeId(name);
 
-  const id = sanitizeId(name); // FORM_ONE_A
-  try {
+  try{
     await classesCol.doc(id).set(
-      {
-        name,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      },
-      { merge: true }
+      { name, createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge:true }
     );
-    toast("Class added");
+    toast("Class saved");
     await loadClasses();
     classSelect.value = id;
     currentClassId = id;
     await loadClassData();
-  } catch (err) {
+  }catch(err){
     console.error(err);
     toast("Failed to add class");
   }
 });
 
-// -------------------- LOAD SUBJECTS, STUDENTS & MARKS --------------------
-async function loadClassData() {
-  if (!currentClassId) return;
-  await Promise.all([loadSubjects(), loadStudentsAndMarks()]);
-  renderLists();
+// --------- when class changes ----------
+classSelect.addEventListener("change", async ()=>{
+  currentClassId = classSelect.value || null;
+  await loadClassData();
+});
+
+// --------- load exams, subjects, students ----------
+async function loadClassData(){
+  if(!currentClassId){
+    subjects=[]; students=[]; exams=[];
+    renderOverview();
+    renderExamOptions();
+    renderMarksMatrix();
+    updateStepper();
+    return;
+  }
+
+  await Promise.all([
+    loadSubjects(),
+    loadExams(),
+    loadStudentsAndMarks()
+  ]);
+
+  renderOverview();
+  renderExamOptions();
   renderMarksMatrix();
+  updateStepper();
 }
 
-async function loadSubjects() {
-  subjects = [];
-  const subSnap = await classesCol
+async function loadSubjects(){
+  subjects=[];
+  const snap = await classesCol
     .doc(currentClassId)
     .collection("subjects")
     .orderBy("code")
     .get();
 
-  subSnap.forEach(doc => {
-    subjects.push({ id: doc.id, ...doc.data() });
+  snap.forEach(doc=>{
+    subjects.push({id:doc.id, ...doc.data()});
   });
 }
 
-async function loadStudentsAndMarks() {
-  students = [];
-  const stuSnap = await classesCol
+async function loadExams(){
+  exams=[];
+  const snap = await classesCol
+    .doc(currentClassId)
+    .collection("exams")
+    .orderBy("createdAt","asc")
+    .get();
+
+  snap.forEach(doc=>{
+    exams.push({id:doc.id, ...doc.data()});
+  });
+
+  if(!exams.length){
+    currentExamId = null;
+  }else if(!currentExamId){
+    currentExamId = exams[0].id;
+  }
+}
+
+async function loadStudentsAndMarks(){
+  students=[];
+  const snap = await classesCol
     .doc(currentClassId)
     .collection("students")
     .orderBy("admissionNo")
@@ -132,32 +222,29 @@ async function loadStudentsAndMarks() {
 
   const promises = [];
 
-  stuSnap.forEach(doc => {
+  snap.forEach(doc=>{
     const data = doc.data();
     const stu = {
       id: doc.id,
       admissionNo: data.admissionNo || doc.id,
       firstName: data.firstName || "",
       lastName: data.lastName || "",
-      fullName: data.fullName || "",
+      fullName: data.fullName || ((data.firstName||"")+" "+(data.lastName||"")).trim(),
       guardianPhone: data.guardianPhone || "",
       sex: data.sex || "",
-      marks: {} // tutaweka hapa baada ya kusoma
+      marks: {}
     };
-
     students.push(stu);
 
-    // Soma marks za exam hii (zipo ndani ya doc ya student)
     promises.push(
       classesCol
         .doc(currentClassId)
         .collection("students")
         .doc(doc.id)
         .get()
-        .then(d => {
+        .then(d=>{
           const dd = d.data() || {};
-          const allMarks = dd.marks || {};
-          stu.marks = allMarks[EXAM_ID]?.subjects || {};
+          stu.marks = dd.marks || {};
         })
     );
   });
@@ -165,35 +252,134 @@ async function loadStudentsAndMarks() {
   await Promise.all(promises);
 }
 
-// -------------------- RENDER SUBJECT/STUDENT LISTS --------------------
-function renderLists() {
-  // subjects list
-  if (!subjects.length) {
-    subjectsListEl.textContent = "No subjects yet.";
-  } else {
-    subjectsListEl.innerHTML = subjects
-      .map(s => `${s.code} — ${s.name}`)
-      .join("<br/>");
-  }
+// --------- render overview + stats ----------
+function renderOverview(){
+  statStudents.textContent = students.length;
+  statSubjects.textContent = subjects.length;
 
-  // students list
-  if (!students.length) {
-    studentsListEl.textContent = "No students in this class.";
-  } else {
-    studentsListEl.innerHTML = students
-      .map((s, idx) => `${idx + 1}. ${s.admissionNo} — ${s.fullName || (s.firstName + " " + s.lastName)}`)
-      .join("<br/>");
-  }
+  // students mini table
+  studentsMiniBody.innerHTML = "";
+  students.forEach((s, idx)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${s.admissionNo}</td>
+      <td>${s.fullName}</td>
+      <td>${s.sex}</td>
+      <td>${s.guardianPhone}</td>
+    `;
+    studentsMiniBody.appendChild(tr);
+  });
+
+  // subjects mini table
+  subjectsMiniBody.innerHTML = "";
+  subjects.forEach(s=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.code}</td>
+      <td>${s.name}</td>
+    `;
+    subjectsMiniBody.appendChild(tr);
+  });
 }
 
-// -------------------- ADD SUBJECT --------------------
-addSubjectBtn.addEventListener("click", async () => {
-  if (!currentClassId) return alert("Select class first.");
+// --------- exam select ----------
+function renderExamOptions(){
+  examSelect.innerHTML = "";
+
+  if(!currentClassId){
+    const opt = document.createElement("option");
+    opt.value="";
+    opt.textContent="Select class first";
+    examSelect.appendChild(opt);
+    statExamName.textContent = "—";
+    pillExamLabel.textContent= "—";
+    return;
+  }
+
+  if(!exams.length){
+    const opt = document.createElement("option");
+    opt.value="";
+    opt.textContent="No exam yet";
+    examSelect.appendChild(opt);
+    statExamName.textContent = "—";
+    pillExamLabel.textContent= "—";
+    return;
+  }
+
+  exams.forEach(ex=>{
+    const opt = document.createElement("option");
+    opt.value = ex.id;
+    opt.textContent = ex.displayName || ex.name || ex.id;
+    examSelect.appendChild(opt);
+  });
+
+  if(currentExamId){
+    examSelect.value = currentExamId;
+  }else{
+    currentExamId = examSelect.value;
+  }
+
+  const ex = exams.find(e=>e.id===currentExamId);
+  const label = ex ? (ex.displayName || ex.name || ex.id) : "—";
+  statExamName.textContent = label;
+  pillExamLabel.textContent = label;
+}
+
+examSelect.addEventListener("change", ()=>{
+  currentExamId = examSelect.value || null;
+  const ex = exams.find(e=>e.id===currentExamId);
+  const label = ex ? (ex.displayName || ex.name || ex.id) : "—";
+  statExamName.textContent = label;
+  pillExamLabel.textContent = label;
+  renderMarksMatrix();
+  updateStepper();
+});
+
+// --------- add exam ----------
+addExamBtn.addEventListener("click", async ()=>{
+  if(!currentClassId) return alert("Select class first.");
+  const name = prompt("Exam name (e.g. TEST 1, MIDTERM 2025, ANNUAL 2025)");
+  if(!name) return;
+  const type = prompt("Type (e.g. TEST, MIDTERM, ANNUAL) - optional") || "";
+  const examId = sanitizeId(name);
+
+  try{
+    const exRef = classesCol
+      .doc(currentClassId)
+      .collection("exams")
+      .doc(examId);
+
+    await exRef.set(
+      {
+        name,
+        type,
+        displayName: name,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      { merge:true }
+    );
+
+    toast("Exam added.");
+    await loadExams();
+    renderExamOptions();
+    renderMarksMatrix();
+    updateStepper();
+  }catch(err){
+    console.error(err);
+    toast("Failed to add exam.");
+  }
+});
+
+// --------- add subject ----------
+addSubjectBtn.addEventListener("click", async ()=>{
+  if(!currentClassId) return alert("Select class first.");
+
   const code = (subCode.value || "").toUpperCase().trim();
   const name = (subName.value || "").trim();
-  if (!code || !name) return alert("Fill subject code and name.");
+  if(!code || !name) return alert("Fill subject code and name.");
 
-  try {
+  try{
     const subRef = classesCol
       .doc(currentClassId)
       .collection("subjects")
@@ -205,38 +391,39 @@ addSubjectBtn.addEventListener("click", async () => {
         name,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       },
-      { merge: true }
+      { merge:true }
     );
 
-    subCode.value = "";
-    subName.value = "";
+    subCode.value="";
+    subName.value="";
     toast("Subject added.");
     await loadSubjects();
-    renderLists();
+    renderOverview();
     renderMarksMatrix();
-  } catch (err) {
+    updateStepper();
+  }catch(err){
     console.error(err);
     toast("Failed to add subject.");
   }
 });
 
-// -------------------- ADD STUDENT --------------------
-addStudentBtn.addEventListener("click", async () => {
-  if (!currentClassId) return alert("Select class first.");
+// --------- add student (Form I–IV) ----------
+addStudentBtn.addEventListener("click", async ()=>{
+  if(!currentClassId) return alert("Select class first.");
 
   const admissionNo = (stuAdmission.value || "").toUpperCase().trim();
   const firstName   = (stuFirst.value || "").trim();
   const lastName    = (stuLast.value || "").trim();
   const guardianPhone = (stuPhone.value || "").trim();
-  const sex         = stuSex ? (stuSex.value || "").trim() : "";
+  const sex         = (stuSex.value || "").trim();
 
-  if (!admissionNo || !firstName || !lastName) {
-    return alert("Admission No, First name and Last name are required.");
+  if(!admissionNo || !firstName || !lastName){
+    return alert("Admission, First name & Last name are required.");
   }
 
-  const fullName = `${firstName} ${lastName}`;
+  const fullName = `${firstName} ${lastName}`.trim();
 
-  try {
+  try{
     const stuRef = classesCol
       .doc(currentClassId)
       .collection("students")
@@ -250,119 +437,92 @@ addStudentBtn.addEventListener("click", async () => {
         fullName,
         guardianPhone,
         sex,
-        // hakikisha marks field ipo ili tusipate undefined
         marks: {},
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       },
-      { merge: true }
+      { merge:true }
     );
 
-    stuAdmission.value = "";
-    stuFirst.value = "";
-    stuLast.value = "";
-    stuPhone.value = "";
-    if (stuSex) stuSex.value = "";
+    stuAdmission.value="";
+    stuFirst.value="";
+    stuLast.value="";
+    stuPhone.value="";
+    stuSex.value="";
 
-    toast("Student added.");
+    toast("Student saved.");
     await loadStudentsAndMarks();
-    renderLists();
+    renderOverview();
     renderMarksMatrix();
-  } catch (err) {
+    updateStepper();
+  }catch(err){
     console.error(err);
     toast("Failed to add student.");
   }
 });
 
-// -------------------- MARKS MATRIX --------------------
-function renderMarksMatrix() {
-  if (!currentClassId) {
-    marksMatrixWrap.textContent = "Please add/select a class first.";
+// --------- marks matrix (single mark per subject) ----------
+function renderMarksMatrix(){
+  marksMatrixWrap.innerHTML = "";
+
+  if(!currentClassId){
+    marksMatrixWrap.textContent = "Please select a class.";
     return;
   }
-  if (!subjects.length || !students.length) {
-    marksMatrixWrap.textContent = "Add subjects and students to see the matrix.";
+  if(!currentExamId){
+    marksMatrixWrap.textContent = "Add and select exam (Test, Midterm, Annual) to start entering marks.";
+    return;
+  }
+  if(!subjects.length || !students.length){
+    marksMatrixWrap.textContent = "Make sure this class has subjects and registered students.";
     return;
   }
 
   const table = document.createElement("table");
   table.className = "matrix-table";
 
-  // HEADER
   const thead = document.createElement("thead");
-  const headRow1 = document.createElement("tr");
-  headRow1.innerHTML = `
-    <th rowspan="2">#</th>
-    <th rowspan="2">Adm No</th>
-    <th rowspan="2">Student Name</th>
-    <th rowspan="2">Sex</th>
+  const row1 = document.createElement("tr");
+  row1.innerHTML = `
+    <th>#</th>
+    <th>Adm</th>
+    <th>Student</th>
+    <th>Sex</th>
   `;
-
-  subjects.forEach(sub => {
+  subjects.forEach(s=>{
     const th = document.createElement("th");
-    th.colSpan = 2;
-    th.textContent = sub.code;
-    headRow1.appendChild(th);
+    th.textContent = s.code;      // HIST, GEO, BUS, etc.
+    row1.appendChild(th);
   });
-
-  const headRow2 = document.createElement("tr");
-  subjects.forEach(() => {
-    const thCA = document.createElement("th");
-    thCA.textContent = "CA";
-    const thEX = document.createElement("th");
-    thEX.textContent = "EX";
-    headRow2.appendChild(thCA);
-    headRow2.appendChild(thEX);
-  });
-
-  thead.appendChild(headRow1);
-  thead.appendChild(headRow2);
+  thead.appendChild(row1);
 
   const tbody = document.createElement("tbody");
 
-  students.forEach((stu, idx) => {
+  students.forEach((stu, idx)=>{
     const tr = document.createElement("tr");
-    const fullName = stu.fullName || `${stu.firstName} ${stu.lastName}`.trim();
-
     tr.innerHTML = `
-      <td>${idx + 1}</td>
+      <td>${idx+1}</td>
       <td>${stu.admissionNo}</td>
-      <td>${fullName}</td>
-      <td>${stu.sex || ""}</td>
+      <td>${stu.fullName}</td>
+      <td>${stu.sex}</td>
     `;
 
-    subjects.forEach(sub => {
-      const subMarks = stu.marks[sub.code] || {};
-      const caVal = subMarks.ca ?? "";
-      const exVal = subMarks.ex ?? "";
+    const examMarks = stu.marks[currentExamId]?.subjects || {};
 
-      // CA input
-      const tdCA = document.createElement("td");
-      const inputCA = document.createElement("input");
-      inputCA.type = "number";
-      inputCA.min = "0";
-      inputCA.max = "100";
-      inputCA.value = caVal;
-      inputCA.className = "matrix-input";
-      inputCA.dataset.stuId = stu.id;
-      inputCA.dataset.subCode = sub.code;
-      inputCA.dataset.part = "ca";
-      tdCA.appendChild(inputCA);
+    subjects.forEach(sub=>{
+      const markVal = examMarks[sub.code] ?? "";  // alama ya mwisho ya somo hilo
 
-      // EX input
-      const tdEX = document.createElement("td");
-      const inputEX = document.createElement("input");
-      inputEX.type = "number";
-      inputEX.min = "0";
-      inputEX.max = "100";
-      inputEX.value = exVal;
-      inputEX.className = "matrix-input";
-      inputEX.dataset.stuId = stu.id;
-      inputEX.dataset.subCode = sub.code;
-      inputEX.dataset.part = "ex";
-      tdEX.appendChild(inputEX);
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.max = "100";
+      input.value = markVal;
+      input.className = "matrix-input";
+      input.dataset.stuId   = stu.id;
+      input.dataset.subCode = sub.code;   // HIST, GEO ...
+      td.appendChild(input);
 
-      tr.appendChild(tdCA);
-      tr.appendChild(tdEX);
+      tr.appendChild(td);
     });
 
     tbody.appendChild(tr);
@@ -370,146 +530,125 @@ function renderMarksMatrix() {
 
   table.appendChild(thead);
   table.appendChild(tbody);
-
-  marksMatrixWrap.innerHTML = "";
   marksMatrixWrap.appendChild(table);
 
-  // Listener moja kwa matrix yote (event delegation)
-  table.addEventListener("change", onMatrixInputChange);
+  table.addEventListener("change", onMatrixChange);
 }
 
-async function onMatrixInputChange(e) {
+async function onMatrixChange(e){
   const input = e.target;
-  if (!input.classList.contains("matrix-input")) return;
+  if(!input.classList.contains("matrix-input")) return;
 
-  const stuId = input.dataset.stuId;
+  const stuId   = input.dataset.stuId;
   const subCode = input.dataset.subCode;
-  const part = input.dataset.part; // "ca" or "ex"
-  let value = input.value === "" ? null : Number(input.value);
 
-  if (value != null && (value < 0 || value > 100)) {
-    alert("Value must be between 0 and 100");
+  let value = input.value === "" ? null : Number(input.value);
+  if(value != null && (value < 0 || value > 100)){
+    alert("Mark must be between 0 and 100");
     input.focus();
     return;
   }
 
-  try {
+  try{
     const stuRef = classesCol
       .doc(currentClassId)
       .collection("students")
       .doc(stuId);
 
-    // Njia ya kutumia dot notation:
-    const fieldPath = `marks.${EXAM_ID}.subjects.${subCode}.${part}`;
-
+    // marks[currentExamId].subjects[subCode] = value
     await stuRef.set(
       {
         marks: {
-          [EXAM_ID]: {
+          [currentExamId]: {
             subjects: {
-              [subCode]: {
-                [part]: value
-              }
+              [subCode]: value
             }
           }
         }
       },
-      { merge: true }
+      { merge:true }
     );
 
-    // refresh cache kidogo tu – hatulazimiki kusoma Firestore tena,
-    // tuna-update object ya local:
-    const stu = students.find(s => s.id === stuId);
-    if (!stu.marks[subCode]) stu.marks[subCode] = {};
-    stu.marks[subCode][part] = value;
+    // update local state
+    const stu = students.find(s=>s.id === stuId);
+    if(!stu.marks[currentExamId]) stu.marks[currentExamId] = { subjects:{} };
+    stu.marks[currentExamId].subjects[subCode] = value;
 
-    // OPTIONAL: ukitaka kukagua kuwa CA+EX <= 100
-    const ca = stu.marks[subCode].ca ?? 0;
-    const ex = stu.marks[subCode].ex ?? 0;
-    if (ca + ex > 100) {
-      alert(`CA (${ca}) + EX (${ex}) > 100 for ${subCode}. Please adjust.`);
-    }
-
-  } catch (err) {
+  }catch(err){
     console.error(err);
     toast("Failed to save mark.");
   }
 }
 
-// -------------------- CLASS SELECT CHANGE --------------------
-classSelect.addEventListener("change", async () => {
-  currentClassId = classSelect.value || null;
-  if (!currentClassId) return;
-  await loadClassData();
+// --------- reports button ----------
+generateReportsBtn.addEventListener("click", ()=>{
+  if(!currentClassId || !currentExamId){
+    return alert("Select class and exam first.");
+  }
+  const url = `results.html?class=${encodeURIComponent(currentClassId)}&exam=${encodeURIComponent(currentExamId)}`;
+  window.location.href = url;
 });
 
-// -------------------- GENERATE REPORTS BUTTON --------------------
-// Kwa sasa: tunahifadhi info ya exam kwenye kila student.
-// Pages za results/ranking zitasoma `marks[EXAM_ID].subjects` na
-// kutumia formula ya average, division, position.
-generateReportsBtn.addEventListener("click", () => {
-  // Hapa unaweza kuhama kwenda results page au kutoa maelekezo
-  window.location.href = "results.html?exam=" + encodeURIComponent(EXAM_ID);
-});
+// --------- load sample data ----------
+loadSampleBtn.addEventListener("click", async ()=>{
+  const ok = confirm("Load sample class, exams, students and subjects? (for testing)");
+  if(!ok) return;
 
-// -------------------- LOAD SAMPLE DATA --------------------
-loadSampleBtn.addEventListener("click", async () => {
-  const confirmLoad = confirm("Load sample class, subjects and students? (For testing)");
-  if (!confirmLoad) return;
-
-  try {
-    // sample class
+  try{
     const clsId = "FORM_ONE_A";
     await classesCol.doc(clsId).set(
-      {
-        name: "FORM ONE A",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      },
-      { merge: true }
+      { name:"FORM ONE A", createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge:true }
     );
 
-    // sample subjects
-    const sampleSubs = [
-      { code: "HIST", name: "History" },
-      { code: "GEO",  name: "Geography" },
-      { code: "KIS",  name: "Kiswahili" },
-      { code: "ENG",  name: "English" },
-      { code: "PHY",  name: "Physics" },
-      { code: "CHEM", name: "Chemistry" },
-      { code: "BIO",  name: "Biology" },
-      { code: "MATH", name: "Mathematics" },
-      { code: "BUS",  name: "Business Studies" },
-      { code: "CIV",  name: "Civics" }
-    ];
-
     const subsRef = classesCol.doc(clsId).collection("subjects");
-    for (const s of sampleSubs) {
+    const sampleSubs = [
+      {code:"HIST", name:"History"},
+      {code:"GEO",  name:"Geography"},
+      {code:"KIS",  name:"Kiswahili"},
+      {code:"ENG",  name:"English"},
+      {code:"PHY",  name:"Physics"},
+      {code:"CHEM", name:"Chemistry"},
+      {code:"BIO",  name:"Biology"},
+      {code:"MATH", name:"Mathematics"},
+      {code:"BUS",  name:"Business Studies"},
+      {code:"CIV",  name:"Civics"}
+    ];
+    for(const s of sampleSubs){
       await subsRef.doc(s.code).set(
-        {
-          code: s.code,
-          name: s.name,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        },
-        { merge: true }
+        {code:s.code,name:s.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()},
+        {merge:true}
       );
     }
 
-    // sample students
-    const stRef = classesCol.doc(clsId).collection("students");
-    for (let i = 1; i <= 10; i++) {
-      const adm = "F1A/" + String(i).padStart(3, "0");
-      await stRef.doc(adm).set(
+    const examsRef = classesCol.doc(clsId).collection("exams");
+    const sampleExams = [
+      {id:"TEST_1",        name:"TEST 1",        type:"TEST"},
+      {id:"MIDTERM_2025",  name:"MIDTERM 2025",  type:"MIDTERM"},
+      {id:"ANNUAL_2025",   name:"ANNUAL 2025",   type:"ANNUAL"}
+    ];
+    for(const ex of sampleExams){
+      await examsRef.doc(ex.id).set(
+        {name:ex.name,type:ex.type,displayName:ex.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()},
+        {merge:true}
+      );
+    }
+
+    const stuRef = classesCol.doc(clsId).collection("students");
+    for(let i=1;i<=10;i++){
+      const adm = "F1A/"+String(i).padStart(3,"0");
+      await stuRef.doc(adm).set(
         {
-          admissionNo: adm,
-          firstName: "STUDENT" + i,
-          lastName: "",
-          fullName: "STUDENT" + i,
-          guardianPhone: "06" + Math.floor(10000000 + Math.random() * 89999999),
-          sex: i % 2 === 0 ? "M" : "F",
-          marks: {},
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          admissionNo:adm,
+          firstName:"STUDENT"+i,
+          lastName:"",
+          fullName:"STUDENT"+i,
+          guardianPhone:"06"+Math.floor(10000000 + Math.random()*89999999),
+          sex: i%2===0 ? "M" : "F",
+          marks:{},
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         },
-        { merge: true }
+        {merge:true}
       );
     }
 
@@ -518,18 +657,19 @@ loadSampleBtn.addEventListener("click", async () => {
     classSelect.value = clsId;
     currentClassId = clsId;
     await loadClassData();
-  } catch (err) {
+
+  }catch(err){
     console.error(err);
     toast("Failed to load sample data.");
   }
 });
 
-// -------------------- INIT --------------------
-(async function init() {
-  try {
+// --------- init ----------
+(async function init(){
+  try{
     await loadClasses();
-  } catch (err) {
+  }catch(err){
     console.error(err);
-    toast("Failed to load classes.");
+    toast("Failed to initialise marks page.");
   }
 })();
