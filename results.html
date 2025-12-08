@@ -5,9 +5,38 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UKSS — Results</title>
   <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
 
+  <style>
+    .results-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    .results-table th,
+    .results-table td{
+      border:1px solid rgba(148,163,184,0.35);
+      padding:4px 6px;
+      text-align:center;
+      white-space:nowrap;
+    }
+    .results-table thead{
+      background:rgba(15,23,42,0.95);
+      position:sticky;
+      top:0;
+      z-index:3;
+    }
+    .chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+    .chip{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,0.8);
+      font-size:11px;
+      border:1px solid rgba(148,163,184,0.3);
+    }
+  </style>
+</head>
+
+<body>
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -19,139 +48,72 @@
       </div>
     </div>
 
-<nav class="nav">
-  <a href="marks.html">🏠 Marks</a>
-  <a href="results.html">📄 Results</a>
-  <a href="ranking.html">🏆 Ranking</a>
-  <a href="behaviour.html">🧭 Behaviour</a>
-  <a href="sms.html">📨 SMS</a>
-  <a href="sms_logs.html">🧾 SMS Logs</a>
-  <a href="admin.html">🔐 Admin</a>
-</nav>
-</aside>
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html" class="active">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html">🧭 Behaviour</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
 
-  <!-- MAIN -->
+  <!-- MAIN AREA -->
   <main class="main">
     <header class="topbar">
       <div>
-        <h2>📄 Results</h2>
-        <p class="small">Search student report cards by class, exam or admission number.</p>
-      </div>
-
-      <div class="top-actions">
-        <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+        <h2>📄 Exam Results</h2>
+        <p class="small">Matokeo ya mtihani wa darasa</p>
       </div>
     </header>
 
-    <!-- FILTERS -->
+    <!-- CONTROLS -->
     <section class="card">
       <div class="row row-wrap">
         <div class="field">
-          <label class="label">Exam</label>
-          <select id="examSelect" class="input">
-            <!-- kwa sasa tunatumia exam moja -->
-            <option value="annual_2025">annual_2025</option>
-          </select>
-        </div>
-
-        <div class="field">
           <label class="label">Class</label>
-          <select id="classSelect" class="input">
-            <option value="">All classes</option>
-          </select>
+          <select id="classSelect" class="input"></select>
         </div>
 
         <div class="field">
-          <label class="label">Search (name or admission)</label>
-          <input id="searchBox" class="input" placeholder="eg. ADM001 or Kelvin" />
+          <label class="label">Exam</label>
+          <select id="examSelect" class="input"></select>
         </div>
 
-        <button id="filterBtn" class="btn btn-primary">Apply Filters</button>
+        <button id="loadResultsBtn" class="btn btn-primary">Load Results</button>
+      </div>
+
+      <div class="chips">
+        <div class="chip">Students: <span id="chipStudents">0</span></div>
+        <div class="chip">Subjects: <span id="chipSubjects">0</span></div>
+        <div class="chip">Exam: <span id="chipExam">—</span></div>
+      </div>
+
+      <div class="row" style="margin-top:10px;gap:10px;">
+        <button id="btnBestTen" class="btn btn-ghost">🏆 Best 10 & Last 10</button>
+        <button id="btnSMS" class="btn btn-ghost">📨 Generate SMS</button>
+        <button id="btnPrint" class="btn btn-primary">🖨️ Print Results</button>
       </div>
     </section>
 
     <!-- RESULTS TABLE -->
     <section class="card">
-      <h3>Report Cards</h3>
-      <div class="matrix-wrap">
-        <table class="table" id="resultsTable">
-          <thead>
-          <tr>
-            <th>Adm</th>
-            <th>Student</th>
-            <th>Class</th>
-            <th>Total</th>
-            <th>Mean</th>
-            <th>Grade</th>
-            <th>Report</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr><td colspan="7">No reports yet. Generate reports from Marks page.</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <h3>Full Class Results</h3>
+      <p class="small">Matokeo ya kila mwanafunzi, total, average, division, position</p>
+
+      <div id="resultsTableWrap"></div>
     </section>
+
   </main>
 </div>
 
-<!-- REPORT CARD MODAL -->
-<div id="reportOverlay" class="overlay hidden">
-  <div class="overlay-card">
-    <div class="overlay-header">
-      <h3>Student Report Card</h3>
-      <button id="closeReportBtn" class="btn btn-ghost">Close</button>
-    </div>
-
-    <div class="report-body">
-      <p><strong>Name:</strong> <span id="rpName"></span></p>
-      <p><strong>Admission:</strong> <span id="rpAdm"></span></p>
-      <p><strong>Class:</strong> <span id="rpClass"></span></p>
-      <p><strong>Exam:</strong> <span id="rpExam"></span></p>
-
-      <h4 style="margin-top:10px;">Subject Performance</h4>
-      <table class="table" id="rpSubjectsTable">
-        <thead>
-        <tr>
-          <th>Subject</th>
-          <th>CA</th>
-          <th>Exam</th>
-          <th>Total</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div style="margin-top:10px;">
-        <p><strong>Total:</strong> <span id="rpTotal"></span></p>
-        <p><strong>Mean:</strong> <span id="rpMean"></span></p>
-        <p><strong>Grade:</strong> <span id="rpGrade"></span></p>
-        <p><strong>Weak Subjects:</strong> <span id="rpWeak"></span></p>
-      </div>
-
-      <h4 style="margin-top:12px;">Behaviour & Comments</h4>
-      <div>
-        <p>
-          <strong>Behaviour ratings:</strong><br/>
-          <span id="rpBehaviour"></span>
-        </p>
-        <p><strong>Class Teacher Comment:</strong> <span id="rpTeacherComment"></span></p>
-        <p><strong>Head of School Comment:</strong> <span id="rpHeadComment"></span></p>
-      </div>
-
-      <button id="printBtn" class="btn btn-primary" style="margin-top:12px;">Print</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Firebase CDN v8 -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<!-- App scripts -->
 <script src="./js/database.js"></script>
-<script src="./js/report.js"></script>
+<script src="./js/results.js"></script>
+
 </body>
 </html>
