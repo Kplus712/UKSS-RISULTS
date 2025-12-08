@@ -24,32 +24,38 @@ if (!firebase.apps.length) {
 console.log("Firebase initialized");
 
 // =========================
-//  FIRESTORE INSTANCE
+//  FIRESTORE & AUTH
 // =========================
-var db = firebase.firestore();
+var db   = firebase.firestore ? firebase.firestore() : null;
+var auth = firebase.auth ? firebase.auth() : null;
+
+if (!db)   console.warn("Firestore SDK not loaded.");
+if (!auth) console.warn("Auth SDK not loaded. Login features disabled.");
 
 // =========================
-//  COLLECTION SHORTCUTS
+//  GLOBAL COLLECTION SHORTCUTS
 // =========================
 var col = {
-  classes      : db.collection("classes"),
-  students     : db.collection("students"),
-  subjects     : db.collection("subjects"),
-  exams        : db.collection("exams"),
-  marks        : db.collection("marks"),
-  report_cards : db.collection("report_cards"),
-  behaviour    : db.collection("behaviour"),
-  sms_logs     : db.collection("sms_logs"),
-  staff        : db.collection("staff"),
-  settings     : db.collection("settings")
+  classes      : db ? db.collection("classes")      : null,
+  students     : db ? db.collection("students")     : null,
+  subjects     : db ? db.collection("subjects")     : null,
+  exams        : db ? db.collection("exams")        : null,
+  marks        : db ? db.collection("marks")        : null,
+  report_cards : db ? db.collection("report_cards") : null,
+  behaviour    : db ? db.collection("behaviour")    : null,
+  sms_logs     : db ? db.collection("sms_logs")     : null,
+  staff        : db ? db.collection("staff")        : null,
+  settings     : db ? db.collection("settings")     : null
 };
 
 // =========================
-//  GENERIC HELPER FUNCTIONS
+//  HELPER FUNCTIONS
 // =========================
 async function getAll(collectionRef){
   var snap = await collectionRef.get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return snap.docs.map(function (doc) {
+    return Object.assign({ id: doc.id }, doc.data());
+  });
 }
 
 function addCollectionDoc(collectionRef, data){
@@ -58,9 +64,10 @@ function addCollectionDoc(collectionRef, data){
 
 async function getDocById(collectionRef, id){
   var doc = await collectionRef.doc(id).get();
-  if(!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  if (!doc.exists) return null;
+  return Object.assign({ id: doc.id }, doc.data());
 }
+
 
 
 
