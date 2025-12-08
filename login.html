@@ -11,14 +11,17 @@
       align-items:center;
       justify-content:center;
       min-height:100vh;
+      margin:0;
       background:radial-gradient(circle at top, #1d4ed8 0, #020617 55%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:#e5e7eb;
     }
     .login-card{
       width:100%;
       max-width:420px;
       padding:28px 24px 24px;
       border-radius:18px;
-      background:rgba(15,23,42,0.95);
+      background:rgba(15,23,42,0.96);
       box-shadow:0 20px 60px rgba(0,0,0,0.55);
       border:1px solid rgba(148,163,184,0.35);
     }
@@ -26,7 +29,7 @@
       display:flex;
       align-items:center;
       gap:12px;
-      margin-bottom:16px;
+      margin-bottom:18px;
     }
     .login-logo{
       width:40px;
@@ -38,6 +41,7 @@
       background:linear-gradient(135deg,#facc15,#eab308);
       color:#111827;
       font-weight:700;
+      font-size:18px;
     }
     .login-title{
       font-size:18px;
@@ -53,7 +57,7 @@
     .field label{
       font-size:12px;
       display:block;
-      margin-bottom:3px;
+      margin-bottom:4px;
       color:#e5e7eb;
     }
     .input{
@@ -64,6 +68,11 @@
       background:rgba(15,23,42,0.9);
       color:#f9fafb;
       font-size:13px;
+    }
+    .input:focus{
+      outline:none;
+      border-color:#3b82f6;
+      box-shadow:0 0 0 1px rgba(59,130,246,0.4);
     }
     .btn-primary{
       width:100%;
@@ -109,16 +118,18 @@
     <div id="loginError" class="error"></div>
 
     <div class="foot">
-      Managed by UK School System · If you forget your password, contact system admin.
+      Managed by UK School System · For password reset, contact system admin.
     </div>
   </form>
 
-  <!-- Firebase -->
+  <!-- Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+  <!-- App scripts -->
   <script src="./js/database.js"></script>
-  <script src="./js/auth.js"></script>
+  <script src="./js/auth.js?v=2"></script>
 </body>
 </html>
+
