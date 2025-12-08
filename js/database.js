@@ -1,9 +1,6 @@
 // js/database.js
 // Firebase init + helpers for UKSS
 
-// =========================
-//  FIREBASE CONFIG
-// =========================
 var firebaseConfig = {
   apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
   authDomain: "school-results-management.firebaseapp.com",
@@ -15,26 +12,19 @@ var firebaseConfig = {
   measurementId: "G-MDN4Q3C22J"
 };
 
-// =========================
-//  INITIALIZE FIREBASE (v8)
-// =========================
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 console.log("Firebase initialized");
 
-// =========================
-//  FIRESTORE & AUTH
-// =========================
+// Firestore & Auth
 var db   = firebase.firestore ? firebase.firestore() : null;
 var auth = firebase.auth ? firebase.auth() : null;
 
 if (!db)   console.warn("Firestore SDK not loaded.");
 if (!auth) console.warn("Auth SDK not loaded. Login features disabled.");
 
-// =========================
-//  GLOBAL COLLECTION SHORTCUTS
-// =========================
+// Collection shortcuts (optional)
 var col = {
   classes      : db ? db.collection("classes")      : null,
   students     : db ? db.collection("students")     : null,
@@ -48,14 +38,10 @@ var col = {
   settings     : db ? db.collection("settings")     : null
 };
 
-// =========================
-//  HELPER FUNCTIONS
-// =========================
+// Helpers
 async function getAll(collectionRef){
   var snap = await collectionRef.get();
-  return snap.docs.map(function (doc) {
-    return Object.assign({ id: doc.id }, doc.data());
-  });
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 function addCollectionDoc(collectionRef, data){
@@ -65,7 +51,7 @@ function addCollectionDoc(collectionRef, data){
 async function getDocById(collectionRef, id){
   var doc = await collectionRef.doc(id).get();
   if (!doc.exists) return null;
-  return Object.assign({ id: doc.id }, doc.data());
+  return { id: doc.id, ...doc.data() };
 }
 
 
