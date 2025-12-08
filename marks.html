@@ -1,130 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Marks Entry</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-
-<div class="app">
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-badge">UK</div>
-      <div>
-        <div class="brand-title">UKSS</div>
-        <div class="brand-sub">Results Management</div>
-      </div>
-    </div>
-
-<nav class="nav">
-  <a href="marks.html">🏠 Marks</a>
-  <a href="results.html">📄 Results</a>
-  <a href="ranking.html">🏆 Ranking</a>
-  <a href="behaviour.html">🧭 Behaviour</a>
-  <a href="sms.html">📨 SMS</a>
-  <a href="sms_logs.html">🧾 SMS Logs</a>
-  <a href="admin.html">🔐 Admin</a>
-</nav>
-</aside>
-
-  
-  <!-- MAIN CONTENT -->
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <h2>📘 Marks Entry</h2>
-        <p class="small">Exam: <strong>annual_2025</strong> — CA + EX must not exceed 100</p>
-      </div>
-
-      <div class="top-actions">
-        <button id="loadSampleBtn" class="btn btn-ghost">Load Sample Data</button>
-      </div>
-    </header>
-
-    <!-- CLASS + ACTIONS -->
-    <section class="card">
-      <div class="row row-wrap">
-        <div class="field">
-          <label class="label">Class</label>
-          <select id="classSelect" class="input"></select>
-        </div>
-        <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
-        <button id="generateReportsBtn" class="btn btn-primary">Generate Reports</button>
-      </div>
-    </section>
-
-    <!-- ADD STUDENT + SUBJECTS -->
-    <section class="card">
-      <h3>Students & Subjects</h3>
-
-      <!-- Add student -->
-      <div class="row row-wrap">
-        <div class="field">
-          <label class="label">Admission No</label>
-          <input id="stuAdmission" class="input" placeholder="ADM001" />
-        </div>
-        <div class="field">
-          <label class="label">First name</label>
-          <input id="stuFirst" class="input" placeholder="Kelvin" />
-        </div>
-        <div class="field">
-          <label class="label">Last name</label>
-          <input id="stuLast" class="input" placeholder="Deogratias" />
-        </div>
-        <div class="field">
-          <label class="label">Guardian phone</label>
-          <input id="stuPhone" class="input" placeholder="0712345678" />
-        </div>
-        <button id="addStudentBtn" class="btn btn-primary">Add Student</button>
-      </div>
-
-      <!-- Add subject -->
-      <div class="row row-wrap" style="margin-top:14px;">
-        <div class="field">
-          <label class="label">Subject code</label>
-          <input id="subCode" class="input" placeholder="BS" />
-        </div>
-        <div class="field">
-          <label class="label">Subject name</label>
-          <input id="subName" class="input" placeholder="Business Studies" />
-        </div>
-        <button id="addSubjectBtn" class="btn btn-primary">Add Subject</button>
-      </div>
-
-      <!-- SUBJECT LIST -->
-      <div style="margin-top:14px;">
-        <p class="label" style="margin-bottom:4px;">Subjects in this system</p>
-        <div id="subjectsList" class="list-box small"></div>
-      </div>
-
-      <!-- STUDENT LIST -->
-      <div style="margin-top:18px;">
-        <p class="label" style="margin-bottom:4px;">Students in selected class</p>
-        <div id="studentsList" class="list-box small"></div>
-      </div>
-    </section>
-
-    <!-- MARKS TABLE -->
-    <section class="card">
-      <h3>Marks Matrix</h3>
-      <p class="small">Click any CA/EX to edit — changes are saved to Firestore automatically.</p>
-      <div id="marksMatrixWrap" class="matrix-wrap"></div>
-    </section>
-
-  </main>
+<!-- Add student -->
+<div class="row row-wrap">
+  <div class="field">
+    <label class="label">Admission No</label>
+    <input id="stuAdmission" class="input" placeholder="ADM001" />
+  </div>
+  <div class="field">
+    <label class="label">First name</label>
+    <input id="stuFirst" class="input" placeholder="Kelvin" />
+  </div>
+  <div class="field">
+    <label class="label">Last name</label>
+    <input id="stuLast" class="input" placeholder="Deogratias" />
+  </div>
+  <div class="field">
+    <label class="label">Guardian phone</label>
+    <input id="stuPhone" class="input" placeholder="0712345678" />
+  </div>
+  <div class="field">
+    <label class="label">Sex</label>
+    <select id="stuSex" class="input">
+      <option value="">--</option>
+      <option value="F">F</option>
+      <option value="M">M</option>
+    </select>
+  </div>
+  <button id="addStudentBtn" class="btn btn-primary">Add Student</button>
 </div>
 
-<!-- Firebase CDN v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- App scripts -->
-<script src="./js/database.js"></script>
-<script src="./js/marks.js"></script>
-</body>
-</html>
 
