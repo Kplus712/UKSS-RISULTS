@@ -36,8 +36,8 @@
       <div>
         <h2>📨 SMS to Parents</h2>
         <p class="small">
-          Generate SMS messages from existing report cards, then tumia “Send via Gateway”
-          kutuma moja kwa moja kupitia Beem.
+          Tuma ujumbe wa matokeo au general announcement kwa wazazi.
+          Unaweza kutuma kwa darasa zima (Form I–IV) au mwanafunzi mmoja mmoja.
         </p>
       </div>
 
@@ -50,9 +50,10 @@
     <section class="card">
       <div class="row row-wrap">
         <div class="field">
-          <label class="label">Exam</label>
-          <select id="examSelect" class="input">
-            <option value="annual_2025">annual_2025</option>
+          <label class="label">Message type</label>
+          <select id="messageType" class="input">
+            <option value="results">Results SMS</option>
+            <option value="general">General announcement</option>
           </select>
         </div>
 
@@ -64,10 +65,17 @@
         </div>
 
         <div class="field">
+          <label class="label">Exam (for results)</label>
+          <select id="examSelect" class="input">
+            <!-- options from JS -->
+          </select>
+        </div>
+
+        <div class="field">
           <label class="label">Recipients</label>
           <select id="recipientFilter" class="input">
             <option value="all">All students</option>
-            <option value="weak">Only weak students (Grade D/E)</option>
+            <option value="weak">Only weak students (low average)</option>
           </select>
         </div>
 
@@ -79,26 +87,43 @@
     <section class="card">
       <h3>SMS Template</h3>
       <p class="small">
-        Tags: {name}, {adm}, {class}, {total}, {mean}, {grade}, {weak}.<br/>
-        Mfano: “Mzazi wa {name}, matokeo ya {class} ({exam}): jumla {total}, wastani {mean}, daraja {grade}. Masomo
-        hafifu: {weak}.”
+        <strong>Tags zinazopatikana:</strong><br/>
+        <code>{name}</code>, <code>{adm}</code>, <code>{class}</code>, <code>{exam}</code>,
+        <code>{total}</code>, <code>{mean}</code>, <code>{div}</code>, <code>{pos}</code>,
+        <code>{close}</code>, <code>{open}</code>.<br/>
+        Mfano wa Results SMS:<br/>
+        <code>Mzazi wa {name}, matokeo ya {class} ({exam}): jumla {total}, wastani {mean}, division {div}, nafasi ya {pos}. Shule inafungwa {close} na kufunguliwa {open}.</code>
       </p>
 
       <textarea id="smsTemplate" class="textarea" spellcheck="false">
-Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, wastani {mean}, daraja {grade}. Masomo hafifu: {weak}.
+Mzazi wa {name}, matokeo ya {class} ({exam}) kwa {adm}: jumla {total}, wastani {mean}, division {div}, nafasi ya {pos}. Shule inafungwa {close} na kufunguliwa {open}.
       </textarea>
+
+      <div class="row row-wrap" style="margin-top:10px;">
+        <div class="field">
+          <label class="label">Closing date (tarehe ya kufunga shule)</label>
+          <input id="closeDate" type="date" class="input" />
+        </div>
+        <div class="field">
+          <label class="label">Opening date (tarehe ya kufungua shule)</label>
+          <input id="openDate" type="date" class="input" />
+        </div>
+      </div>
 
       <div style="margin-top:10px;" class="row row-wrap">
         <button id="generateSmsBtn" class="btn btn-primary">Generate SMS</button>
         <button id="saveLogsBtn" class="btn btn-ghost">Save Log</button>
         <button id="downloadCsvBtn" class="btn btn-ghost">Download CSV (Bulk)</button>
-        <button id="sendViaGatewayBtn" class="btn btn-primary">Send via Gateway</button>
+        <button id="sendViaGatewayBtn" class="btn btn-primary">Send via Beem</button>
       </div>
     </section>
 
     <!-- RECIPIENT LIST -->
     <section class="card">
-      <h3>Recipients</h3>
+      <h3>Recipients (Form I–IV classes)</h3>
+      <p class="small">
+        Chagua wanafunzi wa kutumiwa SMS. Unaweza kuchagua mmoja mmoja au <strong>Select all</strong> kwa darasa.
+      </p>
       <div class="matrix-wrap">
         <table class="table" id="recipientsTable">
           <thead>
@@ -108,11 +133,13 @@ Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, was
             <th>Student</th>
             <th>Class</th>
             <th>Phone</th>
-            <th>Grade</th>
+            <th>Average</th>
+            <th>Division</th>
+            <th>Position</th>
           </tr>
           </thead>
           <tbody>
-          <tr><td colspan="6">Load recipients using filters above.</td></tr>
+          <tr><td colspan="8">Load recipients using filters above.</td></tr>
           </tbody>
         </table>
       </div>
@@ -122,8 +149,7 @@ Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, was
     <section class="card">
       <h3>Generated Messages</h3>
       <p class="small">
-        Messages zinazoonekana hapa ndizo zitakazotumwa kwa gateway. Hakikisha ziko sahihi kabla ya kubofya
-        <strong>Send via Gateway</strong>.
+        Hapa unaona SMS zitakazotumwa. Zitatumwa kwa wanafunzi (au wazazi) waliotickiwa kwenye list hapo juu.
       </p>
       <div id="messagesList" class="list-box"></div>
     </section>
@@ -137,6 +163,7 @@ Mzazi wa {name}, matokeo ya {class} ({exam}) kwa mtoto {adm}: jumla {total}, was
 
 <!-- App scripts -->
 <script src="./js/database.js"></script>
+<script src="./js/auth.js"></script>
 <script src="./js/sms.js"></script>
 </body>
 </html>
