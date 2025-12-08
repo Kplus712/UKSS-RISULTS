@@ -60,7 +60,7 @@ function sanitizeId(str){
     .toUpperCase()
     .trim()
     .replace(/\s+/g,"_")
-    .replace(/[^A-Z0-9_]/g,"");
+    .replace(/[^A-Z0-9_]/g,"");   // inaondoa slash na characters zingine zisizotakiwa
 }
 
 function updateStepper(){
@@ -225,8 +225,8 @@ async function loadStudentsAndMarks(){
   snap.forEach(doc=>{
     const data = doc.data();
     const stu = {
-      id: doc.id,
-      admissionNo: data.admissionNo || doc.id,
+      id: doc.id,   // sanitized ID (512_0001)
+      admissionNo: data.admissionNo || doc.id, // anaonekana 512/0001
       firstName: data.firstName || "",
       lastName: data.lastName || "",
       fullName: data.fullName || ((data.firstName||"")+" "+(data.lastName||"")).trim(),
@@ -407,11 +407,14 @@ addSubjectBtn.addEventListener("click", async ()=>{
   }
 });
 
-// --------- add student (Form I–IV) ----------
+// --------- add student (Form I–IV, admission inaweza kuwa na /) ----------
 addStudentBtn.addEventListener("click", async ()=>{
   if(!currentClassId) return alert("Select class first.");
 
-  const admissionNo = (stuAdmission.value || "").toUpperCase().trim();
+  const admissionNoRaw = (stuAdmission.value || "").trim();   // mfano 512/0001
+  const admissionNo    = admissionNoRaw.toUpperCase();        // kwa display
+  const docId          = sanitizeId(admissionNoRaw);          // 512_0001
+
   const firstName   = (stuFirst.value || "").trim();
   const lastName    = (stuLast.value || "").trim();
   const guardianPhone = (stuPhone.value || "").trim();
@@ -427,11 +430,11 @@ addStudentBtn.addEventListener("click", async ()=>{
     const stuRef = classesCol
       .doc(currentClassId)
       .collection("students")
-      .doc(admissionNo);
+      .doc(docId);   // sanitized ID, haina slash
 
     await stuRef.set(
       {
-        admissionNo,
+        admissionNo,        // tunaweka asili: 512/0001
         firstName,
         lastName,
         fullName,
@@ -636,10 +639,12 @@ loadSampleBtn.addEventListener("click", async ()=>{
 
     const stuRef = classesCol.doc(clsId).collection("students");
     for(let i=1;i<=10;i++){
-      const adm = "F1A/"+String(i).padStart(3,"0");
-      await stuRef.doc(adm).set(
+      const adm   = "F1A/"+String(i).padStart(3,"0"); // F1A/001
+      const docId = sanitizeId(adm);                  // F1A_001
+
+      await stuRef.doc(docId).set(
         {
-          admissionNo:adm,
+          admissionNo:adm,       // ya kuonyesha, ina slash
           firstName:"STUDENT"+i,
           lastName:"",
           fullName:"STUDENT"+i,
