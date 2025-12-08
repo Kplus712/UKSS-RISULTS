@@ -20,6 +20,7 @@ const sendViaGatewayBtn = document.getElementById("sendViaGatewayBtn");
 const recipientsTableBody = document.querySelector("#recipientsTable tbody");
 const selectAllCheckbox   = document.getElementById("selectAll");
 const messagesList        = document.getElementById("messagesList");
+const statusBar           = document.getElementById("smsStatus");
 
 // ===== STATE =====
 const classesCol = db.collection("classes");
@@ -31,6 +32,24 @@ let generatedMessages = [];
 
 let currentClassId = null;
 let currentExamId  = null;
+
+// ===== SMALL HELPER: STATUS BAR =====
+function setSmsStatus(type, msg){
+  if (!statusBar) return;
+  statusBar.classList.remove("hidden","status-info","status-success","status-error");
+
+  if (!msg){
+    statusBar.classList.add("hidden");
+    statusBar.textContent = "";
+    return;
+  }
+
+  if (type === "success") statusBar.classList.add("status-success");
+  else if (type === "error") statusBar.classList.add("status-error");
+  else statusBar.classList.add("status-info");
+
+  statusBar.textContent = msg;
+}
 
 // ========================== LOAD CLASSES & EXAMS ==========================
 async function loadClasses(){
@@ -97,7 +116,7 @@ async function loadStudents(){
   }));
 }
 
-// ========================== COMPUTE RESULTS (TOTAL, AVG, DIV, POSITION) ==========================
+// ========================== COMPUTE RESULTS ==========================
 function computeResults(){
   const examId = currentExamId;
   const filter = recipientFilter.value; // all | weak
@@ -132,12 +151,10 @@ function computeResults(){
     };
   });
 
-  // filter weak students only when asked
   if (filter === "weak") {
     rows = rows.filter(r => r.division === "DIV III" || r.division === "DIV IV" || r.division === "DIV 0");
   }
 
-  // sort for position
   rows.sort((a,b)=> b.avg - a.avg);
 
   let lastAvg = null;
@@ -153,7 +170,6 @@ function computeResults(){
   results = rows;
 }
 
-// Division scaling
 function getDivision(avg){
   if (avg >= 75) return "DIV I";
   if (avg >= 60) return "DIV II";
@@ -199,8 +215,9 @@ selectAllCheckbox.addEventListener("change", ()=>{
 
 // ========================== LOAD RECIPIENTS BUTTON ==========================
 loadRecipientsBtn.addEventListener("click", async ()=>{
+  setSmsStatus("info","Loading recipients...");
   if (!currentClassId){
-    alert("Select class first.");
+    setSmsStatus("error","Select class first.");
     return;
   }
 
@@ -211,13 +228,12 @@ loadRecipientsBtn.addEventListener("click", async ()=>{
 
   if (type === "results") {
     if (!examSelect.value){
-      alert("Select exam for results SMS.");
+      setSmsStatus("error","Select exam for results SMS.");
       return;
     }
     currentExamId = examSelect.value;
     computeResults();
   } else {
-    // general mode – bado tunapiga compute ili tuwe na basic info (avg/div/pos kama utahitaji)
     currentExamId = examSelect.value || null;
     computeResults();
   }
@@ -225,6 +241,8 @@ loadRecipientsBtn.addEventListener("click", async ()=>{
   renderRecipientsTable();
   messagesList.innerHTML = "";
   generatedMessages = [];
+
+  setSmsStatus("success","Recipients loaded. Now generate SMS.");
 });
 
 // ========================== GENERATE SMS ==========================
@@ -233,7 +251,7 @@ generateSmsBtn.addEventListener("click", ()=>{
   messagesList.innerHTML = "";
 
   if (!results.length){
-    alert("Load recipients first.");
+    setSmsStatus("error","Load recipients first.");
     return;
   }
 
@@ -245,7 +263,7 @@ generateSmsBtn.addEventListener("click", ()=>{
 
   const selectedChecks = Array.from(document.querySelectorAll(".rowCheck:checked"));
   if (!selectedChecks.length){
-    alert("Select at least one student.");
+    setSmsStatus("error","Select at least one student.");
     return;
   }
 
@@ -275,7 +293,6 @@ generateSmsBtn.addEventListener("click", ()=>{
     });
   });
 
-  // show preview
   generatedMessages.forEach(msg=>{
     const div = document.createElement("div");
     div.className = "list-item";
@@ -284,14 +301,16 @@ generateSmsBtn.addEventListener("click", ()=>{
   });
 
   if (!generatedMessages.length){
-    alert("No messages generated. Check recipients list.");
+    setSmsStatus("error","No messages generated. Check recipients list.");
+  } else {
+    setSmsStatus("success",`Generated ${generatedMessages.length} SMS ready to send.`);
   }
 });
 
 // ========================== SAVE LOGS (to Firestore) ==========================
 saveLogsBtn.addEventListener("click", async ()=>{
   if (!generatedMessages.length){
-    alert("No messages to log. Generate SMS first.");
+    setSmsStatus("error","No messages to log. Generate SMS first.");
     return;
   }
 
@@ -307,13 +326,13 @@ saveLogsBtn.addEventListener("click", async ()=>{
   };
 
   await db.collection("sms_logs").add(doc);
-  alert("SMS logs saved to Firestore.");
+  setSmsStatus("success","SMS logs saved to Firestore.");
 });
 
 // ========================== DOWNLOAD CSV (BULK) ==========================
 downloadCsvBtn.addEventListener("click", ()=>{
   if (!generatedMessages.length){
-    alert("Generate SMS first.");
+    setSmsStatus("error","Generate SMS first.");
     return;
   }
 
@@ -330,22 +349,24 @@ downloadCsvBtn.addEventListener("click", ()=>{
   a.href = url;
   a.download = "bulk_sms.csv";
   a.click();
+
+  setSmsStatus("success","CSV downloaded. You can upload it to Beem panel if needed.");
 });
 
 // ========================== SEND VIA BEEM ==========================
 sendViaGatewayBtn.addEventListener("click", async ()=>{
   if (!generatedMessages.length){
-    alert("Generate SMS first.");
+    setSmsStatus("error","Generate SMS first.");
     return;
   }
 
-  // check internet
+  // check internet (basic check)
   if (!navigator.onLine) {
-    alert("Inaonekana huna mtandao (internet) kwa sasa. Unganisha kifaa chako na jaribu tena.");
+    setSmsStatus("error","Inaonekana huna mtandao (internet). Unganisha kifaa chako na jaribu tena.");
     return;
   }
 
-  // Beem credentials (ULIZOTOA)
+  // Beem credentials (ULIZOTOA) – usiziache wazi kwenye public repo kwa muda mrefu.
   const apiKey    = "182165a09d7d6eaf";
   const secretKey = "OGQ2MGVhY2NhOTgzNzdhODYyYTNmYjE4M2VjZmEzYjZmM2E0YzQ2OWFjNWZlNzk1MTVlMGY5NzdiM2ZjNmI5Yw==";
   const senderId  = "SCHOOL"; // hakikisha hii ime-approve kwenye Beem
@@ -359,6 +380,8 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
     }))
   };
 
+  setSmsStatus("info",`Sending ${generatedMessages.length} SMS via Beem…`);
+
   try{
     const res = await fetch("https://apis.beem.africa/v1/send", {
       method: "POST",
@@ -371,9 +394,10 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
 
     const data = await res.json();
     console.log("BEEM RESPONSE:", data);
-    alert("SMS sent via Beem. Angalia console kwa details za response.");
 
-    // Save response log
+    // simple success check – unaweza kuboresha kulingana na structure ya Beem
+    setSmsStatus("success","Request sent to Beem. Check Beem dashboard for delivery status.");
+
     await db.collection("sms_logs").add({
       timestamp: new Date(),
       classId: currentClassId,
@@ -385,7 +409,7 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
 
   }catch(err){
     console.error(err);
-    alert("Imeshindwa kuwasiliana na Beem. Sababu: " + err.message);
+    setSmsStatus("error","Failed to send via Beem: " + err.message);
   }
 });
 
@@ -397,10 +421,13 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
       currentClassId = classSelect.value;
       await loadExams();
     }
+    setSmsStatus("info","Choose class and exam, then load recipients.");
   }catch(err){
     console.error("Failed to initialise SMS page", err);
+    setSmsStatus("error","Failed to initialise SMS page: " + err.message);
   }
 })();
+
 
 
 
