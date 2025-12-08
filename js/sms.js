@@ -26,7 +26,7 @@ const classesCol = db.collection("classes");
 
 let subjects   = [];   // [{code, name}]
 let students   = [];   // raw students
-let results    = [];   // computed performance per student (for current exam)
+let results    = [];   // computed per student
 let generatedMessages = [];
 
 let currentClassId = null;
@@ -153,7 +153,7 @@ function computeResults(){
   results = rows;
 }
 
-// Division scaling (can adjust)
+// Division scaling
 function getDivision(avg){
   if (avg >= 75) return "DIV I";
   if (avg >= 60) return "DIV II";
@@ -217,7 +217,7 @@ loadRecipientsBtn.addEventListener("click", async ()=>{
     currentExamId = examSelect.value;
     computeResults();
   } else {
-    // general mode – hatuhitaji exam, lakini bado tunapiga compute ili tuwe na basic info
+    // general mode – bado tunapiga compute ili tuwe na basic info (avg/div/pos kama utahitaji)
     currentExamId = examSelect.value || null;
     computeResults();
   }
@@ -339,9 +339,16 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
     return;
   }
 
-  const apiKey    = "YOUR_BEEM_API_KEY";
-  const secretKey = "YOUR_BEEM_SECRET_KEY";
-  const senderId  = "SCHOOL"; // lazima iwe approved kwenye Beem
+  // check internet
+  if (!navigator.onLine) {
+    alert("Inaonekana huna mtandao (internet) kwa sasa. Unganisha kifaa chako na jaribu tena.");
+    return;
+  }
+
+  // Beem credentials (ULIZOTOA)
+  const apiKey    = "182165a09d7d6eaf";
+  const secretKey = "OGQ2MGVhY2NhOTgzNzdhODYyYTNmYjE4M2VjZmEzYjZmM2E0YzQ2OWFjNWZlNzk1MTVlMGY5NzdiM2ZjNmI5Yw==";
+  const senderId  = "SCHOOL"; // hakikisha hii ime-approve kwenye Beem
 
   const payload = {
     source_addr: senderId,
@@ -364,7 +371,7 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
 
     const data = await res.json();
     console.log("BEEM RESPONSE:", data);
-    alert("SMS sent via Beem. Check console for response.");
+    alert("SMS sent via Beem. Angalia console kwa details za response.");
 
     // Save response log
     await db.collection("sms_logs").add({
@@ -378,7 +385,7 @@ sendViaGatewayBtn.addEventListener("click", async ()=>{
 
   }catch(err){
     console.error(err);
-    alert("Failed to send via Beem: " + err.message);
+    alert("Imeshindwa kuwasiliana na Beem. Sababu: " + err.message);
   }
 });
 
