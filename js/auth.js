@@ -5,15 +5,18 @@ const PUBLIC_PAGES = ["login.html", "index.html"];
 const currentPath  = window.location.pathname.split("/").pop() || "index.html";
 const isPublicPage = PUBLIC_PAGES.includes(currentPath);
 
-// ========== 1. GLOBAL GUARD (kama auth ipo) ==========
+// =================== 1. GLOBAL GUARD ===================
 document.addEventListener("DOMContentLoaded", function () {
   if (typeof auth === "undefined" || !auth) {
-    console.warn("Auth SDK not available yet. Page guard is disabled.");
+    console.warn("Auth SDK not available for guard.");
     return;
   }
 
-  // linda kurasa za ndani
+  console.log("[AUTH] guard initialised on", currentPath);
+
   auth.onAuthStateChanged(function (user) {
+    console.log("[AUTH] state changed:", user ? user.email : null);
+
     if (!user && !isPublicPage) {
       window.location.href = "login.html";
       return;
@@ -24,7 +27,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // logout button (kurasa za ndani)
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function () {
@@ -41,10 +43,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// ========== 2. LOGIN FORM (inafanya kazi hata kama auth haipo, itaonyesha error) ==========
+// =================== 2. LOGIN HANDLER ===================
 document.addEventListener("DOMContentLoaded", function () {
-  const loginForm   = document.getElementById("loginForm");
-  if (!loginForm) return; // sio login page
+  const loginForm = document.getElementById("loginForm");
+  if (!loginForm) {
+    console.log("[AUTH] No login form on this page.");
+    return;
+  }
+  console.log("[AUTH] Login form found. Binding submit handler.");
 
   const emailInput  = document.getElementById("email");
   const passInput   = document.getElementById("password");
@@ -52,28 +58,33 @@ document.addEventListener("DOMContentLoaded", function () {
   const submitBtn   = document.getElementById("loginSubmit");
   const statusBox   = document.getElementById("loginStatus");
 
+  function showError(msg){
+    console.error("[AUTH] login error:", msg);
+    if (errorBox) errorBox.textContent = msg;
+    else alert(msg);
+  }
+
   loginForm.addEventListener("submit", function (e) {
     e.preventDefault();
+    console.log("[AUTH] Login submit clicked.");
 
     const email = (emailInput?.value || "").trim();
     const pass  = passInput?.value || "";
 
     if (!email || !pass) {
-      if (errorBox) errorBox.textContent = "Please enter email and password.";
+      showError("Please enter email and password.");
       return;
     }
 
-    // kama auth haijapatikana kabisa, tujulishe wazi
     if (typeof auth === "undefined" || !auth) {
-      if (errorBox)
-        errorBox.textContent =
-          "System auth is not initialised. Hakikisha firebase-auth.js na database.js zimepakiwa vizuri.";
+      showError(
+        "System auth is not initialised. Hakikisha firebase-auth.js na database.js zimepakiwa vizuri."
+      );
       return;
     }
 
     if (errorBox) errorBox.textContent = "";
 
-    // show status "logging in..."
     if (statusBox) {
       statusBox.innerHTML =
         '<span class="loader"></span> Logging in… please wait';
@@ -88,11 +99,10 @@ document.addEventListener("DOMContentLoaded", function () {
     auth
       .signInWithEmailAndPassword(email, pass)
       .then(function () {
-        // success -> onAuthStateChanged itafanya redirect
+        console.log("[AUTH] signIn success, waiting for onAuthStateChanged");
       })
       .catch(function (err) {
-        console.error(err);
-        if (errorBox) errorBox.textContent = err.message;
+        showError(err.message);
 
         if (statusBox) {
           statusBox.textContent = "";
