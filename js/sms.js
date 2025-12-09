@@ -1,5 +1,5 @@
 // js/sms.js
-// UKSS — SMS Engine (Results + General) -> Beem via CSV upload
+// UKSS — SMS Engine (Results + General) -> Beem via CSV upload (local 0XXXXXXXXX)
 
 // ===== DOM ELEMENTS =====
 const messageTypeSelect = document.getElementById("messageType");
@@ -51,36 +51,36 @@ function setSmsStatus(type, msg){
   statusBar.textContent = msg;
 }
 
-// ===== PHONE NORMALISER FOR BEEM =====
+// ===== PHONE NORMALISER (OUTPUT: 0XXXXXXXXX LOCAL TZ) =====
+// Tunalenga Beem akitengewa "default country = Tanzania"
 function normalizePhone(raw){
   if (!raw) return "";
 
-  // toa kila kitu kisicho digit
+  // toa non-digits
   let p = String(raw).replace(/\D/g, "");
-
   if (!p) return "";
 
-  // tayari iko kwenye 2557XXXXXXXX? (12 digits)
-  if (p.startsWith("255") && p.length === 12) {
+  // 2557XXXXXXXX (12) -> 0XXXXXXXXX (chukua 9 za mwisho, ongeza 0)
+  if (p.length === 12 && p.startsWith("255")) {
+    return "0" + p.slice(3); // "255622266932" -> "0622266932"
+  }
+
+  // Tayari 0XXXXXXXXX (10) -> acha kama ilivyo
+  if (p.length === 10 && p.startsWith("0")) {
     return p;
   }
 
-  // 0XXXXXXXXX (10 digits) -> 255XXXXXXXXX
-  if (p.startsWith("0") && p.length === 10) {
-    return "255" + p.slice(1);
-  }
-
-  // 9 digits tu (mf 622266932) -> assume 0 imekosekana mbele
+  // 9 digits tu (mf 622266932) -> ongeza 0 mbele
   if (p.length === 9) {
-    return "255" + p;
+    return "0" + p;
   }
 
-  // +2557XXXXXXXX (13 na inaanza 255 baada ya kuondoa +)
-  if (p.length === 13 && p.startsWith("255")) {
-    return p.slice(0, 12);
+  // 10 digits bila 0, chukua 9 za mwisho -> ongeza 0
+  if (p.length === 10 && !p.startsWith("0")) {
+    return "0" + p.slice(-9);
   }
 
-  // fallback
+  // fallback: just return p
   return p;
 }
 
@@ -403,16 +403,13 @@ sendViaGatewayBtn.addEventListener("click", ()=>{
     return;
   }
 
-  // 1. Pakua CSV moja kwa moja
   downloadCsvFromMessages(generatedMessages, "bulk_sms_for_beem.csv");
 
-  // 2. Toa maelekezo kidogo
   setSmsStatus(
     "info",
-    "CSV imeshapakuliwa. Fungua Beem Portal, chagua Bulk SMS Upload, kisha upload faili hilo."
+    "CSV imeshapakuliwa. Ukienda Beem chagua Tanzania kama nchi, kisha Phone column (0XXXXXXXXX) itakubalika."
   );
 
-  // 3. Jaribu kufungua portal kwenye tab mpya (browser anaweza ku-block popup)
   try {
     window.open("https://portal.beem.africa", "_blank");
   } catch (e) {
@@ -434,6 +431,7 @@ sendViaGatewayBtn.addEventListener("click", ()=>{
     setSmsStatus("error","Failed to initialise SMS page: " + err.message);
   }
 })();
+
 
 
 
