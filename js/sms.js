@@ -1,5 +1,5 @@
 // js/sms.js
-// UKSS — SMS Engine (Results + General) with Beem
+// UKSS — SMS Engine (Results + General) -> Beem via CSV upload
 
 // ===== DOM ELEMENTS =====
 const messageTypeSelect = document.getElementById("messageType");
@@ -49,6 +49,25 @@ function setSmsStatus(type, msg){
   else statusBar.classList.add("status-info");
 
   statusBar.textContent = msg;
+}
+
+// Small helper: CSV download
+function downloadCsvFromMessages(messages, filename){
+  let csv = "Phone,Message\n";
+  messages.forEach(m=>{
+    const phone = m.to || "";
+    const safeText = (m.text || "").replace(/"/g,"'").replace(/\r?\n/g," ");
+    csv += `"${phone}","${safeText}"\n`;
+  });
+
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url  = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename || "bulk_sms.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ========================== LOAD CLASSES & EXAMS ==========================
@@ -303,7 +322,7 @@ generateSmsBtn.addEventListener("click", ()=>{
   if (!generatedMessages.length){
     setSmsStatus("error","No messages generated. Check recipients list.");
   } else {
-    setSmsStatus("success",`Generated ${generatedMessages.length} SMS ready to send.`);
+    setSmsStatus("success",`Generated ${generatedMessages.length} SMS ready to send / export.`);
   }
 });
 
@@ -329,84 +348,38 @@ saveLogsBtn.addEventListener("click", async ()=>{
   setSmsStatus("success","SMS logs saved to Firestore.");
 });
 
-// ========================== DOWNLOAD CSV ==========================
+// ========================== DOWNLOAD CSV ONLY ==========================
 downloadCsvBtn.addEventListener("click", ()=>{
   if (!generatedMessages.length){
     setSmsStatus("error","Generate SMS first.");
     return;
   }
 
-  let csv = "Phone,Message\n";
-  generatedMessages.forEach(m=>{
-    const safeText = (m.text || "").replace(/"/g,"'");
-    csv += `"${m.to}","${safeText}"\n`;
-  });
-
-  const blob = new Blob([csv], {type:"text/csv"});
-  const url  = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "bulk_sms.csv";
-  a.click();
-
-  setSmsStatus("success","CSV downloaded. You can upload it to Beem panel if needed.");
+  downloadCsvFromMessages(generatedMessages, "bulk_sms.csv");
+  setSmsStatus("success","CSV downloaded. You can upload it to Beem bulk SMS.");
 });
 
-// ========================== SEND VIA BEEM ==========================
-sendViaGatewayBtn.addEventListener("click", async ()=>{
+// ========================== PREPARE FOR BEEM PORTAL ==========================
+sendViaGatewayBtn.addEventListener("click", ()=>{
   if (!generatedMessages.length){
     setSmsStatus("error","Generate SMS first.");
     return;
   }
 
-  if (!navigator.onLine) {
-    setSmsStatus("error","Inaonekana huna mtandao (internet). Unganisha kifaa chako na jaribu tena.");
-    return;
-  }
+  // 1. Pakua CSV moja kwa moja
+  downloadCsvFromMessages(generatedMessages, "bulk_sms_for_beem.csv");
 
-  const apiKey    = "182165a09d7d6eaf";
-  const secretKey = "OGQ2MGVhY2NhOTgzNzdhODYyYTNmYjE4M2VjZmEzYjZmM2E0YzQ2OWFjNWZlNzk1MTVlMGY5NzdiM2ZjNmI5Yw==";
-  const senderId  = "SCHOOL";
+  // 2. Toa maelekezo kidogo
+  setSmsStatus(
+    "info",
+    "CSV imeshapakuliwa. Fungua Beem Portal, chagua bulk SMS upload, kisha upload faili hili."
+  );
 
-  const payload = {
-    source_addr: senderId,
-    schedule_time: "",
-    messages: generatedMessages.map(m=>({
-      recipients: [m.to],
-      message: m.text
-    }))
-  };
-
-  setSmsStatus("info",`Sending ${generatedMessages.length} SMS via Beem…`);
-
-  try{
-    const res = await fetch("https://apis.beem.africa/v1/send", {
-      method: "POST",
-      headers: {
-        "Content-Type":"application/json",
-        Authorization: "Basic " + btoa(apiKey + ":" + secretKey)
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    console.log("BEEM RESPONSE:", data);
-
-    setSmsStatus("success","Request sent to Beem. Check Beem dashboard for delivery status.");
-
-    await db.collection("sms_logs").add({
-      timestamp: new Date(),
-      classId: currentClassId,
-      examId: currentExamId,
-      messageType: messageTypeSelect.value,
-      response: data,
-      messages: generatedMessages
-    });
-
-  }catch(err){
-    console.error(err);
-    setSmsStatus("error","Failed to send via Beem: " + err.message);
+  // 3. Optionally, jaribu kufungua portal kwenye tab mpya (huenda browser ikazuia pop-up)
+  try {
+    window.open("https://portal.beem.africa", "_blank");
+  } catch (e) {
+    console.log("Could not open Beem portal automatically", e);
   }
 });
 
