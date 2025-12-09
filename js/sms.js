@@ -51,13 +51,50 @@ function setSmsStatus(type, msg){
   statusBar.textContent = msg;
 }
 
-// Small helper: CSV download
+// ===== PHONE NORMALISER FOR BEEM =====
+function normalizePhone(raw){
+  if (!raw) return "";
+
+  // toa kila kitu kisicho digit
+  let p = String(raw).replace(/\D/g, "");
+
+  if (!p) return "";
+
+  // tayari iko kwenye 2557XXXXXXXX? (12 digits)
+  if (p.startsWith("255") && p.length === 12) {
+    return p;
+  }
+
+  // 0XXXXXXXXX (10 digits) -> 255XXXXXXXXX
+  if (p.startsWith("0") && p.length === 10) {
+    return "255" + p.slice(1);
+  }
+
+  // 9 digits tu (mf 622266932) -> assume 0 imekosekana mbele
+  if (p.length === 9) {
+    return "255" + p;
+  }
+
+  // +2557XXXXXXXX (13 na inaanza 255 baada ya kuondoa +)
+  if (p.length === 13 && p.startsWith("255")) {
+    return p.slice(0, 12);
+  }
+
+  // fallback
+  return p;
+}
+
+// ===== CSV HELPER =====
 function downloadCsvFromMessages(messages, filename){
   let csv = "Phone,Message\n";
   messages.forEach(m=>{
-    const phone = m.to || "";
-    const safeText = (m.text || "").replace(/"/g,"'").replace(/\r?\n/g," ");
-    csv += `"${phone}","${safeText}"\n`;
+    const phoneRaw  = m.to || "";
+    const phoneNorm = normalizePhone(phoneRaw);
+    const safeText  = (m.text || "")
+      .replace(/"/g,"'")
+      .replace(/\r?\n/g," "); // ondoa line breaks
+
+    csv += `"${phoneNorm}","${safeText}"\n`;
   });
 
   const blob = new Blob([csv], {type:"text/csv"});
@@ -372,10 +409,10 @@ sendViaGatewayBtn.addEventListener("click", ()=>{
   // 2. Toa maelekezo kidogo
   setSmsStatus(
     "info",
-    "CSV imeshapakuliwa. Fungua Beem Portal, chagua bulk SMS upload, kisha upload faili hili."
+    "CSV imeshapakuliwa. Fungua Beem Portal, chagua Bulk SMS Upload, kisha upload faili hilo."
   );
 
-  // 3. Optionally, jaribu kufungua portal kwenye tab mpya (huenda browser ikazuia pop-up)
+  // 3. Jaribu kufungua portal kwenye tab mpya (browser anaweza ku-block popup)
   try {
     window.open("https://portal.beem.africa", "_blank");
   } catch (e) {
