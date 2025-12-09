@@ -3,40 +3,56 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Results</title>
+  <title>UKSS — Class Results</title>
   <link rel="stylesheet" href="./style.css" />
 
   <style>
-    .results-table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:12px;
+    .status-bar{
+      margin-bottom:12px;
+      padding:8px 12px;
+      border-radius:10px;
+      font-size:13px;
+      border:1px solid transparent;
     }
-    .results-table th,
-    .results-table td{
-      border:1px solid rgba(148,163,184,0.35);
-      padding:4px 6px;
-      text-align:center;
+    .status-bar.hidden{
+      display:none;
+    }
+    .status-info{
+      background:rgba(37,99,235,0.12);
+      border-color:rgba(59,130,246,0.6);
+      color:#bfdbfe;
+    }
+    .status-success{
+      background:rgba(22,163,74,0.12);
+      border-color:rgba(34,197,94,0.7);
+      color:#bbf7d0;
+    }
+    .status-error{
+      background:rgba(220,38,38,0.12);
+      border-color:rgba(248,113,113,0.8);
+      color:#fecaca;
+    }
+
+    .table-results th,
+    .table-results td{
+      font-size:13px;
       white-space:nowrap;
     }
-    .results-table thead{
-      background:rgba(15,23,42,0.95);
-      position:sticky;
-      top:0;
-      z-index:3;
-    }
-    .chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
     .chip{
-      padding:6px 10px;
+      display:inline-block;
+      padding:0 8px;
       border-radius:999px;
-      background:rgba(15,23,42,0.8);
       font-size:11px;
-      border:1px solid rgba(148,163,184,0.3);
+      border:1px solid rgba(148,163,184,0.6);
+    }
+    .chip-top{
+      border-color:rgba(34,197,94,0.9);
+      color:#bbf7d0;
     }
   </style>
 </head>
-
 <body>
+
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -59,16 +75,26 @@
     </nav>
   </aside>
 
-  <!-- MAIN AREA -->
+  <!-- MAIN -->
   <main class="main">
     <header class="topbar">
       <div>
-        <h2>📄 Exam Results</h2>
-        <p class="small">Matokeo ya mtihani wa darasa</p>
+        <h2>📄 Class Results</h2>
+        <p class="small">
+          Matokeo ya kila darasa kulingana na mtihani husika.  
+          Unaweza kuona wastani, division, nafasi na kufungua report card ya mwanafunzi.
+        </p>
+      </div>
+
+      <div class="top-actions">
+        <button id="logoutBtn" class="btn btn-ghost">Logout</button>
       </div>
     </header>
 
-    <!-- CONTROLS -->
+    <!-- STATUS -->
+    <div id="resultsStatus" class="status-bar hidden"></div>
+
+    <!-- FILTERS -->
     <section class="card">
       <div class="row row-wrap">
         <div class="field">
@@ -81,39 +107,74 @@
           <select id="examSelect" class="input"></select>
         </div>
 
+        <div class="field">
+          <label class="label">Filter</label>
+          <select id="filterSelect" class="input">
+            <option value="all">All students</option>
+            <option value="top10">Top 10 only</option>
+            <option value="weak">Weak students only (DIV III/IV/0)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Search</label>
+          <input id="searchInput" class="input" placeholder="Adm no au jina..." />
+        </div>
+
         <button id="loadResultsBtn" class="btn btn-primary">Load Results</button>
       </div>
+    </section>
 
-      <div class="chips">
-        <div class="chip">Students: <span id="chipStudents">0</span></div>
-        <div class="chip">Subjects: <span id="chipSubjects">0</span></div>
-        <div class="chip">Exam: <span id="chipExam">—</span></div>
-      </div>
-
-      <div class="row" style="margin-top:10px;gap:10px;">
-        <button id="btnBestTen" class="btn btn-ghost">🏆 Best 10 & Last 10</button>
-        <button id="btnSMS" class="btn btn-ghost">📨 Generate SMS</button>
-        <button id="btnPrint" class="btn btn-primary">🖨️ Print Results</button>
+    <!-- SUMMARY -->
+    <section class="card">
+      <div class="row row-wrap" id="summaryRow">
+        <div class="field">
+          <div class="label">Class summary</div>
+          <div class="small">
+            Students: <strong><span id="sumCount">0</span></strong> —
+            Avg score: <strong><span id="sumAvg">0</span></strong> —
+            Best: <strong><span id="sumBest">0</span></strong> —
+            Worst: <strong><span id="sumWorst">0</span></strong>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- RESULTS TABLE -->
     <section class="card">
-      <h3>Full Class Results</h3>
-      <p class="small">Matokeo ya kila mwanafunzi, total, average, division, position</p>
-
-      <div id="resultsTableWrap"></div>
+      <h3>Students Results</h3>
+      <div class="matrix-wrap">
+        <table class="table table-results" id="resultsTable">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Adm</th>
+            <th>Student</th>
+            <th>Sex</th>
+            <th>Total</th>
+            <th>Average</th>
+            <th>Division</th>
+            <th>Position</th>
+            <th>Remarks</th>
+            <th>Report</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr><td colspan="10">Choose class & exam then click <strong>Load Results</strong>.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
-
   </main>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script src="./js/database.js"></script>
+<script src="./js/auth.js"></script>
 <script src="./js/results.js"></script>
-
 </body>
 </html>
