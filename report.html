@@ -1,356 +1,305 @@
 <!DOCTYPE html>
-<html lang="sw">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Report Form</title>
-
-  <!-- main app styles -->
-  <link rel="stylesheet" href="style.css" />
+  <title>UKSS — Student Report</title>
+  <link rel="stylesheet" href="./style.css" />
 
   <style>
     body{
-      background:#00130f;
-      color:#0f172a;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#020617;
     }
     .report-shell{
-      max-width:980px;
-      margin:16px auto;
-      padding:0 12px 32px;
+      max-width:900px;
+      margin:0 auto;
     }
-    .report-toolbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:flex-end;
-      justify-content:space-between;
-      margin-bottom:10px;
-      color:#e5e7eb;
-    }
-    .toolbar-group{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
-    .toolbar-field{
-      display:flex;
-      flex-direction:column;
+    .report-page{
+      background:#fff;
+      color:#000;
+      padding:18px 22px;
+      border-radius:8px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.35);
+      font-family: "Times New Roman", serif;
       font-size:12px;
-    }
-    .toolbar-field label{
-      margin-bottom:2px;
-    }
-    .toolbar-field select{
-      min-width:130px;
-    }
-    .btn-sm{
-      padding:6px 10px;
-      border-radius:999px;
-      border:none;
-      cursor:pointer;
-      font-size:12px;
-      font-weight:600;
-    }
-    .btn-primary-sm{
-      background:linear-gradient(90deg,#22c55e,#16a34a);
-      color:#022c22;
-    }
-    .btn-ghost-sm{
-      background:rgba(15,23,42,0.6);
-      color:#e5e7eb;
-      border:1px solid rgba(148,163,184,0.4);
-    }
-
-    .report-card{
-      background:#ffffff;
-      color:#0f172a;
-      border-radius:12px;
-      padding:16px 18px 18px;
-      box-shadow:0 16px 36px rgba(0,0,0,0.55);
-      border:1px solid #cbd5e1;
     }
     .rep-header{
       text-align:center;
-      font-size:12px;
-      line-height:1.3;
-      margin-bottom:4px;
-    }
-    .rep-header strong{
-      display:block;
-    }
-    .rep-title{
-      text-align:center;
-      font-weight:700;
-      font-size:12px;
-      margin-bottom:8px;
+      margin-bottom:6px;
       text-transform:uppercase;
+    }
+    .rep-header h2{
+      margin:0;
+      font-size:14px;
+      font-weight:bold;
+    }
+    .rep-header h3{
+      margin:2px 0;
+      font-size:13px;
+      font-weight:bold;
     }
     .rep-meta-row{
       display:flex;
-      flex-wrap:wrap;
+      justify-content:space-between;
       font-size:11px;
-      border:1px solid #000;
-      border-bottom:none;
+      margin:4px 0;
     }
-    .rep-meta-row > div{
-      border-right:1px solid #000;
-      padding:4px 4px;
-      flex:1;
-      min-width:130px;
+    .rep-meta-row div{
+      width:48%;
     }
-    .rep-meta-row > div:last-child{
-      border-right:none;
-    }
-    .meta-label{
-      font-weight:600;
-      text-transform:uppercase;
-      font-size:10px;
-    }
-    .meta-value{
-      font-size:11px;
-    }
-
     .rep-table{
       width:100%;
       border-collapse:collapse;
-      font-size:11px;
       margin-top:6px;
+      font-size:11px;
     }
     .rep-table th,
     .rep-table td{
       border:1px solid #000;
       padding:3px 4px;
-      text-align:center;
     }
     .rep-table th{
-      background:#e5e7eb;
-      font-size:10px;
+      text-align:center;
+      background:#e5e5e5;
     }
-    .rep-table td.subj-name{
-      text-align:left;
+    .rep-table td.num{
+      text-align:center;
     }
-
-    .rep-footer-blocks{
-      border:1px solid #000;
-      border-top:none;
-      font-size:10px;
+    .rep-section-title{
+      font-weight:bold;
+      margin-top:6px;
+      text-decoration:underline;
+      font-size:11px;
+    }
+    .rep-flex{
+      display:flex;
+      justify-content:space-between;
+      font-size:11px;
       margin-top:4px;
     }
-    .rep-footer-row{
-      display:flex;
-      border-top:1px solid #000;
+    .rep-box{
+      border:1px solid #000;
+      padding:4px 6px;
+      min-height:40px;
+      margin-top:3px;
     }
-    .rep-footer-row:first-child{
-      border-top:none;
-    }
-    .rep-footer-cell{
-      flex:1;
-      border-right:1px solid #000;
-      padding:3px 4px;
-    }
-    .rep-footer-cell:last-child{
-      border-right:none;
-    }
-
     .rep-sign-row{
       display:flex;
-      font-size:10px;
+      justify-content:space-between;
+      margin-top:12px;
+      font-size:11px;
+    }
+    .rep-sign-block{
+      width:48%;
+    }
+    .rep-sign-block .label{
+      font-weight:bold;
+    }
+    .rep-footer{
       margin-top:10px;
-      gap:12px;
+      font-size:10px;
+      border-top:1px dashed #000;
+      padding-top:4px;
     }
-    .rep-sign-col{
-      flex:1;
+    .badge-division{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:4px;
+      border:1px solid #000;
+      font-weight:bold;
     }
-    .rep-sign-label{
-      font-weight:600;
-      margin-bottom:18px;
+    .topbar-print{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
     }
-    .rep-sign-line{
-      border-bottom:1px solid #000;
-      height:14px;
-      margin-top:4px;
+    .topbar-print .btn{
+      font-size:12px;
+      padding:4px 10px;
     }
-    .rep-note{
-      font-size:9px;
-      margin-top:4px;
+    .small-gray{
+      color:#94a3b8;
+      font-size:12px;
     }
 
     @media print{
       body{
         background:#fff;
       }
+      .app,
+      .sidebar{
+        display:none;
+      }
       .report-shell{
         margin:0;
-        max-width:none;
-        padding:0;
       }
-      .report-toolbar{display:none;}
-      .report-card{
-        border-radius:0;
+      .report-page{
         box-shadow:none;
+        border-radius:0;
       }
     }
   </style>
 </head>
 <body>
 
-<div class="report-shell">
-
-  <!-- TOOLBAR (filters + print) -->
-  <div class="report-toolbar">
-    <div class="toolbar-group">
-      <div class="toolbar-field">
-        <label>Exam</label>
-        <select id="examSelect" class="input"></select>
-      </div>
-      <div class="toolbar-field">
-        <label>Class</label>
-        <select id="classSelect" class="input"></select>
-      </div>
-      <div class="toolbar-field">
-        <label>Student</label>
-        <select id="studentSelect" class="input"></select>
+<div class="app">
+  <!-- SIDEBAR (optional, kama hutaki ondoa kabisa) -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <div class="brand-title">UKSS</div>
+        <div class="brand-sub">Results Management</div>
       </div>
     </div>
 
-    <div class="toolbar-group">
-      <button class="btn-sm btn-ghost-sm" onclick="window.location.href='academic.html'">← Academic</button>
-      <button id="prevBtn" class="btn-sm btn-ghost-sm">Prev</button>
-      <button id="nextBtn" class="btn-sm btn-ghost-sm">Next</button>
-      <button class="btn-sm btn-primary-sm" onclick="window.print()">Print</button>
-    </div>
-  </div>
+    <nav class="nav">
+      <a href="marks.html">🏠 Marks</a>
+      <a href="results.html">📄 Results</a>
+      <a href="ranking.html">🏆 Ranking</a>
+      <a href="behaviour.html">🧭 Behaviour</a>
+      <a href="sms.html">📨 SMS</a>
+      <a href="sms_logs.html">🧾 SMS Logs</a>
+      <a href="admin.html">🔐 Admin</a>
+    </nav>
+  </aside>
 
-  <!-- REPORT CARD -->
-  <div class="report-card" id="reportCard">
-    <div class="rep-header">
-      <strong>OFISI YA RAIS TAMISEMI</strong>
-      <strong>HALMASHAURI YA WILAYA YA KIBAHA</strong>
-      <strong>SHULE YA SEKONDARI UMOJA KINGORI</strong>
-      <span id="repExamTitle">TAARIFA YA MAENDELEO YA TAALUMA NA TABIA ZA MWANAFUNZI</span>
-    </div>
+  <!-- MAIN -->
+  <main class="main">
+    <div class="report-shell">
 
-    <div class="rep-title">
-      <span id="repExamName">TERM / EXAM NAME HERE</span>
-    </div>
-
-    <!-- Meta rows -->
-    <div class="rep-meta-row">
-      <div>
-        <div class="meta-label">Jina la Mwanafunzi</div>
-        <div class="meta-value" id="metaStudentName"></div>
-      </div>
-      <div>
-        <div class="meta-label">Namba ya Mtahiniwa / Kidato</div>
-        <div class="meta-value" id="metaAdmForm"></div>
-      </div>
-      <div>
-        <div class="meta-label">Jinsia</div>
-        <div class="meta-value" id="metaSex"></div>
-      </div>
-      <div>
-        <div class="meta-label">Darasa</div>
-        <div class="meta-value" id="metaClass"></div>
-      </div>
-    </div>
-
-    <div class="rep-meta-row">
-      <div>
-        <div class="meta-label">Mwalimu wa Darasa</div>
-        <div class="meta-value" id="metaClassTeacher"></div>
-      </div>
-      <div>
-        <div class="meta-label">Mawasiliano ya Ofisi ya Taaluma</div>
-        <div class="meta-value">Simu: 06XX XXX XXX</div>
-      </div>
-      <div>
-        <div class="meta-label">Tarehe ya Mtihani</div>
-        <div class="meta-value" id="metaExamDate"></div>
-      </div>
-      <div>
-        <div class="meta-label">Mwaka</div>
-        <div class="meta-value" id="metaYear"></div>
-      </div>
-    </div>
-
-    <!-- SUBJECT TABLE -->
-    <table class="rep-table" id="subjectsTable">
-      <thead>
-        <tr>
-          <th>S/No</th>
-          <th>MADA / SOMO</th>
-          <th>ALAMA</th>
-          <th>DARAJA</th>
-          <th>MAONI YA MWALIMU WA SOMO</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="5">Inapakia taarifa za masomo...</td></tr>
-      </tbody>
-    </table>
-
-    <!-- TOTALS & BEHAVIOUR -->
-    <div class="rep-footer-blocks">
-      <div class="rep-footer-row">
-        <div class="rep-footer-cell">
-          JUMLA YA ALAMA: <strong id="metaTotal"></strong><br/>
-          WASTANI WA ALAMA: <strong id="metaMean"></strong><br/>
-          DARAJA LA JUMLA: <strong id="metaGrade"></strong><br/>
-          NAFASI KLASINI: <strong id="metaPosition"></strong>
+      <div class="topbar-print">
+        <div>
+          <h2 style="margin:0;font-size:16px;">Student Report Form</h2>
+          <p id="repExamLabel" class="small-gray"></p>
         </div>
-        <div class="rep-footer-cell">
-          MAELEZO YA MWALIMU WA DARASA:<br/>
-          <span id="metaClassRemark"></span>
-        </div>
-        <div class="rep-footer-cell">
-          MWENENDO WA TABIA:<br/>
-          <span id="metaBehaviour"></span>
+        <div>
+          <button class="btn btn-ghost" onclick="window.history.back()">↩ Back</button>
+          <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
         </div>
       </div>
 
-      <div class="rep-footer-row">
-        <div class="rep-footer-cell">
-          SHULE IMEFUNGWA TAREHE: <span id="metaClosed"></span>
-        </div>
-        <div class="rep-footer-cell">
-          SHULE ITAFUNGULIWA TAREHE: <span id="metaOpening"></span>
-        </div>
-        <div class="rep-footer-cell">
-          MAELEKEZO MENGINE YA TAALUMA:<br/>
-          <span id="metaAdvice"></span>
-        </div>
-      </div>
-    </div>
+      <div id="reportStatus" class="status-bar status-info hidden">Loading report...</div>
 
-    <!-- SIGNATURES -->
-    <div class="rep-sign-row">
-      <div class="rep-sign-col">
-        <div class="rep-sign-label">MAONI YA MZAZI / MLEZI</div>
-        <div class="rep-sign-line"></div>
-        <div class="rep-note">Jina: .......................................................... Tarehe: ........................</div>
-      </div>
-      <div class="rep-sign-col">
-        <div class="rep-sign-label">SAHIHI YA MKUU WA SHULE</div>
-        <div class="rep-sign-line"></div>
-        <div class="rep-note">Jina: ..........................................................</div>
-      </div>
-      <div class="rep-sign-col">
-        <div class="rep-sign-label">MUHURI WA SHULE</div>
-        <div class="rep-sign-line"></div>
+      <div id="reportPage" class="report-page" style="display:none;">
+        <!-- HEADER -->
+        <div class="rep-header">
+          <div style="font-size:11px;">THE PRESIDENT'S OFFICE, REGIONAL ADMINISTRATION AND LOCAL GOVERNMENT</div>
+          <div style="font-size:11px;" id="repCouncil">MERU DISTRICT COUNCIL</div>
+          <h2 id="repSchoolName">UMOJA KING'ORI SECONDARY SCHOOL</h2>
+          <div style="font-size:11px;">RIPOTI YA MAENDELEO YA KITAALUMA KIDATO CHA KWANZA HADI CHA NNE</div>
+          <h3 id="repExamTitle">ANNUAL EXAMINATION REPORT</h3>
+        </div>
+
+        <!-- CONTACT INFO -->
+        <div class="rep-meta-row">
+          <div>
+            Simu: <span id="repSchoolPhone">0754 418250</span><br/>
+            Email: <span id="repSchoolEmail">umoja.kingori@yahoo.com</span>
+          </div>
+          <div style="text-align:right;">
+            S.L.P <span id="repSchoolBox">17075</span><br/>
+            Tarehe: <span id="repDate">-</span>
+          </div>
+        </div>
+
+        <!-- STUDENT INFO -->
+        <div class="rep-meta-row" style="border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 0;margin-top:4px;">
+          <div>
+            KWA MZAZI WA: <span id="repParentName">...........................</span><br/>
+            Mwanafunzi: <span id="repStudentName">...........................</span>
+          </div>
+          <div>
+            Kidato: <span id="repForm">FORM I</span><br/>
+            Mkondo: <span id="repStream">A</span> &nbsp; Adm No: <span id="repAdmNo">---</span>
+          </div>
+        </div>
+
+        <!-- SUBJECT TABLE -->
+        <table class="rep-table">
+          <thead>
+          <tr>
+            <th>No</th>
+            <th>Somo</th>
+            <th>Alama</th>
+            <th>Daraja</th>
+            <th>Maoni</th>
+          </tr>
+          </thead>
+          <tbody id="repSubjectsBody">
+          <tr><td colspan="5">Loading subjects...</td></tr>
+          </tbody>
+        </table>
+
+        <!-- SUMMARY -->
+        <div class="rep-section-title">A. Tathmini ya Ufaulu</div>
+        <div class="rep-flex">
+          <div>
+            Jumla ya alama zake: <strong><span id="repTotalMarks">0</span></strong><br/>
+            Wastani wa Alama zake: <strong><span id="repAverage">0</span></strong>
+          </div>
+          <div>
+            Nafasi ya ufaulu darasani: <strong><span id="repPosition">-</span></strong> kati ya
+            <strong><span id="repClassSize">-</span></strong><br/>
+            Division: <span id="repDivision" class="badge-division">-</span>
+          </div>
+        </div>
+
+        <!-- TABIA NA MAENDELEO -->
+        <div class="rep-section-title">B. Tabia na Maendeleo ya Mwanafunzi</div>
+        <div class="rep-box" id="repBehaviourBox">
+          <!-- unaweza kujaza kutoka behaviour collection baadaye -->
+          Tabia kwa ujumla: <span id="repBehaviourSummary">Mzuri</span>.
+        </div>
+
+        <!-- MAONI YA WALIMU -->
+        <div class="rep-section-title">C. Maoni ya Waalimu</div>
+        <div class="rep-box">
+          <strong>Mwalimu wa Darasa:</strong> <span id="repClassTeacher">__________</span><br/>
+          Maoni: <span id="repTeacherComment">Wastani wako ni wa kati, ongeza juhudi kufikia daraja la juu zaidi.</span>
+        </div>
+
+        <div class="rep-section-title">D. Maoni ya Mwalimu Mkuu</div>
+        <div class="rep-box">
+          <strong>Mwalimu Mkuu:</strong> <span id="repHeadName">________________</span><br/>
+          Maoni: <span id="repHeadComment">Naipongeza juhudi uliyoonyesha. Endelea kuzingatia masomo na nidhamu.</span>
+        </div>
+
+        <!-- SIGNATURES -->
+        <div class="rep-sign-row">
+          <div class="rep-sign-block">
+            <div class="label">Tarehe ya kufunga shule:</div>
+            <div><span id="repClosingDate">______________</span></div>
+            <div class="label" style="margin-top:6px;">Tarehe ya kufungua shule:</div>
+            <div><span id="repOpeningDate">______________</span></div>
+          </div>
+          <div class="rep-sign-block">
+            <div class="label">Sahihi ya Mwalimu wa Darasa:</div>
+            <div>________________________</div>
+            <div class="label" style="margin-top:6px;">Sahihi ya Mwalimu Mkuu:</div>
+            <div>________________________</div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="rep-footer">
+          ZINGATIA: <em>Kipande hiki cha ripoti kirudishwe shuleni kilichosainiwa na mzazi/mlezi katika kikao cha kwanza.</em><br/>
+          Maoni ya Mzazi/Mlezi: _______________________________________________
+        </div>
       </div>
     </div>
-  </div>
+  </main>
 </div>
 
 <!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<!-- App scripts -->
-<script src="js/database.js"></script>
-<script src="js/report.js"></script>
+<script src="./js/database.js"></script>
+<script src="./js/report.js"></script>
 </body>
 </html>
+
 
