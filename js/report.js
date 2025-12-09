@@ -1,311 +1,231 @@
 // js/report.js
-// UKSS — Single Student Report (Maendeleo ya Taaluma)
+// Single student report form
 
-var $ = function (id) { return document.getElementById(id); };
+// ===== helpers =====
+function qs(id){ return document.getElementById(id); }
 
-// Soma query parameters (exam, class, student, adm)
-function qparam() {
-  var p = new URLSearchParams(window.location.search);
-  return {
-    examId: p.get("exam") || "",
-    classId: p.get("class") || "",
-    studentId: p.get("student") || "",
-    adm: p.get("adm") || ""
-  };
-}
-
-/* ========= AUTH GUARD ========= */
-auth.onAuthStateChanged(function (user) {
-  if (!user) {
-    window.location.href = "index.html";
+function setStatus(type, msg){
+  const el = qs("reportStatus");
+  if (!el) return;
+  el.classList.remove("hidden","status-info","status-success","status-error");
+  if (!msg){
+    el.classList.add("hidden");
     return;
   }
-  initReport();
-});
-
-/* ========= GLOBAL STATE ========= */
-var allClasses = [];
-var allStudents = [];
-var allReports = [];
-var allBehaviour = [];
-var allExams = [];
-var allMarks = [];
-
-var currentExamId = "";
-var currentClassId = "";
-var currentStudentId = "";
-
-/* ========= GRADE HELPER ========= */
-// Estimation ya daraja kwa total score (0–100)
-function gradeFromScore(score) {
-  if (score == null) return "";
-  if (score >= 75) return "A";
-  if (score >= 65) return "B";
-  if (score >= 45) return "C";
-  if (score >= 30) return "D";
-  return "E";
+  if (type === "success") el.classList.add("status-success");
+  else if (type === "error") el.classList.add("status-error");
+  else el.classList.add("status-info");
+  el.textContent = msg;
 }
 
-/* ========= MAIN INIT ========= */
-async function initReport() {
-  try {
-    var qp = qparam();
-
-    // Soma collections zote tunazohitaji
-    var res = await Promise.all([
-      getAll(col.classes),
-      getAll(col.students),
-      getAll(col.report_cards),
-      getAll(col.behaviour || "behaviour"),
-      getAll(col.exams || "exams"),
-      getAll(col.marks || "marks")
-    ]);
-
-    allClasses = res[0];
-    allStudents = res[1];
-    allReports = res[2];
-    allBehaviour = res[3] || [];
-    allExams = res[4] || [];
-    allMarks = res[5] || [];
-
-    // Set defaults kama query haina chochote
-    currentExamId = qp.examId || (allExams[0] && allExams[0].id) || "";
-    currentClassId = qp.classId || (allClasses[0] && allClasses[0].id) || "";
-
-    fillExamSelect();
-    fillClassSelect();
-    fillStudentSelect(qp);
-
-    // Handlers
-    var examSel = $("examSelect");
-    if (examSel) {
-      examSel.onchange = function () {
-        currentExamId = this.value;
-        fillStudentSelect({});
-        renderCurrent();
-      };
-    }
-
-    var classSel = $("classSelect");
-    if (classSel) {
-      classSel.onchange = function () {
-        currentClassId = this.value;
-        fillStudentSelect({});
-        renderCurrent();
-      };
-    }
-
-    var stuSel = $("studentSelect");
-    if (stuSel) {
-      stuSel.onchange = function () {
-        currentStudentId = this.value;
-        renderCurrent();
-      };
-    }
-
-    var prev = $("prevBtn");
-    var next = $("nextBtn");
-    if (prev) {
-      prev.onclick = function () { stepStudent(-1); };
-    }
-    if (next) {
-      next.onclick = function () { stepStudent(1); };
-    }
-
-    renderCurrent();
-  } catch (err) {
-    console.error("initReport error:", err);
-    alert("Imeshindikana kupakia report form. Angalia console.");
-  }
+function getQueryParam(name){
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
 }
 
-/* ========= SELECT HELPERS ========= */
-
-function fillExamSelect() {
-  var sel = $("examSelect");
-  if (!sel) return;
-
-  if (!allExams.length) {
-    sel.innerHTML = "<option value=''>No exams</option>";
-    return;
-  }
-
-  sel.innerHTML = allExams.map(function (ex) {
-    var label = ex.name || ex.id;
-    var selAtt = (ex.id === currentExamId) ? " selected" : "";
-    return "<option value='" + ex.id + "'" + selAtt + ">" + label + "</option>";
-  }).join("");
+// grade per subject
+function gradeFromScore(m){
+  if (m === null || m === undefined || m === "") return {grade:"-", remark:""};
+  m = Number(m);
+  if (isNaN(m)) return {grade:"-", remark:""};
+  if (m >= 81) return {grade:"A", remark:"Bora Sana"};
+  if (m >= 61) return {grade:"B", remark:"Vizuri Sana"};
+  if (m >= 41) return {grade:"C", remark:"Wastani"};
+  if (m >= 21) return {grade:"D", remark:"Hafifu"};
+  return {grade:"E", remark:"Dhaifu Sana"};
 }
 
-function fillClassSelect() {
-  var sel = $("classSelect");
-  if (!sel) return;
-
-  if (!allClasses.length) {
-    sel.innerHTML = "<option value=''>No classes</option>";
-    return;
-  }
-
-  sel.innerHTML = allClasses.map(function (c) {
-    var selAtt = (c.id === currentClassId) ? " selected" : "";
-    return "<option value='" + c.id + "'" + selAtt + ">" + (c.name || c.id) + "</option>";
-  }).join("");
+// division (overall)
+function divisionFromAverage(avg){
+  if (avg >= 75) return "DIV I";
+  if (avg >= 60) return "DIV II";
+  if (avg >= 45) return "DIV III";
+  if (avg >= 30) return "DIV IV";
+  return "DIV 0";
 }
 
-function fillStudentSelect(qp) {
-  var sel = $("studentSelect");
-  if (!sel) return;
-
-  var list = allStudents.filter(function (s) {
-    return s.class_id === currentClassId;
-  });
-
-  if (!list.length) {
-    sel.innerHTML = "<option value=''>No students</option>";
-    currentStudentId = "";
-    return;
-  }
-
-  // Sort by admission number
-  list.sort(function (a, b) {
-    return (a.admission_no + "").localeCompare(b.admission_no + "");
-  });
-
-  if (qp && qp.studentId) {
-    currentStudentId = qp.studentId;
-  } else if (qp && qp.adm) {
-    var m = list.find(function (s) { return (s.admission_no + "") === qp.adm; });
-    currentStudentId = m ? m.id : list[0].id;
-  } else if (!currentStudentId) {
-    currentStudentId = list[0].id;
-  }
-
-  sel.innerHTML = list.map(function (s) {
-    var label = (s.admission_no || "") + " — " + (s.first_name || "") + " " + (s.last_name || "");
-    var selAtt = (s.id === currentStudentId) ? " selected" : "";
-    return "<option value='" + s.id + "'" + selAtt + ">" + label + "</option>";
-  }).join("");
+// comment based on division
+function overallComment(div){
+  if (div === "DIV I") return "Ufaulu wa hali ya juu sana, endelea na juhudi hizo.";
+  if (div === "DIV II") return "Ufaulu mzuri, ongeza bidii ili ufikie daraja la juu.";
+  if (div === "DIV III") return "Ufaulu wa kati, ongeza juhudi zaidi kuboresha matokeo.";
+  if (div === "DIV IV") return "Ufaulu wa chini, unahitaji kufanya kazi kwa bidii na msaada wa karibu.";
+  return "Matokeo si mazuri, chukua hatua za haraka kuboresha ufaulu.";
 }
 
-/* ========= PREV / NEXT STUDENT ========= */
+// ===== main loader =====
+(async function initReport(){
+  try{
+    setStatus("info","Loading report...");
 
-function stepStudent(direction) {
-  var sel = $("studentSelect");
-  if (!sel || !sel.options.length) return;
-  var idx = sel.selectedIndex;
-  var next = idx + direction;
-  if (next < 0 || next >= sel.options.length) return;
-  sel.selectedIndex = next;
-  currentStudentId = sel.value;
-  renderCurrent();
-}
-
-/* ========= RENDER REPORT ========= */
-
-function renderCurrent() {
-  if (!currentExamId || !currentClassId || !currentStudentId) return;
-
-  var cls = allClasses.find(function (c) { return c.id === currentClassId; }) || {};
-  var stu = allStudents.find(function (s) { return s.id === currentStudentId; }) || {};
-  var exam = allExams.find(function (e) { return e.id === currentExamId; }) || { id: currentExamId };
-
-  // report_card ya mwanafunzi
-  var rep = allReports.find(function (r) {
-    var okExam = (r.exam_id === currentExamId) || (!r.exam_id && r.exam === currentExamId);
-    return okExam && r.class_id === currentClassId && r.student_id === currentStudentId;
-  }) || {};
-
-  // behaviour record
-  var behave = allBehaviour.find(function (b) {
-    if (b.student_id !== currentStudentId) return false;
-    if (b.exam_id && b.exam_id !== currentExamId) return false;
-    return true;
-  }) || {};
-
-  /* ----- META / HEADER ----- */
-  if ($("repExamName")) $("repExamName").textContent = exam.name || exam.id || "";
-  if ($("metaStudentName")) $("metaStudentName").textContent =
-    (stu.first_name || "") + " " + (stu.last_name || "");
-  if ($("metaAdmForm")) $("metaAdmForm").textContent =
-    (stu.admission_no || "") + " / " + (cls.level || "Form ?");
-  if ($("metaSex")) $("metaSex").textContent = stu.gender || "";
-  if ($("metaClass")) $("metaClass").textContent = cls.name || cls.id || "";
-
-  if ($("metaClassTeacher")) $("metaClassTeacher").textContent =
-    (cls.class_teacher_name || behave.class_teacher_name || "");
-  if ($("metaExamDate")) $("metaExamDate").textContent =
-    exam.date || exam.exam_date || "";
-  if ($("metaYear")) $("metaYear").textContent =
-    exam.year || new Date().getFullYear();
-
-  /* ----- SUBJECT TABLE ----- */
-  var tbody = $("subjectsTable").querySelector("tbody");
-
-  // 1. jaribu subjects kutoka report_cards kama zipo
-  var subjects = rep.subjects || rep.subject_summary || [];
-
-  // 2. kama hazipo, tumia structure ya marks (subject_marks)
-  if ((!subjects || !subjects.length) && allMarks && allMarks.length) {
-    var mk = allMarks.find(function (m) {
-      var okExam = (m.exam_id === currentExamId) || (m.exam === currentExamId);
-      var okClass = (m.class_id === currentClassId) || (m.class === currentClassId);
-      var okStu = (m.student_id === currentStudentId) || (m.student === currentStudentId);
-      return okExam && okClass && okStu;
-    });
-
-    if (mk && mk.subject_marks) {
-      subjects = Object.keys(mk.subject_marks).map(function (code) {
-        var s = mk.subject_marks[code] || {};
-        var total = s.total != null ? s.total : (s.ca || 0) + (s.exam || 0);
-        return {
-          name: code,          // mfano "BS" — tutakuja ku-link na subjects collection baadaye
-          marks: total,
-          grade: gradeFromScore(total),
-          remark: ""           // unaweza kuboresha ukihitaji
-        };
-      });
+    if (!db){
+      setStatus("error","Firestore not initialised.");
+      return;
     }
-  }
 
-  if (!subjects || !subjects.length) {
-    tbody.innerHTML =
-      "<tr><td colspan='5'>Hakuna breakdown ya masomo kwenye report ya mwanafunzi huyu kwa mtihani huu.</td></tr>";
-  } else {
+    const classId   = getQueryParam("classId");
+    const studentId = getQueryParam("studentId");
+    const examId    = getQueryParam("examId");
+
+    if (!classId || !studentId || !examId){
+      setStatus("error","Missing classId, studentId or examId in URL.");
+      return;
+    }
+
+    // Update exam label on top
+    qs("repExamLabel").textContent = `Class: ${classId} — Exam: ${examId}`;
+
+    // get class document
+    const classDoc = await db.collection("classes").doc(classId).get();
+    if (!classDoc.exists){
+      setStatus("error","Class not found.");
+      return;
+    }
+    const classData = classDoc.data();
+    const className = classData.name || classId;
+
+    // school info (unaweza ku-binda hapa ukitaka dynamic)
+    if (classData.schoolName) qs("repSchoolName").textContent = classData.schoolName;
+    if (classData.council) qs("repCouncil").textContent = classData.council;
+
+    // get subjects of that class
+    const subjSnap = await db.collection("classes").doc(classId)
+      .collection("subjects").orderBy("code").get();
+    const subjects = subjSnap.docs.map(d => d.data());
+
+    // get all students (for position)
+    const stuSnap = await db.collection("classes").doc(classId)
+      .collection("students").get();
+    const students = stuSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    const target = students.find(s => s.id === studentId);
+    if (!target){
+      setStatus("error","Student not found in this class.");
+      return;
+    }
+
+    // fill basic info
+    qs("repStudentName").textContent = target.fullName || "";
+    qs("repAdmNo").textContent      = target.admissionNo || "";
+    qs("repForm").textContent       = classData.level || classData.form || "FORM";
+    qs("repStream").textContent     = classData.stream || "";
+    qs("repParentName").textContent = target.guardianName || target.parentName || "................";
+    qs("repClosingDate").textContent = classData.closingDate || "______________";
+    qs("repOpeningDate").textContent = classData.openingDate || "______________";
+
+    // date today
+    qs("repDate").textContent = new Date().toLocaleDateString("en-GB");
+
+    // exam title (optional)
+    if (classData.exams && classData.exams[examId] && classData.exams[examId].name){
+      qs("repExamTitle").textContent = classData.exams[examId].name;
+    }
+
+    // build subject table
+    const examMarksObj = target.marks && target.marks[examId] ? target.marks[examId].subjects || {} : {};
+    let total = 0;
+    let countSubjects = 0;
+
+    const tbody = qs("repSubjectsBody");
     tbody.innerHTML = "";
-    subjects.forEach(function (sub, idx) {
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + (idx + 1) + "</td>" +
-        "<td class='subj-name'>" + (sub.name || "") + "</td>" +
-        "<td>" + (sub.marks != null ? sub.marks : "") + "</td>" +
-        "<td>" + (sub.grade || "") + "</td>" +
-        "<td style='text-align:left;'>" + (sub.remark || "") + "</td>";
-      tbody.appendChild(tr);
+
+    subjects.forEach((subj, index) => {
+      const code = subj.code;
+      const name = subj.name || code;
+      const rawMark = examMarksObj[code] ?? null;
+
+      const row = document.createElement("tr");
+
+      let markDisplay = "";
+      let grade = "-";
+      let remark = "";
+
+      if (rawMark !== null && rawMark !== undefined){
+        const m = Number(rawMark);
+        if (!isNaN(m)){
+          markDisplay = m.toString();
+          const g = gradeFromScore(m);
+          grade = g.grade;
+          remark = g.remark;
+          total += m;
+          countSubjects += 1;
+        }
+      }
+
+      row.innerHTML = `
+        <td class="num">${index+1}</td>
+        <td>${name}</td>
+        <td class="num">${markDisplay}</td>
+        <td class="num">${grade}</td>
+        <td>${remark}</td>
+      `;
+      tbody.appendChild(row);
     });
+
+    // totals, average, division
+    const avg = countSubjects > 0 ? +(total / countSubjects).toFixed(1) : 0;
+    const division = divisionFromAverage(avg);
+
+    qs("repTotalMarks").textContent = total.toString();
+    qs("repAverage").textContent    = avg.toString();
+    qs("repDivision").textContent   = division;
+
+    // compute position in class (based on same exam)
+    const ranking = students.map(st => {
+      const marksObj = st.marks && st.marks[examId] ? st.marks[examId].subjects || {} : {};
+      let tot = 0;
+      let cnt = 0;
+      subjects.forEach(sub => {
+        const val = marksObj[sub.code];
+        if (val !== null && val !== undefined){
+          const n = Number(val);
+          if (!isNaN(n)){
+            tot += n;
+            cnt++;
+          }
+        }
+      });
+      const av = cnt>0 ? tot/cnt : 0;
+      return {
+        id: st.id,
+        avg: av
+      };
+    });
+
+    ranking.sort((a,b)=> b.avg - a.avg);
+
+    let classSize = ranking.length;
+    let position = "-";
+    let lastAvg = null;
+    let lastPos = 0;
+    ranking.forEach((r, idx)=>{
+      if (r.avg !== lastAvg){
+        lastPos = idx + 1;
+        lastAvg = r.avg;
+      }
+      if (r.id === studentId){
+        position = lastPos;
+      }
+    });
+
+    qs("repPosition").textContent   = position.toString();
+    qs("repClassSize").textContent  = classSize.toString();
+
+    // comments
+    qs("repTeacherComment").textContent = overallComment(division);
+
+    // show page
+    qs("reportPage").style.display = "block";
+    setStatus("success","Report loaded successfully.");
+
+  }catch(err){
+    console.error(err);
+    setStatus("error","Failed to load report: " + err.message);
   }
-
-  /* ----- TOTALS & BEHAVIOUR ----- */
-  if ($("metaTotal")) $("metaTotal").textContent =
-    rep.total_marks != null ? rep.total_marks : "";
-  if ($("metaMean")) $("metaMean").textContent =
-    rep.mean_score != null ? rep.mean_score : "";
-  if ($("metaGrade")) $("metaGrade").textContent = rep.grade || "";
-  if ($("metaPosition")) $("metaPosition").textContent =
-    rep.position || rep.rank || "";
-
-  if ($("metaClassRemark")) $("metaClassRemark").textContent =
-    rep.remark || behave.class_comment || "";
-
-  if ($("metaBehaviour")) $("metaBehaviour").textContent =
-    behave.summary || behave.behaviour || behave.remark || " ";
-
-  if ($("metaClosed")) $("metaClosed").textContent =
-    exam.closed_date || behave.closed_date || "";
-  if ($("metaOpening")) $("metaOpening").textContent =
-    exam.opening_date || behave.opening_date || "";
-  if ($("metaAdvice")) $("metaAdvice").textContent =
-    behave.advice || "";
-}
+})();
 
 
 
