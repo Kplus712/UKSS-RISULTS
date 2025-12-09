@@ -1,273 +1,307 @@
-// ========== UKSS RESULTS ENGINE ==========
+// js/results.js
+// Class results listing + per-student report link
+
+const classSelect     = document.getElementById("classSelect");
+const examSelect      = document.getElementById("examSelect");
+const filterSelect    = document.getElementById("filterSelect");
+const searchInput     = document.getElementById("searchInput");
+const loadResultsBtn  = document.getElementById("loadResultsBtn");
+const resultsStatusEl = document.getElementById("resultsStatus");
+const resultsTableBody= document.querySelector("#resultsTable tbody");
+
+const sumCountEl = document.getElementById("sumCount");
+const sumAvgEl   = document.getElementById("sumAvg");
+const sumBestEl  = document.getElementById("sumBest");
+const sumWorstEl = document.getElementById("sumWorst");
 
 const classesCol = db.collection("classes");
 
-const classSelect = document.getElementById("classSelect");
-const examSelect  = document.getElementById("examSelect");
-const loadBtn     = document.getElementById("loadResultsBtn");
-
-const chipStudents = document.getElementById("chipStudents");
-const chipSubjects = document.getElementById("chipSubjects");
-const chipExam     = document.getElementById("chipExam");
-
-const btnBestTen = document.getElementById("btnBestTen");
-const btnSMS     = document.getElementById("btnSMS");
-const btnPrint   = document.getElementById("btnPrint");
-
-const resultsTableWrap = document.getElementById("resultsTableWrap");
-
-// STATE
-let subjects = [];
-let students = [];
-let exams = [];
-
 let currentClassId = null;
-let currentExamId = null;
+let currentExamId  = null;
 
-// ========================== LOAD CLASSES ==========================
+let subjects   = [];
+let students   = [];
+let resultRows = [];
+
+// ===== helpers =====
+function setResultsStatus(type, msg){
+  if (!resultsStatusEl) return;
+  resultsStatusEl.classList.remove("hidden","status-info","status-success","status-error");
+  if (!msg){
+    resultsStatusEl.classList.add("hidden");
+    return;
+  }
+  if (type === "success") resultsStatusEl.classList.add("status-success");
+  else if (type === "error") resultsStatusEl.classList.add("status-error");
+  else resultsStatusEl.classList.add("status-info");
+  resultsStatusEl.textContent = msg;
+}
+
+function divisionFromAverage(avg){
+  if (avg >= 75) return "DIV I";
+  if (avg >= 60) return "DIV II";
+  if (avg >= 45) return "DIV III";
+  if (avg >= 30) return "DIV IV";
+  return "DIV 0";
+}
+
+function remarkFromDivision(div){
+  if (div === "DIV I") return "Bora sana";
+  if (div === "DIV II") return "Vizuri sana";
+  if (div === "DIV III") return "Wastani";
+  if (div === "DIV IV") return "Hafifu";
+  return "Dhaifu";
+}
+
+// public function for report.html usage (called from HTML onclick)
+function openReport(classId, studentId, examId){
+  const url = `report.html?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}&examId=${encodeURIComponent(examId)}`;
+  window.open(url, "_blank");
+}
+window.openReport = openReport; // expose globally
+
+// ===== load classes & exams =====
 async function loadClasses(){
   const snap = await classesCol.orderBy("name").get();
   classSelect.innerHTML = "";
   snap.forEach(doc=>{
-    const o = document.createElement("option");
-    o.value = doc.id;
-    o.textContent = doc.data().name;
-    classSelect.appendChild(o);
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = doc.data().name;
+    classSelect.appendChild(opt);
   });
 
-  currentClassId = classSelect.value;
-  await loadExams();
-  await loadSubjects();
+  if (classSelect.value){
+    currentClassId = classSelect.value;
+    await loadExams();
+  }
 }
-classSelect.addEventListener("change", async ()=>{
-  currentClassId = classSelect.value;
-  await loadExams();
-  await loadSubjects();
-});
 
-// ========================== LOAD EXAMS ==========================
 async function loadExams(){
   examSelect.innerHTML = "";
-  exams = [];
-  const snap = await classesCol.doc(currentClassId)
+  const snap = await classesCol
+    .doc(currentClassId)
     .collection("exams")
     .orderBy("createdAt","asc")
     .get();
 
   snap.forEach(doc=>{
-    exams.push({id:doc.id, ...doc.data()});
+    const data = doc.data();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = data.displayName || data.name || doc.id;
+    examSelect.appendChild(opt);
   });
 
-  exams.forEach(ex=>{
-    const o = document.createElement("option");
-    o.value = ex.id;
-    o.textContent = ex.displayName || ex.name;
-    examSelect.appendChild(o);
-  });
-
-  currentExamId = examSelect.value;
-  chipExam.textContent = examSelect.options[examSelect.selectedIndex]?.textContent || "—";
+  currentExamId = examSelect.value || null;
 }
 
-examSelect.addEventListener("change", ()=>{
-  currentExamId = examSelect.value;
-  chipExam.textContent = examSelect.options[examSelect.selectedIndex]?.textContent || "—";
+classSelect.addEventListener("change", async ()=>{
+  currentClassId = classSelect.value;
+  await loadExams();
 });
 
-// ========================== LOAD SUBJECTS ==========================
+// ===== load subjects & students =====
 async function loadSubjects(){
-  subjects=[];
   const snap = await classesCol
     .doc(currentClassId)
     .collection("subjects")
     .orderBy("code")
     .get();
 
-  snap.forEach(doc=>{
-    subjects.push(doc.data());
-  });
-
-  chipSubjects.textContent = subjects.length;
+  subjects = snap.docs.map(d => d.data());
 }
 
-// ========================== LOAD STUDENTS + MARKS ==========================
 async function loadStudents(){
-  students=[];
   const snap = await classesCol
     .doc(currentClassId)
     .collection("students")
     .orderBy("admissionNo")
     .get();
 
-  snap.forEach(doc=>{
-    const d = doc.data();
-    students.push({
-      id: doc.id,
-      admissionNo: d.admissionNo,
-      fullName: d.fullName,
-      sex: d.sex,
-      guardianPhone: d.guardianPhone,
-      marks: d.marks || {}
-    });
-  });
-
-  chipStudents.textContent = students.length;
+  students = snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
 }
 
-// ========================== COMPUTE RESULTS ==========================
+// ===== compute results for each student =====
 function computeResults(){
-  let results = [];
+  const examId = currentExamId;
 
-  students.forEach(st=>{
-    const examData = st.marks[currentExamId]?.subjects || {};
+  const rows = students.map(st => {
+    const examSubjects = st.marks?.[examId]?.subjects || {};
+
     let total = 0;
     let count = 0;
-    let row = {
-      id: st.id,
-      name: st.fullName,
-      admissionNo: st.admissionNo,
-      sex: st.sex,
-      phone: st.guardianPhone,
-      subjects: {},
-      total:0,
-      average:0,
-      division:""
-    };
 
-    subjects.forEach(sub=>{
-      const score = examData[sub.code] ?? null;
-      row.subjects[sub.code] = score;
-
-      if(score !== null){
-        total += score;
-        count++;
+    subjects.forEach(subj => {
+      const v = examSubjects[subj.code];
+      if (v !== null && v !== undefined){
+        const n = Number(v);
+        if (!isNaN(n)){
+          total += n;
+          count++;
+        }
       }
     });
 
-    row.total = total;
-    row.average = count>0 ? Number((total/count).toFixed(2)) : 0;
-    row.division = getDivision(row.average);
+    const avg = count>0 ? Number((total/count).toFixed(1)) : 0;
+    const division = divisionFromAverage(avg);
 
-    results.push(row);
+    return {
+      id: st.id,
+      admissionNo: st.admissionNo,
+      name: st.fullName,
+      sex: st.sex || "",
+      total,
+      avg,
+      division,
+      remark: remarkFromDivision(division),
+      raw: st
+    };
   });
 
-  // Ranking
-  results.sort((a,b)=> b.average - a.average);
+  // sort kwa wastani mkubwa kwanza
+  rows.sort((a,b)=> b.avg - a.avg);
 
-  let lastAvg=null;
-  let lastPos=0;
-
-  results.forEach((r,i)=>{
-    if(r.average !== lastAvg){
-      lastPos = i+1;
-      lastAvg = r.average;
+  // compute positions (tie = same position)
+  let lastAvg = null;
+  let lastPos = 0;
+  rows.forEach((r, idx)=>{
+    if (r.avg !== lastAvg){
+      lastPos = idx + 1;
+      lastAvg = r.avg;
     }
     r.position = lastPos;
   });
 
-  return results;
+  resultRows = rows;
 }
 
-function getDivision(avg){
-  if(avg >= 75) return "DIV I";
-  if(avg >= 60) return "DIV II";
-  if(avg >= 45) return "DIV III";
-  if(avg >= 30) return "DIV IV";
-  return "DIV 0";
-}
+// ===== apply filter + search then render =====
+function applyFilterAndRender(){
+  const filter = filterSelect.value;
+  const searchTerm = (searchInput.value || "").toLowerCase().trim();
 
-// ========================== RENDER TABLE ==========================
-function renderResultsTable(data){
-  let html = `<table class="results-table"><thead><tr>
-    <th>#</th>
-    <th>Adm</th>
-    <th>Name</th>
-    <th>Sex</th>`;
+  let rows = [...resultRows];
 
-  subjects.forEach(s=>{
-    html += `<th>${s.code}</th>`;
-  });
+  if (filter === "top10"){
+    rows = rows.slice(0,10);
+  }else if (filter === "weak"){
+    rows = rows.filter(r => r.division === "DIV III" || r.division === "DIV IV" || r.division === "DIV 0");
+  }
 
-  html += `
-    <th>Total</th>
-    <th>Average</th>
-    <th>Division</th>
-    <th>Position</th>
-  </tr></thead><tbody>`;
+  if (searchTerm){
+    rows = rows.filter(r =>
+      (r.admissionNo || "").toLowerCase().includes(searchTerm) ||
+      (r.name || "").toLowerCase().includes(searchTerm)
+    );
+  }
 
-  data.forEach((r,i)=>{
-    html += `<tr>
-      <td>${i+1}</td>
-      <td>${r.admissionNo}</td>
-      <td>${r.name}</td>
-      <td>${r.sex}</td>`;
+  // summary
+  if (rows.length){
+    const sumCount = rows.length;
+    const sumTotalAvg = rows.reduce((acc,r)=> acc + r.avg, 0);
+    const classAvg = +(sumTotalAvg / sumCount).toFixed(1);
+    const best = rows[0].avg;
+    const worst = rows[rows.length-1].avg;
 
-    subjects.forEach(sub=>{
-      html += `<td>${r.subjects[sub.code] ?? ""}</td>`;
-    });
+    sumCountEl.textContent = sumCount.toString();
+    sumAvgEl.textContent   = classAvg.toString();
+    sumBestEl.textContent  = best.toString();
+    sumWorstEl.textContent = worst.toString();
+  }else{
+    sumCountEl.textContent = "0";
+    sumAvgEl.textContent   = "0";
+    sumBestEl.textContent  = "0";
+    sumWorstEl.textContent = "0";
+  }
 
-    html += `
+  // render table
+  resultsTableBody.innerHTML = "";
+
+  if (!rows.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="10">No results found for this filter/search.</td>`;
+    resultsTableBody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach((r, index)=>{
+    const tr = document.createElement("tr");
+
+    const isTop3 = r.position <= 3;
+
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${r.admissionNo || ""}</td>
+      <td>${r.name || ""}</td>
+      <td>${r.sex || ""}</td>
       <td>${r.total}</td>
-      <td>${r.average}</td>
+      <td>${r.avg}</td>
       <td>${r.division}</td>
-      <td>${r.position}</td>
-    </tr>`;
+      <td>
+        ${r.position}
+        ${isTop3 ? '<span class="chip chip-top">Top</span>' : ""}
+      </td>
+      <td>${r.remark}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm"
+          onclick="openReport('${currentClassId}','${r.id}','${currentExamId}')">
+          Report
+        </button>
+      </td>
+    `;
+
+    resultsTableBody.appendChild(tr);
   });
-
-  html += "</tbody></table>";
-
-  resultsTableWrap.innerHTML = html;
 }
 
-// ========================== SMS BUILDER ==========================
-function buildSMS(result){
-  let parts = [];
-  subjects.forEach(s=>{
-    parts.push(`${s.code}:${result.subjects[s.code] ?? "-"}`);
-  });
+// ===== main load button =====
+loadResultsBtn.addEventListener("click", async ()=>{
+  try{
+    if (!classSelect.value){
+      setResultsStatus("error","Select class first.");
+      return;
+    }
+    if (!examSelect.value){
+      setResultsStatus("error","Select exam first.");
+      return;
+    }
 
-  return (
-    `Matokeo ya ${result.name} (${result.admissionNo}): ` +
-    parts.join(", ") +
-    `. WST:${result.average}, DIV:${result.division}, POS:${result.position}.`
-  );
-}
+    currentClassId = classSelect.value;
+    currentExamId  = examSelect.value;
 
-btnSMS.addEventListener("click", ()=>{
-  const results = computeResults();
+    setResultsStatus("info","Loading subjects & students...");
 
-  console.log("====== SMS FOR EACH STUDENT ======");
-  results.forEach(r=>{
-    console.log(r.phone + " => " + buildSMS(r));
-  });
+    await loadSubjects();
+    await loadStudents();
 
-  alert("SMS preview opened in console");
+    computeResults();
+    applyFilterAndRender();
+
+    setResultsStatus("success","Results loaded.");
+  }catch(err){
+    console.error(err);
+    setResultsStatus("error","Failed to load results: " + err.message);
+  }
 });
 
-// ========================== BEST TEN ==========================
-btnBestTen.addEventListener("click", ()=>{
-  const results = computeResults();
-  const best = results.slice(0,10);
-  const last = results.slice(-10);
-
-  console.log("BEST 10:", best);
-  console.log("LAST 10:", last);
-  alert("Best 10 & Last 10 opened in console");
+// filter & search live
+filterSelect.addEventListener("change", applyFilterAndRender);
+searchInput.addEventListener("input", ()=>{
+  // kidogo delay unaweza kuongeza kama unataka
+  applyFilterAndRender();
 });
 
-// ========================== PRINT ==========================
-btnPrint.addEventListener("click", ()=>{
-  window.print();
-});
-
-// ========================== LOAD RESULTS ==========================
-loadBtn.addEventListener("click", async ()=>{
-  await loadStudents();
-  const results = computeResults();
-  renderResultsTable(results);
-});
-
-// INIT
-(async ()=>{
-  await loadClasses();
+// ===== init =====
+(async function init(){
+  try{
+    await loadClasses();
+    setResultsStatus("info","Choose class and exam then click Load Results.");
+  }catch(err){
+    console.error(err);
+    setResultsStatus("error","Failed to initialise results page: " + err.message);
+  }
 })();
