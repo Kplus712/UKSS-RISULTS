@@ -6,8 +6,20 @@ function log(){ console.log(AUTH_PREFIX, ...arguments); }
 function warn(){ console.warn(AUTH_PREFIX, ...arguments); }
 function error(){ console.error(AUTH_PREFIX, ...arguments); }
 function el(id){ return document.getElementById(id); }
-function setStatus(txt){ const s = el('loginStatus'); if(!s) return; if(!txt){ s.classList.add('hidden'); s.textContent=''; } else { s.classList.remove('hidden'); s.textContent = txt; } }
-function setError(txt){ const e = el('loginError'); if(!e){ if(txt) alert(txt); return; } e.textContent = txt || ''; }
+function setStatus(txt){
+  const s = el('loginStatus');
+  if(!s) return;
+  if(!txt){ s.classList.add('hidden'); s.textContent=''; }
+  else { s.classList.remove('hidden'); s.textContent = txt; }
+}
+function setError(txt){
+  const e = el('loginError');
+  if(!e){
+    if(txt) alert(txt);
+    return;
+  }
+  e.textContent = txt || '';
+}
 
 // fetch role (helper)
 async function fetchRole(user){
@@ -27,10 +39,10 @@ document.addEventListener('DOMContentLoaded', function(){
   if(typeof auth === 'undefined' || !auth){ warn('Auth SDK not available. Ensure database.js loaded first.'); return; }
   log('auth guard init on index.html');
 
-  // onAuthStateChanged: only redirect from protected pages; do not auto-redirect here
+  // onAuthStateChanged: only observe; do not auto-redirect away from login here.
   auth.onAuthStateChanged(function(user){
     log('onAuthStateChanged -> user:', user ? user.email : null);
-    // on the login/index page do not auto-redirect here to avoid race loops
+    // don't redirect from login page here to avoid race loops
   });
 
   // bind login form
@@ -66,19 +78,18 @@ document.addEventListener('DOMContentLoaded', function(){
         const roleLabel = role ? (role.charAt(0).toUpperCase()+role.slice(1)) : 'User';
         setStatus(`${user.email} — umeingia kama ${roleLabel}`);
 
-        // redirect once to marks.html
+        // redirect once to marks.html (small delay to allow UI update)
         setTimeout(()=> { window.location.href = 'marks.html'; }, 250);
       })
       .catch(err => {
         error('signIn failed', err);
-        setError(err && err.message ? err.message : 'Login failed');
+        const nice = err && err.message ? err.message : 'Login failed';
+        setError(nice);
         setStatus('');
         if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
       });
   });
 });
-
-
 
 
 
