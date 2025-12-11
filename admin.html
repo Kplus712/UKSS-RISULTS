@@ -196,11 +196,17 @@
    * If Firebase is already initialized elsewhere (e.g., database.js),
    * REMOVE the initializeApp block to avoid double init.
    *****************************************************************/
-  const firebaseConfig = {
-    apiKey: "PASTE_API_KEY_HERE",
-    authDomain: "PROJECT_ID.firebaseapp.com",
-    projectId: "PROJECT_ID",
-    // ...other keys...
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
+  authDomain: "school-results-management.firebaseapp.com",
+  databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
+  projectId: "school-results-management",
+  storageBucket: "school-results-management.firebasestorage.app",
+  messagingSenderId: "755154296958",
+  appId: "1:755154296958:web:e4c5f9bc0e6cce3e9cf82f",
+  measurementId: "G-MDN4Q3C22J"
+};
   };
 
   if(!firebase.apps || !firebase.apps.length){
