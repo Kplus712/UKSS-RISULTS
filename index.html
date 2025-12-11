@@ -1,112 +1,48 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Login</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>UKSS — Redirect</title>
+  <meta name="robots" content="noindex,nofollow" />
   <style>
-    .login-wrap{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:radial-gradient(circle at top,#053321,#020816);
-      color:#e2e8f0;
-      padding:16px;
-    }
-    .login-card{
-      width:100%;
-      max-width:420px;
-      background:rgba(8,47,35,0.96);
-      border-radius:18px;
-      padding:24px 22px 22px;
-      box-shadow:0 18px 40px rgba(0,0,0,0.55);
-      border:1px solid rgba(148,163,184,0.25);
-    }
-    .login-logo{
-      display:flex;align-items:center;gap:10px;margin-bottom:8px;
-    }
-    .login-badge{
-      width:44px;height:44px;border-radius:14px;
-      background:linear-gradient(135deg,#22c55e,#16a34a);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:800;font-size:20px;color:#022c22;
-    }
-    .login-title{
-      font-size:20px;font-weight:700;
-    }
-    .login-sub{
-      font-size:13px;color:#9ca3af;
-    }
-    .login-field{margin-top:12px;}
-    .login-label{
-      font-size:13px;margin-bottom:4px;display:block;color:#cbd5f5;
-    }
-    .login-input{
-      width:100%;padding:10px 11px;border-radius:10px;
-      border:1px solid rgba(148,163,184,0.4);
-      background:#020817;color:#e5e7eb;
-      outline:none;
-    }
-    .login-input:focus{border-color:#22c55e;}
-    .login-btn{
-      width:100%;margin-top:18px;
-      padding:10px 14px;border-radius:999px;border:none;
-      font-weight:700;font-size:15px;
-      background:linear-gradient(90deg,#22c55e,#16a34a);
-      color:#022c22;cursor:pointer;
-    }
-    .login-btn[disabled]{opacity:0.5;cursor:not-allowed;}
-    .login-footer{
-      margin-top:10px;font-size:12px;color:#9ca3af;text-align:center;
-    }
-    .login-error{
-      margin-top:8px;font-size:12px;color:#fecaca;min-height:16px;
-    }
+    /* minimal neutral page while redirecting */
+    html,body{height:100%;margin:0;background:#071b06;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    .wrap{display:flex;align-items:center;justify-content:center;height:100%}
+    .card{background:rgba(0,0,0,0.45);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);text-align:center}
+    a{color:#7ee3a2}
   </style>
+
+  <!-- Immediate redirect to the single login page (no double-login UI) -->
+  <script>
+    (function(){
+      try {
+        // Clear any stale justSignedIn to avoid false passes
+        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+        // Redirect to the canonical login page
+        window.location.replace('login.html');
+      } catch(e){
+        // If redirect fails, leave a simple message for manual click
+        document.addEventListener('DOMContentLoaded', function(){
+          var msg = document.getElementById('msg');
+          if(msg) msg.textContent = 'Automatically redirect failed. Click the link:';
+          var link = document.getElementById('go');
+          if(link) link.style.display = 'inline';
+        });
+      }
+    })();
+  </script>
 </head>
 <body>
-
-<div class="login-wrap">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="login-badge">UK</div>
-      <div>
-        <div class="login-title">UKSS Results System</div>
-        <div class="login-sub">UMOJA KINGORI SECONDARY — Staff Login</div>
+  <div class="wrap">
+    <div class="card">
+      <div id="msg">Redirecting to the login page…</div>
+      <div style="margin-top:12px">
+        <a id="go" style="display:none" href="login.html">Open Login</a>
       </div>
-    </div>
-
-    <form id="loginForm">
-      <div class="login-field">
-        <label class="login-label">Email</label>
-        <input type="email" id="email" class="login-input" required placeholder="you@school.ac.tz" />
-      </div>
-
-      <div class="login-field">
-        <label class="login-label">Password</label>
-        <input type="password" id="password" class="login-input" required placeholder="••••••••" />
-      </div>
-
-      <button id="loginBtn" type="submit" class="login-btn">Login</button>
-      <div id="loginError" class="login-error"></div>
-    </form>
-
-    <div class="login-footer">
-      Accounts husimamiwa na Admin. Ukisahau password, mwone Academic Officer / Headmaster.
     </div>
   </div>
-</div>
-
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- App scripts -->
-<script src="./js/database.js"></script>
-<script src="./js/auth.js"></script>
 </body>
 </html>
 
