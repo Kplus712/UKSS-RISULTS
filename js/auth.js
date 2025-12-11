@@ -1,231 +1,196 @@
-// js/auth.js  (FORCE fresh login unless user just signed in)
-// Replaces your previous auth.js. Works with your existing database.js (auth + db globals).
-
+// js/auth.js  — REPLACE your old file with this
 "use strict";
 
+// Pages
 const LOGIN_PAGES  = ["login.html", "index.html"];
 const PUBLIC_PAGES = ["login.html", "index.html"];
 const currentPath  = window.location.pathname.split("/").pop() || "index.html";
 const isPublicPage = PUBLIC_PAGES.includes(currentPath);
 
-// helper DOM
+// Helpers
 function el(id){ return document.getElementById(id); }
-function setStatusText(txt){
+function setStatus(text){
   const s = el('loginStatus');
   if(!s) return;
-  if(!txt){ s.classList.add('hidden'); s.textContent=''; }
-  else { s.classList.remove('hidden'); s.textContent = txt; }
+  if(!text){ s.classList.add('hidden'); s.textContent=''; }
+  else { s.classList.remove('hidden'); s.textContent = text; }
 }
-function setError(txt){
+function setError(text){
   const e = el('loginError');
-  if(e) e.textContent = txt || '';
-  else if(txt) console.warn('loginError:', txt);
+  if(e) e.textContent = text || '';
+  else if(text) console.warn('loginError:', text);
 }
-
-// notification fallback
-function showWelcomeNotification(title, body){
+function showWelcome(title, body){
   try{
-    if("Notification" in window){
+    if ("Notification" in window){
       if(Notification.permission === "granted"){
         new Notification(title, { body });
         return;
       }
       if(Notification.permission !== "denied"){
-        Notification.requestPermission().then(p => {
-          if(p === "granted") new Notification(title, { body });
-          else {
-            const s = el('loginStatus');
-            if(s){ s.classList.remove('hidden'); s.textContent = body; }
-            else alert(title + "\n\n" + body);
-          }
-        }).catch(()=> {
-          const s = el('loginStatus');
-          if(s){ s.classList.remove('hidden'); s.textContent = body; }
-          else alert(title + "\n\n" + body);
+        Notification.requestPermission().then(p=>{
+          if(p === "granted") new Notification(title,{body});
+          else { const s = el('loginStatus'); if(s){ s.classList.remove('hidden'); s.textContent = body; } else alert(title+"\n\n"+body); }
+        }).catch(()=>{
+          const s = el('loginStatus'); if(s){ s.classList.remove('hidden'); s.textContent = body; } else alert(title+"\n\n"+body);
         });
         return;
       }
     }
-    // fallback
-    const s = el('loginStatus');
-    if(s){ s.classList.remove('hidden'); s.textContent = body; }
-    else alert(title + "\n\n" + body);
+    const s = el('loginStatus'); if(s){ s.classList.remove('hidden'); s.textContent = body; } else alert(title+"\n\n"+body);
   }catch(e){
-    const s = el('loginStatus');
-    if(s){ s.classList.remove('hidden'); s.textContent = body; }
-    else alert(title + "\n\n" + body);
+    const s = el('loginStatus'); if(s){ s.classList.remove('hidden'); s.textContent = body; } else alert(title+"\n\n"+body);
   }
 }
 
-// db helper
+// get DB helper (optional)
 function getDb(){
   if(typeof db !== 'undefined' && db) return db;
   if(typeof firebase !== 'undefined' && firebase && firebase.firestore) return firebase.firestore();
   return null;
 }
+
+// fetch role helper
 async function fetchRoleForUser(user){
   if(!user) return null;
   const dbRef = getDb();
   if(!dbRef) return null;
   try{
     const doc = await dbRef.collection('staff').doc(user.uid).get();
-    if(doc && doc.exists) return (doc.data().role||'').toLowerCase();
+    if(doc && doc.exists) return (doc.data().role || '').toLowerCase();
     const q = await dbRef.collection('staff').where('email','==',user.email).limit(1).get();
-    if(q && !q.empty) return (q.docs[0].data().role||'').toLowerCase();
+    if(q && !q.empty) return (q.docs[0].data().role || '').toLowerCase();
     return null;
   }catch(err){
     console.error('fetchRoleForUser error', err);
     return null;
   }
 }
-function cap(s){ if(!s) return s; return s.charAt(0).toUpperCase() + s.slice(1); }
 
-// ----------------- Core guard -----------------
-document.addEventListener('DOMContentLoaded', function(){
-  if(typeof auth === 'undefined' || !auth){
-    console.warn('[AUTH] auth not available. Ensure database.js is loaded first.');
+// =================== GUARD (onAuthStateChanged) ===================
+document.addEventListener("DOMContentLoaded", function () {
+  if (typeof auth === "undefined" || !auth) {
+    console.warn("Auth SDK not available for guard.");
     return;
   }
 
-  console.log('[AUTH] auth guard init on', currentPath);
+  console.log("[AUTH] auth guard init on", currentPath);
 
-  // If an anonymous session accidentally exists, sign it out to force explicit login
-  if(auth.currentUser && auth.currentUser.isAnonymous){
-    console.warn('[AUTH] anonymous user detected - signing out.');
-    auth.signOut().catch(e=>console.warn('signOut err', e));
-  }
+  auth.onAuthStateChanged(function (user) {
+    console.log("[AUTH] onAuthStateChanged -> user:", user ? user.email : null);
 
-  auth.onAuthStateChanged(async function(user){
-    console.log('[AUTH] onAuthStateChanged -> user:', user ? user.email : null);
-
-    // No user: if page protected -> redirect to login
-    if(!user){
-      if(!isPublicPage){
-        console.log('[AUTH] no user on protected page -> redirect to login');
-        window.location.href = 'login.html';
-        return;
-      }
-      // public page and no user: nothing more
+    // If no user and page is protected -> redirect to login
+    if (!user && !isPublicPage) {
+      console.log("[AUTH] no user on protected page -> redirect to login");
+      window.location.href = "login.html";
       return;
     }
 
-    // User exists. Decide whether to allow them to continue or force login again.
-    // Policy: allow only if sessionStorage.justSignedIn === '1' (i.e., user just used the login form now).
-    // Otherwise force signOut and redirect to login (to ensure fresh credentials).
-    const justSignedIn = sessionStorage.getItem('justSignedIn') === '1';
-    if(!justSignedIn && !isPublicPage){
-      // Not freshly signed in — force sign out to require credentials
-      console.log('[AUTH] existing persistent session found but not justSignedIn -> forcing signOut to require fresh login');
-      try{
-        await auth.signOut();
-      }catch(e){ console.warn('Force signOut failed', e); }
-      // ensure flag cleared
-      sessionStorage.removeItem('justSignedIn');
-      // redirect
-      window.location.href = 'login.html';
-      return;
-    }
-
-    // If we reach here and justSignedIn===true:
-    // Allow the normal redirect/flow (e.g., on login page we redirect to marks)
-    // Clear the flag to avoid reusing it later
-    sessionStorage.removeItem('justSignedIn');
-
-    // If on login page and user exists -> redirect to marks (preserve prior behaviour)
-    if(user && LOGIN_PAGES.includes(currentPath)){
-      console.log('[AUTH] user just signed in on login page -> redirecting to marks.html');
-      window.location.href = 'marks.html';
-      return;
-    }
-
-    // Otherwise, user is allowed on protected page (they just signed in)
-    // No further action here — page components may now run as normal.
+    // IMPORTANT: Do NOT auto-redirect to marks.html here when on login pages.
+    // That causes a race with signIn handler (which sets sessionStorage.justSignedIn).
+    // We only let login submit handler perform the redirect after it sets the flag.
+    // However, if you prefer automatic redirect for persistent sessions, implement a guarded flow:
+    // if (user && LOGIN_PAGES.includes(currentPath) && sessionStorage.getItem('justSignedIn')==='1') { ... }
+    // For now keep onAuthStateChanged quiet on login pages to avoid race loops.
   });
 
-  // Logout binding
-  const logoutBtn = el('logoutBtn');
-  if(logoutBtn){
-    logoutBtn.addEventListener('click', function(){
-      auth.signOut().then(()=> {
+  // Logout
+  const logoutBtn = el("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", function () {
+      auth.signOut().then(function () {
         sessionStorage.removeItem('justSignedIn');
-        window.location.href = 'login.html';
-      }).catch(err=> { console.error('logout failed', err); alert('Failed to logout: '+ (err.message||err)); });
+        window.location.href = "login.html";
+      }).catch(function (err) {
+        console.error(err);
+        alert("Failed to logout: " + err.message);
+      });
     });
   }
 });
 
-// ----------------- Login handler -----------------
-document.addEventListener('DOMContentLoaded', function(){
-  const form = el('loginForm');
-  if(!form){
-    console.log('[AUTH] login form not present; skip binding login handler.');
+// =================== LOGIN HANDLER (explicit redirect only here) ===================
+document.addEventListener("DOMContentLoaded", function () {
+  const loginForm = el("loginForm");
+  if (!loginForm) {
+    console.log("[AUTH] No login form on this page.");
     return;
   }
+  console.log("[AUTH] Login form bound.");
 
-  const emailInput = el('email');
-  const passInput  = el('password');
-  const submitBtn  = el('loginSubmit');
-  const errBox     = el('loginError');
-  const statusBox  = el('loginStatus');
+  const emailInput  = el("email");
+  const passInput   = el("password");
+  const errorBox    = el("loginError");
+  const submitBtn   = el("loginSubmit");
+  const statusBox   = el("loginStatus");
 
-  function showError(msg){ if(errBox) errBox.textContent = msg; else alert(msg); }
+  function showError(msg){
+    console.error("[AUTH] login error:", msg);
+    let nice = msg;
+    if (msg && msg.indexOf("INVALID_LOGIN_CREDENTIALS") !== -1) {
+      nice = "Email au password si sahihi. Hakikisha zinafanana na Firebase Auth.";
+    }
+    if (errorBox) errorBox.textContent = nice;
+    else alert(nice);
+  }
 
-  form.addEventListener('submit', function(e){
+  loginForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    setError('');
-    if(!auth){
-      showError('System auth not initialized.');
+    if (errorBox) errorBox.textContent = "";
+
+    const email = (emailInput?.value || "").trim();
+    const pass  = passInput?.value || "";
+
+    if (!email || !pass) {
+      showError("Please enter email and password.");
       return;
     }
 
-    const email = (emailInput && emailInput.value || '').trim();
-    const pass  = (passInput && passInput.value) || '';
-    if(!email || !pass){ showError('Enter email and password.'); return; }
+    if (typeof auth === "undefined" || !auth) {
+      showError("System auth is not initialised.");
+      return;
+    }
 
-    // set UI state
-    if(statusBox) statusBox.classList.remove('hidden');
-    if(statusBox) statusBox.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo';
-    if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; }
-    if(errBox) errBox.textContent = '';
+    if (statusBox) {
+      statusBox.innerHTML = '<span class="loader"></span> Unatafuta…';
+      statusBox.classList.remove("hidden");
+    }
+    if (submitBtn) {
+      submitBtn.textContent = "Logging in...";
+      submitBtn.disabled = true;
+    }
 
-    // sign in
+    // Sign in. On success: set justSignedIn BEFORE redirect.
     auth.signInWithEmailAndPassword(email, pass)
-      .then(async cred => {
-        console.log('[AUTH] signIn ok; marking session as justSignedIn and fetching role');
-        // mark session as freshly signed in (used by onAuthStateChanged guard)
-        sessionStorage.setItem('justSignedIn', '1');
+      .then(async function (cred) {
+        console.log("[AUTH] signIn success (submit flow).");
 
+        // mark fresh transition
+        try { sessionStorage.setItem('justSignedIn', '1'); } catch(e){ console.warn('sessionStorage set failed', e); }
+
+        // optional: fetch role to show welcome
         const user = auth.currentUser || (cred && cred.user);
-        // fetch role for nicer welcome
         const role = await fetchRoleForUser(user);
-        const roleLabel = role ? cap(role) : 'User';
-        const title = `Karibu ${roleLabel}`;
-        const body  = `${user.email} — umeingia kama ${roleLabel}`;
+        const roleLabel = role ? role.charAt(0).toUpperCase()+role.slice(1) : "User";
+        const welcomeTitle = `Karibu ${roleLabel}`;
+        const welcomeBody  = user && user.email ? `${user.email} — umeingia kama ${roleLabel}` : `Umeingia kama ${roleLabel}`;
 
-        // show notification or fallback
-        showWelcomeNotification(title, body);
+        showWelcome(welcomeTitle, welcomeBody);
+        if (statusBox) statusBox.textContent = welcomeBody;
 
-        // update UI status and re-enable button
-        if(statusBox) statusBox.textContent = body;
-        if(submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
+        // re-enable UI
+        if (submitBtn) { submitBtn.textContent = "Login"; submitBtn.disabled = false; }
 
-        // Redirect to marks.html after small delay
-        setTimeout(()=> {
-          // keep justSignedIn in sessionStorage until onAuthStateChanged clears it
-          window.location.href = 'marks.html';
-        }, 400);
+        // Redirect to marks.html (this is the single redirect action)
+        setTimeout(()=> { window.location.href = "marks.html"; }, 300);
       })
-      .catch(err => {
-        console.error('[AUTH] signIn error', err);
-        let msg = (err && err.message) ? err.message : String(err);
-        if(msg && msg.indexOf('INVALID_LOGIN_CREDENTIALS') !== -1) msg = 'Email au password si sahihi.';
-        showError(msg);
-        if(statusBox){ statusBox.classList.add('hidden'); statusBox.textContent = ''; }
-        if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
+      .catch(function (err) {
+        showError(err.message || String(err));
+        if (statusBox) { statusBox.textContent = ""; statusBox.classList.add("hidden"); }
+        if (submitBtn) { submitBtn.textContent = "Login"; submitBtn.disabled = false; }
       });
   });
 });
-
 
 
 
