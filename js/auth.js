@@ -1,5 +1,5 @@
-// js/auth.js
-// Login / logout / page guard for UKSS
+// js/auth.js (UPDATED)
+// Login / logout / page guard for UKSS + welcome notification on login
 
 // Pages zinazochukuliwa kama "login pages"
 const LOGIN_PAGES  = ["login.html", "index.html"];
@@ -8,6 +8,55 @@ const PUBLIC_PAGES = ["login.html", "index.html"];
 
 const currentPath  = window.location.pathname.split("/").pop() || "index.html";
 const isPublicPage = PUBLIC_PAGES.includes(currentPath);
+
+// Helper: get firestore db (try existing `db` then firebase.firestore())
+function getDb(){
+  if (typeof db !== "undefined" && db) return db;
+  if (typeof firebase !== "undefined" && firebase && firebase.firestore) return firebase.firestore();
+  return null;
+}
+
+function capitalize(s){
+  if(!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Notification helper: uses Notification API if allowed, else fallback to status/alert
+function showWelcomeNotification(title, body){
+  // Try Notification API
+  try{
+    if ("Notification" in window){
+      if (Notification.permission === "granted"){
+        new Notification(title, { body });
+        return;
+      }
+      if (Notification.permission !== "denied"){
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") new Notification(title, { body });
+          else {
+            // fallback
+            const statusBox = document.getElementById("loginStatus");
+            if(statusBox) statusBox.textContent = body;
+            else alert(title + "\n\n" + body);
+          }
+        }).catch(()=> {
+          const statusBox = document.getElementById("loginStatus");
+          if(statusBox) statusBox.textContent = body;
+          else alert(title + "\n\n" + body);
+        });
+        return;
+      }
+    }
+    // fallback
+    const statusBox = document.getElementById("loginStatus");
+    if(statusBox) statusBox.textContent = body;
+    else alert(title + "\n\n" + body);
+  }catch(e){
+    const statusBox = document.getElementById("loginStatus");
+    if(statusBox) statusBox.textContent = body;
+    else alert(title + "\n\n" + body);
+  }
+}
 
 // =================== 1. GLOBAL GUARD ===================
 document.addEventListener("DOMContentLoaded", function () {
@@ -51,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// =================== 2. LOGIN HANDLER ===================
+// =================== 2. LOGIN HANDLER (with "unatafuta" + welcome) ===================
 document.addEventListener("DOMContentLoaded", function () {
   const loginForm = document.getElementById("loginForm");
   if (!loginForm) {
@@ -73,13 +122,36 @@ document.addEventListener("DOMContentLoaded", function () {
     if (msg && msg.indexOf("INVALID_LOGIN_CREDENTIALS") !== -1) {
       niceMessage = "Email au password si sahihi. Hakikisha zinafanana na zilizoko Firebase Auth.";
     }
-
     if (errorBox) errorBox.textContent = niceMessage;
     else alert(niceMessage);
   }
 
+  // fetch role from staff collection (by uid then by email)
+  async function fetchRoleForUser(user){
+    if(!user) return null;
+    const dbRef = getDb();
+    if(!dbRef) return null;
+    try{
+      const doc = await dbRef.collection('staff').doc(user.uid).get();
+      if(doc && doc.exists){
+        return (doc.data().role || '').toLowerCase();
+      }
+      const q = await dbRef.collection('staff').where('email','==',user.email).limit(1).get();
+      if(q && !q.empty){
+        return (q.docs[0].data().role || '').toLowerCase();
+      }
+      return null;
+    }catch(err){
+      console.error('fetchRoleForUser error', err);
+      return null;
+    }
+  }
+
   loginForm.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (errorBox) errorBox.textContent = "";
+    if (statusBox) statusBox.classList.remove("hidden");
+
     console.log("[AUTH] Login submit clicked.");
 
     const email = (emailInput?.value || "").trim();
@@ -95,12 +167,8 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    if (errorBox) errorBox.textContent = "";
-
     if (statusBox) {
-      statusBox.innerHTML =
-        '<span class="loader"></span> Logging in… please wait';
-      statusBox.classList.remove("hidden");
+      statusBox.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo';
     }
 
     if (submitBtn) {
@@ -108,14 +176,43 @@ document.addEventListener("DOMContentLoaded", function () {
       submitBtn.disabled = true;
     }
 
+    // sign in
     auth
       .signInWithEmailAndPassword(email, pass)
-      .then(function () {
-        console.log("[AUTH] signIn success, waiting for onAuthStateChanged");
-        // onAuthStateChanged sasa itakukimbiza marks.html
+      .then(async function (cred) {
+        console.log("[AUTH] signIn success; determining role & showing welcome...");
+
+        const user = auth.currentUser || (cred && cred.user);
+        // show quick searching status
+        if (statusBox) statusBox.innerHTML = '<span class="loader"></span> Unatafuta role yako...';
+
+        const role = await fetchRoleForUser(user);
+        const roleLabel = role ? capitalize(role) : "User";
+        const welcomeTitle = `Karibu ${roleLabel}`;
+        const welcomeBody  = user && user.email ? `${user.email} — umeingia kama ${roleLabel}` : `Umeingia kama ${roleLabel}`;
+
+        // show notification (Notification API or fallback)
+        showWelcomeNotification(welcomeTitle, welcomeBody);
+
+        // also update status box (non-blocking)
+        if (statusBox) statusBox.textContent = welcomeBody;
+
+        // re-enable button quickly (though we'll redirect)
+        if (submitBtn) { submitBtn.textContent = "Login"; submitBtn.disabled = false; }
+
+        // Redirect to marks.html (preserve original redirect behaviour)
+        // Use a tiny timeout so notification/status has chance to appear; not necessary but nicer UX
+        try{
+          setTimeout(()=> { window.location.href = "marks.html"; }, 500);
+        }catch(e){
+          console.error('redirect failed', e);
+          // fallback
+          window.location.href = "marks.html";
+        }
       })
       .catch(function (err) {
-        showError(err.message);
+        const msg = (err && err.message) ? err.message : String(err);
+        showError(msg);
 
         if (statusBox) {
           statusBox.textContent = "";
@@ -128,6 +225,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   });
 });
+
 
 
 
