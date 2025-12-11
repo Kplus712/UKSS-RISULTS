@@ -1,48 +1,70 @@
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>UKSS — Redirect</title>
-  <meta name="robots" content="noindex,nofollow" />
+  <title>UKSS Results System — Staff Login</title>
+  <link rel="stylesheet" href="./style.css" />
   <style>
-    /* minimal neutral page while redirecting */
-    html,body{height:100%;margin:0;background:#071b06;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
-    .wrap{display:flex;align-items:center;justify-content:center;height:100%}
-    .card{background:rgba(0,0,0,0.45);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);text-align:center}
-    a{color:#7ee3a2}
+    /* small inline tweaks to match your green theme */
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:linear-gradient(120deg,#042617 0,#062d20 60%);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;color:#e6f7ef}
+    .login-card{width:100%;max-width:520px;padding:30px;border-radius:18px;background:linear-gradient(180deg,#0b3f2b,#082e23);box-shadow:0 18px 50px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+    .brand-badge{width:56px;height:56px;border-radius:12px;background:linear-gradient(180deg,#08a85b,#0d9a50);display:flex;align-items:center;justify-content:center;font-weight:800;color:#042018;font-size:20px}
+    h1{margin:0;font-size:20px}
+    .sub{color:rgba(255,255,255,0.75);font-size:13px}
+    label{font-size:13px;color:#cfe8d6;display:block;margin-bottom:6px}
+    input.input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:rgba(3,10,8,0.35);color:#e6f7ef;font-size:14px}
+    .btn{display:inline-block;width:100%;padding:12px;border-radius:28px;border:0;margin-top:12px;background:linear-gradient(90deg,#22c55e,#16a34a);color:#01210d;font-weight:700;font-size:16px;cursor:pointer}
+    .error{color:#ffd7d7;margin-top:10px;font-size:13px;min-height:18px}
+    .status{color:#bff3d1;margin-top:8px;font-size:13px;min-height:18px}
+    .foot{margin-top:14px;color:rgba(255,255,255,0.6);font-size:12px;text-align:center}
   </style>
 
-  <!-- Immediate redirect to the single login page (no double-login UI) -->
-  <script>
-    (function(){
-      try {
-        // Clear any stale justSignedIn to avoid false passes
-        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-        // Redirect to the canonical login page
-        window.location.replace('login.html');
-      } catch(e){
-        // If redirect fails, leave a simple message for manual click
-        document.addEventListener('DOMContentLoaded', function(){
-          var msg = document.getElementById('msg');
-          if(msg) msg.textContent = 'Automatically redirect failed. Click the link:';
-          var link = document.getElementById('go');
-          if(link) link.style.display = 'inline';
-        });
-      }
-    })();
-  </script>
+  <!-- If you had any earlier defensive scripts to hide shells, remove them. This page is canonical login. -->
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div id="msg">Redirecting to the login page…</div>
-      <div style="margin-top:12px">
-        <a id="go" style="display:none" href="login.html">Open Login</a>
+
+  <form id="loginForm" class="login-card" autocomplete="on" novalidate>
+    <div class="brand">
+      <div class="brand-badge">UK</div>
+      <div>
+        <h1>UKSS Results System</h1>
+        <div class="sub">UMOJA KINGORI SECONDARY — Staff Login</div>
       </div>
     </div>
-  </div>
+
+    <div style="margin-top:12px">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" class="input" placeholder="you@school.ac.tz" required />
+    </div>
+
+    <div style="margin-top:12px">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" class="input" placeholder="********" required />
+    </div>
+
+    <button id="loginSubmit" type="submit" class="btn">Login</button>
+
+    <div id="loginError" class="error" role="status" aria-live="polite"></div>
+    <div id="loginStatus" class="status" role="status" aria-live="polite"></div>
+
+    <div class="foot">
+      Accounts husimamiwa na Admin. Ukisahau password, mwone Academic Officer / Headmaster.
+    </div>
+  </form>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- database.js must initialize firebase and set `auth` and `db` globals -->
+  <script src="./js/database.js"></script>
+
+  <!-- auth.js (replace with the auth.js code I provide below) -->
+  <script src="./js/auth.js"></script>
 </body>
 </html>
+
 
