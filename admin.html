@@ -3,15 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Admin (Compact Full)</title>
+  <title>UKSS — Admin Compact (Fixed)</title>
   <meta name="theme-color" content="#071427" />
   <style>
-    /* -------------------------
-       Basic look & compact modal
-       -------------------------*/
     :root{
-      --bg:#071427; --card:#0b1724; --muted:#9fb0c6; --accent:#bfa034; --accent-2:#2ea3ff;
-      --glass: rgba(255,255,255,0.03);
+      --bg:#071427; --muted:#9fb0c6; --accent:#bfa034;
       font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
     *{box-sizing:border-box}
@@ -22,37 +18,27 @@
     input, textarea, select { background: transparent; border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:8px; color:inherit; }
     textarea{resize:vertical}
 
-    /* Compact admin gate modal (small) */
-    .admin-gate-backdrop {
-      position: fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:1400;
-      background: rgba(0,0,0,0.28);
-    }
-    .admin-gate-backdrop.active { display:flex; }
-    .admin-gate {
-      width:460px; max-width:94%; border-radius:12px; padding:14px; background: linear-gradient(180deg,#071427,#061025);
-      border:1px solid rgba(255,255,255,0.06); box-shadow: 0 18px 50px rgba(0,0,0,0.6);
-    }
-    .admin-gate h3{margin:0 0 6px}
+    /* Compact admin gate modal */
+    .admin-backdrop { position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:1400; background:rgba(0,0,0,0.28); }
+    .admin-backdrop.active { display:flex; }
+    .admin-modal { width:460px; max-width:94%; border-radius:12px; padding:14px; background: linear-gradient(180deg,#071427,#061025); border:1px solid rgba(255,255,255,0.06); box-shadow:0 18px 50px rgba(0,0,0,0.6); }
+    .admin-modal h3{margin:0 0 6px}
     .muted{color:var(--muted)}
     .row{display:flex;gap:8px}
     .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
     .error{color:#ff9b9b;margin-top:8px;min-height:18px}
 
-    /* Compact controls inside modal */
     #compactControls { display:none; margin-top:12px; border-radius:8px; padding:8px; border:1px solid rgba(255,255,255,0.03); background:rgba(255,255,255,0.02); }
     .small-btn{padding:6px 8px;border-radius:8px;border:0;cursor:pointer}
     .small-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
 
-    /* Full admin panel modal (embedded below compact) */
     .admin-panel { margin-top:12px; display:none; border-radius:8px; background:rgba(12,18,32,0.7); padding:10px; border:1px solid rgba(255,255,255,0.04); max-height:58vh; overflow:auto;}
     .panel-tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .tab{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;color:var(--muted)}
-    .tab.active{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:#071225;border-color:transparent}
+    .tab.active{background:linear-gradient(90deg,#2ea3ff,#bfa034);color:#071225;border-color:transparent}
 
     .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
-    .col-8{grid-column:span 8}
-    .col-4{grid-column:span 4}
-    .col-12{grid-column:span 12}
+    .col-8{grid-column:span 8} .col-4{grid-column:span 4} .col-12{grid-column:span 12}
     @media(max-width:900px){ .col-8,.col-4,.col-12{grid-column:span 12} }
 
     .card{background:transparent;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
@@ -61,7 +47,7 @@
     tbody td{ padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03) }
     .toggle{appearance:none;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,0.04);position:relative;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
     .toggle::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:all .14s}
-    .toggle.checked{background:linear-gradient(90deg,var(--accent-2),var(--accent))}
+    .toggle.checked{background:linear-gradient(90deg,#2ea3ff,#bfa034)}
     .toggle.checked::after{transform:translateX(16px);background:#071225}
 
     .countdown{font-size:20px;font-weight:800;color:var(--accent)}
@@ -69,14 +55,14 @@
 </head>
 <body>
 
-  <!-- Example place to add admin trigger: change to match your marks page topbar -->
+  <!-- Trigger (place this where you want in marks page) -->
   <button id="openAdminBtn" class="btn ghost" style="position:fixed;right:18px;bottom:18px;z-index:1000">🔐 Admin</button>
 
   <!-- Compact Admin Gate Backdrop -->
-  <div id="adminBackdrop" class="admin-gate-backdrop" aria-hidden="true">
-    <div class="admin-gate" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+  <div id="adminBackdrop" class="admin-backdrop" aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
       <h3 id="adminTitle">Admin sign-in (compact)</h3>
-      <div class="muted">Tumia email & password zako za Firebase. Ikiwa tayari ume-login, unaweza kuingiza tu password (Reauthenticate).</div>
+      <div class="muted">Tumia email & password zako za Firebase. Ikiwa tayari ume-login, weka email yako au acha nafasi na weka password tu (reauthenticate).</div>
 
       <div style="margin-top:10px" class="row">
         <input id="gateEmail" type="text" placeholder="Email (acha ikiwa ume-login)" />
@@ -92,7 +78,6 @@
 
       <div id="gateError" class="error" role="status"></div>
 
-      <!-- Compact quick controls shown after successful signin & role check -->
       <div id="compactControls">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div><strong id="compactUserLabel"></strong> <div class="small muted" id="compactUserRole"></div></div>
@@ -107,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Full admin panel (inside same modal) -->
       <div id="adminPanel" class="admin-panel" aria-hidden="true">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div class="panel-tabs" role="tablist">
@@ -180,6 +164,7 @@
             </table>
           </div>
         </div>
+
       </div> <!-- adminPanel -->
     </div>
   </div>
@@ -190,35 +175,27 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-  /*****************************************************************
-   * IMPORTANT:
-   * Replace firebaseConfig with your project's config below.
-   * If Firebase is already initialized elsewhere (e.g., database.js),
-   * REMOVE the initializeApp block to avoid double init.
-   *****************************************************************/
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
-  authDomain: "school-results-management.firebaseapp.com",
-  databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
-  projectId: "school-results-management",
-  storageBucket: "school-results-management.firebasestorage.app",
-  messagingSenderId: "755154296958",
-  appId: "1:755154296958:web:e4c5f9bc0e6cce3e9cf82f",
-  measurementId: "G-MDN4Q3C22J"
-};
-  };
+    // YOUR firebase config (from you)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
+      authDomain: "school-results-management.firebaseapp.com",
+      databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
+      projectId: "school-results-management",
+      storageBucket: "school-results-management.firebasestorage.app",
+      messagingSenderId: "755154296958",
+      appId: "1:755154296958:web:e4c5f9bc0e6cce3e9cf82f",
+      measurementId: "G-MDN4Q3C22J"
+    };
 
-  if(!firebase.apps || !firebase.apps.length){
-    try {
-      firebase.initializeApp(firebaseConfig);
-    } catch(e){
-      console.error('Firebase init error', e);
+    // initialize (if not already)
+    if(!window.firebase) {
+      throw new Error('Firebase SDK not loaded.');
     }
-  }
-
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+    if(!firebase.apps || !firebase.apps.length){
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
   </script>
 
   <script>
@@ -252,7 +229,7 @@ const firebaseConfig = {
     };
     const closePanelBtn = document.getElementById('closePanelBtn');
 
-    // staff
+    // staff elements
     const staffTableBody = document.querySelector('#staffTable tbody');
     const staffSearch = document.getElementById('staffSearch');
     const staffRefresh = document.getElementById('staffRefresh');
@@ -285,16 +262,14 @@ const firebaseConfig = {
     let notificationsList = [];
     let currentStaffRecord = null;
 
-    // helpers
     function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
     function flash(el,txt){ if(!el) return; el.textContent = txt; setTimeout(()=>el.textContent='',1800); }
 
-    // open compact gate
-    openAdminBtn.addEventListener('click', async ()=>{
+    // Open modal
+    openAdminBtn.addEventListener('click', () => {
       gateError.textContent = '';
       compactControls.style.display = 'none';
       adminPanel.style.display = 'none';
-      // prefill email if user logged in
       const user = auth.currentUser;
       if(user && user.email) gateEmail.value = user.email;
       backdrop.classList.add('active');
@@ -306,8 +281,8 @@ const firebaseConfig = {
       gatePassword.value = ''; gateError.textContent = '';
     });
 
-    // sign-in / reauthenticate flow
-    gateSubmit.addEventListener('click', async ()=>{
+    // Sign-in / reauthenticate flow
+    gateSubmit.addEventListener('click', async () => {
       gateError.textContent = '';
       gateSubmit.disabled = true;
       const email = (gateEmail.value||'').trim();
@@ -316,42 +291,35 @@ const firebaseConfig = {
 
       try{
         let user;
-        // if someone already logged and same email -> reauthenticate
         if(auth.currentUser && auth.currentUser.email === email){
-          try{
-            const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
-            await auth.currentUser.reauthenticateWithCredential(cred);
-            user = auth.currentUser;
-          }catch(reErr){
-            // fall back to signInWithEmailAndPassword
-            const res = await auth.signInWithEmailAndPassword(email, pw);
-            user = res.user;
-          }
+          // reauthenticate
+          const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
+          await auth.currentUser.reauthenticateWithCredential(cred);
+          user = auth.currentUser;
         } else {
           const res = await auth.signInWithEmailAndPassword(email, pw);
           user = res.user;
         }
 
-        // check role in staff collection (uid first, then by email)
+        // check admin role
         const isAdmin = await checkIsAdmin(user);
         if(!isAdmin){
-          // signout if we signed in with non-admin
           try{ await auth.signOut(); } catch(e){}
           gateError.textContent = 'Huna ruhusa ya Admin kwa account hii.';
           gateSubmit.disabled = false;
           return;
         }
 
-        // authorized -> show compact controls
+        // authorized
         compactUserLabel.textContent = user.displayName || user.email || user.uid;
         compactUserRole.textContent = currentStaffRecord ? ('Role: ' + (currentStaffRecord.role||'')) : '';
         compactControls.style.display = '';
         adminPanel.style.display = 'none';
         gatePassword.value = '';
         gateError.textContent = '';
-      } catch(err){
-        console.error('gate sign-in error', err);
-        if(err && err.message && err.message.includes('API key not valid')) gateError.textContent = 'API key invalid — tafadhali weka firebaseConfig sahihi au toa duplicate init.';
+      }catch(err){
+        console.error('Sign-in error', err);
+        if(err && err.message && err.message.includes('API key not valid')) gateError.textContent = 'API key invalid — tafadhali weka firebaseConfig sahihi.';
         else if(err && err.code === 'auth/wrong-password') gateError.textContent = 'Password sio sahihi.';
         else if(err && err.code === 'auth/user-not-found') gateError.textContent = 'Account haipo.';
         else gateError.textContent = err.message || 'Login failed';
@@ -363,7 +331,7 @@ const firebaseConfig = {
     async function checkIsAdmin(user){
       if(!user) return false;
       try{
-        // try doc by uid
+        // check by uid document
         const docRef = db.collection('staff').doc(user.uid);
         const snap = await docRef.get();
         if(snap.exists){
@@ -375,15 +343,15 @@ const firebaseConfig = {
         if(!currentStaffRecord) return false;
         return (currentStaffRecord.role||'').toLowerCase().includes('admin');
       }catch(err){
-        console.error('checkIsAdmin',err);
+        console.error('checkIsAdmin error', err);
         throw err;
       }
     }
 
-    // quick actions
-    quickRecalc.addEventListener('click', async ()=>{
-      // placeholder — plug your recalc logic here (or call cloud function)
-      alert('Recalculate rankings — run your recalc function here.');
+    // Quick actions
+    quickRecalc.addEventListener('click', ()=> {
+      // placeholder: replace with your recalc logic or cloud function call
+      alert('Recalculate rankings — implement your logic here.');
     });
 
     quickDeleteStudent.addEventListener('click', async ()=>{
@@ -391,7 +359,6 @@ const firebaseConfig = {
       if(!idx) return;
       if(!confirm('Una hakika unataka kufuta record ya mwanafunzi mwenye index: ' + idx + ' ?')) return;
       try{
-        // search student by index and delete first match
         const q = await db.collection('students').where('index','==', idx).limit(1).get();
         if(q.empty){ alert('Student not found'); return; }
         const id = q.docs[0].id;
@@ -402,7 +369,7 @@ const firebaseConfig = {
 
     quickNotif.addEventListener('click', async ()=>{
       const user = auth.currentUser;
-      if(!user){ alert('Not signed in'); return; }
+      if(!user) return alert('Not signed in');
       try{
         await db.collection('notifications').add({ to: user.email||'', msg: 'Quick admin notification', createdAt: new Date().toISOString() });
         alert('Notification created');
@@ -410,16 +377,13 @@ const firebaseConfig = {
     });
 
     openFullPanel.addEventListener('click', async ()=>{
-      // load full admin panel data and show
       await loadAllForPanel();
       adminPanel.style.display = '';
     });
 
-    closePanelBtn.addEventListener('click', ()=> {
-      adminPanel.style.display = 'none';
-    });
+    closePanelBtn.addEventListener('click', ()=> adminPanel.style.display = 'none');
 
-    // panel tab switching
+    // Panel tabs switching
     panelTabs.forEach(t=>{
       t.addEventListener('click', ()=>{
         panelTabs.forEach(x=>x.classList.remove('active'));
@@ -431,7 +395,7 @@ const firebaseConfig = {
       });
     });
 
-    // ----------------- FULL PANEL: STAFF -----------------
+    // STAFF functions
     async function loadStaff(){
       staffTableBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
       try{
@@ -486,11 +450,9 @@ const firebaseConfig = {
           const mainClass = row.querySelector('.mainClass').value;
           const active = row.querySelector('.toggle').classList.contains('checked');
           const docRef = db.collection('staff').doc(id);
-          // fetch before to detect role change
           const beforeSnap = await docRef.get();
           const before = beforeSnap.exists ? beforeSnap.data() : null;
           await docRef.set({ role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
-          // if role changed, create notification
           if(before && before.role !== role){
             const msg = `${before.name || before.email}: Umepewa role ya "${role}".`;
             await db.collection('notifications').add({ to: before.email||'', msg, createdAt: new Date().toISOString() });
@@ -501,7 +463,7 @@ const firebaseConfig = {
       }
     });
 
-    // ----------------- FULL PANEL: STUDENTS -----------------
+    // STUDENTS functions
     async function loadStudents(){
       studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
       try{
@@ -541,7 +503,7 @@ const firebaseConfig = {
       }
     });
 
-    // ----------------- SETTINGS -----------------
+    // SETTINGS
     async function loadSettings(){
       try{
         const doc = await db.collection('settings').doc('global').get();
@@ -563,7 +525,7 @@ const firebaseConfig = {
       try{ await db.collection('settings').doc('global').set(payload,{merge:true}); flash(settingsStatus,'Saved'); } catch(err){ console.error(err); settingsStatus.textContent='Save failed'; }
     });
 
-    // ----------------- EXAM PERIOD -----------------
+    // EXAM PERIOD
     async function saveExamPeriod(){
       const s = examStart.value; const e = examEnd.value;
       if(!s || !e){ alert('Weka start na end'); return; }
@@ -574,7 +536,7 @@ const firebaseConfig = {
       }catch(err){ console.error(err); alert('Save failed: '+err.message); }
     }
 
-    async function clearExamPeriod(){
+    async function clearExam(){
       if(!confirm('Futa exam period?')) return;
       try{
         await db.collection('settings').doc('global').set({ examPeriod: firebase.firestore.FieldValue.delete(), updated: new Date().toISOString() }, { merge:true });
@@ -582,6 +544,11 @@ const firebaseConfig = {
         flash(settingsStatus,'Cleared');
       }catch(err){ console.error(err); alert('Clear failed: '+err.message); }
     }
+
+    saveExam.addEventListener('click', saveExamPeriod);
+    clearExam.addEventListener('click', clearExam);
+    examStart.addEventListener('change', updateDaysLeft);
+    examEnd.addEventListener('change', updateDaysLeft);
 
     function updateDaysLeft(){
       const s = examStart.value; const e = examEnd.value;
@@ -593,12 +560,7 @@ const firebaseConfig = {
       daysLeft.textContent = days + ' day' + (days>1?'s':'') + ' left';
     }
 
-    saveExam.addEventListener('click', saveExamPeriod);
-    clearExam.addEventListener('click', clearExamPeriod);
-    examStart.addEventListener('change', updateDaysLeft);
-    examEnd.addEventListener('change', updateDaysLeft);
-
-    // ----------------- LOGS -----------------
+    // LOGS
     async function loadNotifications(){
       logsTableBody.innerHTML = '<tr><td colspan="3" class="muted">Loading...</td></tr>';
       try{
@@ -614,19 +576,16 @@ const firebaseConfig = {
       logsTableBody.innerHTML = rows;
     }
 
-    // ----------------- Load all for panel -----------------
+    // load all for panel
     async function loadAllForPanel(){
       await Promise.all([loadStaff(), loadStudents(), loadSettings(), loadNotifications()]);
       updateDaysLeft();
     }
 
-    // Expose a function to open gate from other code
-    window.openAdminCompact = ()=> openAdminBtn.click();
-
-    // close modal by clicking outside
+    // close modal when clicking outside
     backdrop.addEventListener('click', (e)=> { if(e.target === backdrop) backdrop.classList.remove('active'); });
 
-    // auth state listener: update compact user info
+    // auth listener update label
     auth.onAuthStateChanged((u)=>{
       if(u){
         compactUserLabel.textContent = u.email || u.uid;
@@ -638,12 +597,13 @@ const firebaseConfig = {
       }
     });
 
-    // expose some functions for integration
-    window.admin_recalcPlaceholder = ()=> alert('Run your recalc logic here');
+    // expose simple helper
+    window.openAdminCompact = ()=> openAdminBtn.click();
 
   })();
   </script>
 </body>
 </html>
+
 
 
