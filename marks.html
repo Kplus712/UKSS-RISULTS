@@ -9,209 +9,58 @@
   <!-- ===== EARLY GUARD: place BEFORE firebase or any UI to prevent flash =====
        Behavior:
        - If sessionStorage.justSignedIn === '1' -> allow page load once, then clear flag.
-       - Otherwise redirect immediately to login.html (prevents marks.html from opening).
-       - This runs very early so page content won't flash.
+       - Otherwise redirect immediately to index.html (prevents marks.html from opening).
   -->
   <script>
     (function(){
       try {
         console.log('[GUARD] early guard running on marks.html');
 
-        // Allow once-per-login transition (set by login form on successful signIn)
         var just = null;
         try { just = sessionStorage.getItem('justSignedIn'); } catch(e) { console.warn('[GUARD] sessionStorage read failed', e); }
 
-        // If not freshly signed in, block and redirect immediately.
         if (just !== '1') {
-          console.warn('[GUARD] justSignedIn not found -> redirecting to login.html');
-          // ensure no stale flag remains
+          console.warn('[GUARD] justSignedIn not found -> redirecting to index.html');
           try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          // Use replace so back button doesn't go back to protected page
-          window.location.replace('login.html');
+          window.location.replace('index.html');
           return;
         }
 
-        // If we reach here, allow page load once and clear the flag immediately.
+        // consume flag and allow load
         try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
         console.log('[GUARD] justSignedIn found -> allowing page load (flag cleared).');
       } catch (err) {
         console.error('[GUARD] fatal guard error', err);
         try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-        window.location.replace('login.html');
+        window.location.replace('index.html');
       }
     })();
   </script>
 
   <style>
     /* ===== extra modern tweaks for this page only ===== */
-
-    .topbar {
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:16px;
-    }
-
-    .stepper {
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-bottom:12px;
-    }
-    .step-pill {
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.08);
-      font-size:11px;
-      display:flex;
-      align-items:center;
-      gap:6px;
-      opacity:0.7;
-    }
-    .step-pill.active{
-      background:linear-gradient(135deg,#2563eb,#3b82f6);
-      color:#fff;
-      opacity:1;
-      box-shadow:0 6px 16px rgba(37,99,235,0.35);
-      border:none;
-    }
-    .step-pill span.badge{
-      width:18px;
-      height:18px;
-      border-radius:999px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-size:10px;
-      background:rgba(15,23,42,0.9);
-    }
-
-    .tabs{
-      display:flex;
-      border-radius:999px;
-      background:rgba(15,23,42,0.65);
-      padding:3px;
-      width:max-content;
-    }
-    .tab-btn{
-      border:none;
-      background:transparent;
-      padding:6px 14px;
-      font-size:12px;
-      border-radius:999px;
-      cursor:pointer;
-      opacity:0.7;
-      white-space:nowrap;
-    }
-    .tab-btn.active{
-      background:rgba(15,23,42,0.95);
-      opacity:1;
-      box-shadow:0 4px 10px rgba(0,0,0,0.4);
-    }
-
-    .grid-2{
-      display:grid;
-      grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);
-      gap:16px;
-    }
-    @media(max-width:900px){
-      .grid-2{
-        grid-template-columns:minmax(0,1fr);
-      }
-    }
-
-    .stats-bar{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:10px;
-      font-size:11px;
-    }
-    .stat-chip{
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(15,23,42,0.9);
-      border:1px solid rgba(148,163,184,0.3);
-    }
-
-    .form-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-    .form-row .field{
-      flex:1 1 160px;
-    }
-
-    .table-mini{
-      width:100%;
-      border-collapse:collapse;
-      font-size:12px;
-    }
-    .table-mini th,
-    .table-mini td{
-      padding:6px 8px;
-      border-bottom:1px solid rgba(148,163,184,0.15);
-    }
-    .table-mini thead{
-      background:rgba(15,23,42,0.9);
-    }
-    .table-mini tbody tr:hover{
-      background:rgba(15,23,42,0.6);
-    }
-
-    .pill{
-      border-radius:999px;
-      padding:2px 8px;
-      font-size:11px;
-      border:1px solid rgba(148,163,184,0.35);
-    }
-
-    .matrix-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:8px;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .matrix-table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:11px;
-      overflow:auto;
-    }
-    .matrix-table th,
-    .matrix-table td{
-      border:1px solid rgba(148,163,184,0.35);
-      padding:4px 6px;
-      text-align:center;
-      white-space:nowrap;
-    }
-    .matrix-table thead{
-      position:sticky;
-      top:0;
-      background:rgba(15,23,42,0.98);
-      z-index:1;
-    }
-    .matrix-input{
-      width:64px;
-      padding:3px 4px;
-      border-radius:6px;
-      border:1px solid rgba(148,163,184,0.8);
-      background:rgba(15,23,42,0.85);
-      color:#e5e7eb;
-      font-size:11px;
-      text-align:center;
-    }
-    .matrix-input:focus{
-      outline:none;
-      border-color:#3b82f6;
-      box-shadow:0 0 0 1px rgba(59,130,246,0.5);
-    }
-
-    /* lightweight guard notice for debug (hidden normally) */
+    .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+    .stepper { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .step-pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); font-size:11px; display:flex; align-items:center; gap:6px; opacity:0.7; }
+    .step-pill.active{ background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; opacity:1; box-shadow:0 6px 16px rgba(37,99,235,0.35); border:none; }
+    .step-pill span.badge{ width:18px; height:18px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; background:rgba(15,23,42,0.9); }
+    .tabs{ display:flex; border-radius:999px; background:rgba(15,23,42,0.65); padding:3px; width:max-content; }
+    .tab-btn{ border:none; background:transparent; padding:6px 14px; font-size:12px; border-radius:999px; cursor:pointer; opacity:0.7; white-space:nowrap; }
+    .tab-btn.active{ background:rgba(15,23,42,0.95); opacity:1; box-shadow:0 4px 10px rgba(0,0,0,0.4); }
+    .grid-2{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; }
+    @media(max-width:900px){ .grid-2{ grid-template-columns:minmax(0,1fr); } }
+    .stats-bar{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:11px; }
+    .stat-chip{ padding:6px 10px; border-radius:999px; background:rgba(15,23,42,0.9); border:1px solid rgba(148,163,184,0.3); }
+    .form-row{ display:flex; flex-wrap:wrap; gap:10px; }
+    .form-row .field{ flex:1 1 160px; }
+    .table-mini{ width:100%; border-collapse:collapse; font-size:12px; }
+    .table-mini th, .table-mini td{ padding:6px 8px; border-bottom:1px solid rgba(148,163,184,0.15); }
+    .table-mini thead{ background:rgba(15,23,42,0.9); }
+    .matrix-table{ width:100%; border-collapse:collapse; font-size:11px; overflow:auto; }
+    .matrix-table th, .matrix-table td{ border:1px solid rgba(148,163,184,0.35); padding:4px 6px; text-align:center; white-space:nowrap; }
+    .matrix-table thead{ position:sticky; top:0; background:rgba(15,23,42,0.98); z-index:1; }
+    .matrix-input{ width:64px; padding:3px 4px; border-radius:6px; border:1px solid rgba(148,163,184,0.8); background:rgba(15,23,42,0.85); color:#e5e7eb; font-size:11px; text-align:center; }
+    .matrix-input:focus{ outline:none; border-color:#3b82f6; box-shadow:0 0 0 1px rgba(59,130,246,0.5); }
     #guardDebug { display:none; font-size:12px; color:#f97373; margin-bottom:8px; }
   </style>
 </head>
@@ -445,7 +294,6 @@
   </main>
 </div>
 
-<!-- Optional hidden debug box to show guard logs on UI (turn on when debugging) -->
 <div id="guardDebug" style="position:fixed;right:12px;bottom:12px;background:#111827aa;padding:8px;border-radius:8px;color:#fff;display:none;"></div>
 
 <!-- Firebase CDN v8 -->
@@ -456,32 +304,27 @@
 <!-- App scripts -->
 <script src="./js/database.js"></script>
 
-<!-- Quick post-load safety: if by any chance firebase.currentUser exists but the session was not "justSignedIn",
-     we sign them out and redirect. This is an extra layer (runs after firebase is available). -->
+<!-- Quick post-load safety: runs after firebase is available (uses index.html) -->
 <script>
   (function(){
-    // run after database.js loaded
     try {
       console.log('[GUARD] post-load safety running');
-      // only run if firebase auth is available
       if(window.firebase && firebase.auth){
         firebase.auth().onAuthStateChanged(function(user){
           console.log('[GUARD] post-load onAuthStateChanged user=', user ? user.email : null);
-          // if there is a user but page was not allowed by justSignedIn flag, force sign out
           var allowed = false;
           try { allowed = sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ allowed = false; }
           if(user && !allowed){
             console.warn('[GUARD] user session exists but not freshly signed in -> signing out and redirecting');
-            sessionStorage.removeItem('justSignedIn');
+            try{ sessionStorage.removeItem('justSignedIn'); } catch(e){}
             firebase.auth().signOut().then(function(){
-              window.location.replace('login.html');
+              window.location.replace('index.html');
             }).catch(function(e){
               console.warn('[GUARD] signOut failed', e);
-              window.location.replace('login.html');
+              window.location.replace('index.html');
             });
             return;
           }
-          // if allowed and user exists, clear the flag (it was consumed by the head guard earlier, but double-safe)
           if(allowed){
             try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
             console.log('[GUARD] allowed session (justSignedIn) — continuing.');
@@ -496,12 +339,9 @@
   })();
 </script>
 
-<!-- Page logic: your marks.js should remain the primary script to load lists, exams, marks etc.
-     If you want, you can also paste an updated marks.js and I will adapt it to check role and hide Admin link. -->
+<!-- Page logic: your marks.js should remain the primary script to load lists, exams, marks etc. -->
 <script src="./js/marks.js"></script>
 
 </body>
 </html>
-
-
 
