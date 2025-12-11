@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Admin Compact (Fixed)</title>
+  <title>UKSS — Admin Compact (Fixed v2)</title>
   <meta name="theme-color" content="#071427" />
   <style>
     :root{
@@ -55,14 +55,14 @@
 </head>
 <body>
 
-  <!-- Trigger (place this where you want in marks page) -->
+  <!-- Trigger -->
   <button id="openAdminBtn" class="btn ghost" style="position:fixed;right:18px;bottom:18px;z-index:1000">🔐 Admin</button>
 
-  <!-- Compact Admin Gate Backdrop -->
+  <!-- Backdrop + Modal -->
   <div id="adminBackdrop" class="admin-backdrop" aria-hidden="true">
     <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
       <h3 id="adminTitle">Admin sign-in (compact)</h3>
-      <div class="muted">Tumia email & password zako za Firebase. Ikiwa tayari ume-login, weka email yako au acha nafasi na weka password tu (reauthenticate).</div>
+      <div class="muted">Tumia email & password zako za Firebase. Ikiwa tayari ume-login, unaweza kuingiza tu password (reauthenticate).</div>
 
       <div style="margin-top:10px" class="row">
         <input id="gateEmail" type="text" placeholder="Email (acha ikiwa ume-login)" />
@@ -150,8 +150,8 @@
             <div style="margin-left:auto;text-align:right"><div class="small muted">Days left</div><div id="daysLeft" class="countdown">—</div></div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
-            <button id="saveExam" class="btn">Save Period</button>
-            <button id="clearExam" class="btn ghost">Clear</button>
+            <button id="saveExamBtn" class="btn">Save Period</button>
+            <button id="clearExamBtn" class="btn ghost">Clear</button>
           </div>
         </div>
 
@@ -175,7 +175,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-    // YOUR firebase config (from you)
+    // YOUR firebase config (you provided)
     const firebaseConfig = {
       apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
       authDomain: "school-results-management.firebaseapp.com",
@@ -187,7 +187,6 @@
       measurementId: "G-MDN4Q3C22J"
     };
 
-    // initialize (if not already)
     if(!window.firebase) {
       throw new Error('Firebase SDK not loaded.');
     }
@@ -200,7 +199,7 @@
 
   <script>
   (function(){
-    // UI refs
+    // UI refs (buttons/elements)
     const openAdminBtn = document.getElementById('openAdminBtn');
     const backdrop = document.getElementById('adminBackdrop');
     const gateEmail = document.getElementById('gateEmail');
@@ -246,12 +245,12 @@
     const saveSettings = document.getElementById('saveSettings');
     const settingsStatus = document.getElementById('settingsStatus');
 
-    // exam
+    // exam buttons (note unique names to avoid collisions)
     const examStart = document.getElementById('examStart');
     const examEnd = document.getElementById('examEnd');
     const daysLeft = document.getElementById('daysLeft');
-    const saveExam = document.getElementById('saveExam');
-    const clearExam = document.getElementById('clearExam');
+    const saveExamBtn = document.getElementById('saveExamBtn');
+    const clearExamBtn = document.getElementById('clearExamBtn');
 
     // logs
     const logsTableBody = document.querySelector('#logsTable tbody');
@@ -292,7 +291,6 @@
       try{
         let user;
         if(auth.currentUser && auth.currentUser.email === email){
-          // reauthenticate
           const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
           await auth.currentUser.reauthenticateWithCredential(cred);
           user = auth.currentUser;
@@ -301,7 +299,6 @@
           user = res.user;
         }
 
-        // check admin role
         const isAdmin = await checkIsAdmin(user);
         if(!isAdmin){
           try{ await auth.signOut(); } catch(e){}
@@ -310,7 +307,6 @@
           return;
         }
 
-        // authorized
         compactUserLabel.textContent = user.displayName || user.email || user.uid;
         compactUserRole.textContent = currentStaffRecord ? ('Role: ' + (currentStaffRecord.role||'')) : '';
         compactControls.style.display = '';
@@ -331,7 +327,6 @@
     async function checkIsAdmin(user){
       if(!user) return false;
       try{
-        // check by uid document
         const docRef = db.collection('staff').doc(user.uid);
         const snap = await docRef.get();
         if(snap.exists){
@@ -350,7 +345,6 @@
 
     // Quick actions
     quickRecalc.addEventListener('click', ()=> {
-      // placeholder: replace with your recalc logic or cloud function call
       alert('Recalculate rankings — implement your logic here.');
     });
 
@@ -363,7 +357,7 @@
         if(q.empty){ alert('Student not found'); return; }
         const id = q.docs[0].id;
         await db.collection('students').doc(id).delete();
-        alert('Student deleted');
+        alert('Student deleted'); await loadStudents();
       }catch(err){ console.error(err); alert('Delete failed: '+(err.message||err)); }
     });
 
@@ -372,7 +366,7 @@
       if(!user) return alert('Not signed in');
       try{
         await db.collection('notifications').add({ to: user.email||'', msg: 'Quick admin notification', createdAt: new Date().toISOString() });
-        alert('Notification created');
+        alert('Notification created'); await loadNotifications();
       }catch(err){ console.error(err); alert('Failed to create notification: '+(err.message||err)); }
     });
 
@@ -525,8 +519,8 @@
       try{ await db.collection('settings').doc('global').set(payload,{merge:true}); flash(settingsStatus,'Saved'); } catch(err){ console.error(err); settingsStatus.textContent='Save failed'; }
     });
 
-    // EXAM PERIOD
-    async function saveExamPeriod(){
+    // EXAM PERIOD (function names adjusted)
+    async function saveExamPeriodFn(){
       const s = examStart.value; const e = examEnd.value;
       if(!s || !e){ alert('Weka start na end'); return; }
       try{
@@ -536,7 +530,7 @@
       }catch(err){ console.error(err); alert('Save failed: '+err.message); }
     }
 
-    async function clearExam(){
+    async function clearExamPeriodFn(){
       if(!confirm('Futa exam period?')) return;
       try{
         await db.collection('settings').doc('global').set({ examPeriod: firebase.firestore.FieldValue.delete(), updated: new Date().toISOString() }, { merge:true });
@@ -545,8 +539,8 @@
       }catch(err){ console.error(err); alert('Clear failed: '+err.message); }
     }
 
-    saveExam.addEventListener('click', saveExamPeriod);
-    clearExam.addEventListener('click', clearExam);
+    saveExamBtn.addEventListener('click', saveExamPeriodFn);
+    clearExamBtn.addEventListener('click', clearExamPeriodFn);
     examStart.addEventListener('change', updateDaysLeft);
     examEnd.addEventListener('change', updateDaysLeft);
 
@@ -604,6 +598,7 @@
   </script>
 </body>
 </html>
+
 
 
 
