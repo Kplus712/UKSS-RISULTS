@@ -1,4 +1,3 @@
-<!-- Save as admin.html (FULL single-file) -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,7 +6,6 @@
   <title>UKSS — Admin</title>
   <meta name="theme-color" content="#0b1320" />
   <style>
-    /* Minimal styles (keeps your existing look but self-contained) */
     :root{
       --bg:#071427; --panel:#0b1724; --muted:#9fb0c6; --accent:#bfa034;
       font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
@@ -37,16 +35,18 @@
     tbody td{padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03)}
     .muted{color:var(--muted)}
     .danger{color:#ff9b9b}
-    /* compact modal */
     .admin-modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:9999}
     .admin-modal-backdrop.active{display:flex}
     .admin-modal{width:420px;background:linear-gradient(180deg,#071427,#061025);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
     .error{color:#ff9b9b;margin-top:8px}
-    /* small counts */
     .counts{display:flex;gap:10px;margin-top:10px}
     .count-box{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);min-width:90px;text-align:center;background:rgba(255,255,255,0.01)}
-    /* responsive */
     @media(max-width:900px){ aside.sidebar{display:none} body{padding:8px} }
+    .toggleBtn{appearance:none;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,0.04);position:relative;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+    .toggleBtn::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:all .14s}
+    .toggleBtn.checked{background:linear-gradient(90deg,#2ea3ff,#bfa034)}
+    .toggleBtn.checked::after{transform:translateX(16px);background:#071225}
+    .countdown{font-size:18px;font-weight:800;color:var(--accent)}
   </style>
 </head>
 <body>
@@ -84,7 +84,6 @@
       </div>
     </header>
 
-    <!-- Account -->
     <section class="card">
       <h3>Your Account</h3>
       <p class="small">Hapa unaona taarifa zako na role uliyopewa. Kazi za admin zipo chini.</p>
@@ -110,7 +109,6 @@
       <p id="roleWarning" class="small danger" style="margin-top:8px;display:none"></p>
     </section>
 
-    <!-- Staff -->
     <section class="card">
       <h3>1. Staff Management</h3>
       <p class="small">Badili roles, class na status ya staff. “Active” ikizimwa, user hawezi kutumia mfumo.</p>
@@ -131,7 +129,6 @@
       </div>
     </section>
 
-    <!-- Pending -->
     <section class="card">
       <h3>2. Access Control & Approvals</h3>
       <p class="small">Staff wapya au wasio na role/active wataonekana hapa. Wape role sahihi na uwasha “Active”.</p>
@@ -143,7 +140,6 @@
       </div>
     </section>
 
-    <!-- Settings -->
     <section class="card">
       <h3>3. System Settings</h3>
       <p class="small">Taarifa za shule na baadhi ya settings za mfumo. Stored at <code>settings/global</code>.</p>
@@ -165,7 +161,6 @@
       </div>
     </section>
 
-    <!-- Exam & Logs -->
     <section class="card" style="display:flex;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:280px">
         <h3>Exam Period</h3>
@@ -175,7 +170,7 @@
           <div class="field"><label class="label">End</label><input id="examEnd" class="input" type="date" /></div>
           <div style="display:flex;flex-direction:column;justify-content:center">
             <div class="small muted">Days left</div>
-            <div id="examCountdown" class="countdown" style="font-weight:800;color:var(--accent)">—</div>
+            <div id="examCountdown" class="countdown">—</div>
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
@@ -202,7 +197,6 @@
   </main>
 </div>
 
-<!-- Compact admin sign-in modal -->
 <div id="adminModal" class="admin-modal-backdrop" aria-hidden="true">
   <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
     <h3 id="adminModalTitle">Admin sign-in</h3>
@@ -226,7 +220,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-/* ========= CONFIG - replace if you initialize elsewhere ========= */
+/* ========== FIREBASE CONFIG (your config) ========== */
 const firebaseConfig = {
   apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
   authDomain: "school-results-management.firebaseapp.com",
@@ -244,7 +238,7 @@ if(!firebase.apps || !firebase.apps.length){
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-/* ============================================================== */
+/* ================================================== */
 
 (function(){
   // UI refs
@@ -258,16 +252,13 @@ const db = firebase.firestore();
   const meClass = document.getElementById('meClass');
   const roleWarning = document.getElementById('roleWarning');
 
-  // staff
   const staffTable = document.getElementById('staffTable').querySelector('tbody');
   const staffSearch = document.getElementById('staffSearch');
   const reloadStaffBtn = document.getElementById('reloadStaffBtn');
   const saveAllStaffBtn = document.getElementById('saveAllStaffBtn');
 
-  // pending
   const pendingTable = document.getElementById('pendingTable').querySelector('tbody');
 
-  // settings
   const setSchoolName = document.getElementById('setSchoolName');
   const setAcademicYear = document.getElementById('setAcademicYear');
   const setSmsProvider = document.getElementById('setSmsProvider');
@@ -275,20 +266,17 @@ const db = firebase.firestore();
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   const settingsStatus = document.getElementById('settingsStatus');
 
-  // exam
   const examStart = document.getElementById('examStart');
   const examEnd = document.getElementById('examEnd');
   const examCountdown = document.getElementById('examCountdown');
   const saveExamBtn = document.getElementById('saveExamBtn');
   const clearExamBtn = document.getElementById('clearExamBtn');
 
-  // logs / counts
   const staffCountEl = document.getElementById('staffCount');
   const studentsCountEl = document.getElementById('studentsCount');
   const notifCountEl = document.getElementById('notifCount');
   const openLogsBtn = document.getElementById('openLogsBtn');
 
-  // modal
   const adminModal = document.getElementById('adminModal');
   const modalEmail = document.getElementById('modalEmail');
   const modalPassword = document.getElementById('modalPassword');
@@ -296,28 +284,27 @@ const db = firebase.firestore();
   const modalSubmit = document.getElementById('modalSubmit');
   const modalError = document.getElementById('modalError');
 
-  // local state
+  // state
   let staffList = [];
   let studentsList = [];
   let notificationsList = [];
   let currentStaffRecord = null;
+  let adminVerified = false; // must be true for admin-only actions
 
   // helpers
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
   function toast(el, txt){ if(!el) return; el.textContent = txt; setTimeout(()=> el.textContent = '', 2000); }
-  function showModal(errMsg){
-    modalError.textContent = errMsg || '';
-    adminModal.classList.add('active'); adminModal.style.display = 'flex';
-    modalPassword.focus();
-  }
-  function hideModal(){
-    adminModal.classList.remove('active'); adminErrorClear(); adminModal.style.display = 'none';
-    modalPassword.value = '';
-  }
-  function adminErrorClear(){ modalError.textContent = ''; }
 
-  // attach modal behaviour
-  openAdminGateBtn.addEventListener('click', ()=> {
+  // show/hide admin-sensitive UI
+  function hideAdminUI(){
+    staffTable.innerHTML = '<tr><td colspan="7" class="muted">Sign in as Admin to manage staff.</td></tr>';
+    staffCountEl.textContent = '—'; studentsCountEl.textContent = '—'; notifCountEl.textContent = '—';
+    meName.value=''; meEmail.value=''; meRole.value=''; meClass.value='';
+    signedInBadge.textContent = auth.currentUser ? 'Signed in (not verified)' : 'Not signed in';
+  }
+
+  // modal open
+  openAdminGateBtn.addEventListener('click', ()=>{
     modalEmail.value = auth.currentUser ? (auth.currentUser.email || '') : '';
     modalPassword.value = '';
     modalError.textContent = '';
@@ -325,17 +312,26 @@ const db = firebase.firestore();
     adminModal.style.display = 'flex';
     modalPassword.focus();
   });
-  modalCancel.addEventListener('click', ()=> { adminModal.classList.remove('active'); adminModal.style.display = 'none'; modalError.textContent = ''; });
 
-  // close modal on backdrop click
+  modalCancel.addEventListener('click', ()=> {
+    adminModal.classList.remove('active');
+    adminModal.style.display = 'none';
+    modalPassword.value = '';
+    modalError.textContent = '';
+  });
   adminModal.addEventListener('click', (e)=> { if(e.target === adminModal){ adminModal.classList.remove('active'); adminModal.style.display = 'none'; } });
 
-  // LOGOUT
+  // logout (also resets adminVerified)
   logoutBtn.addEventListener('click', async ()=>{
-    try{ await auth.signOut(); resetUiForSignedOut(); alert('Signed out'); }catch(e){ console.error(e); alert('Sign out failed'); }
+    try{
+      await auth.signOut();
+      adminVerified = false;
+      hideAdminUI();
+      alert('Signed out');
+    }catch(e){ console.error(e); alert('Sign out failed'); }
   });
 
-  // Sign-in / reauth flow
+  // Sign-in / reauthenticate (strict: requires password)
   modalSubmit.addEventListener('click', async ()=>{
     modalError.textContent = '';
     modalSubmit.disabled = true;
@@ -345,7 +341,6 @@ const db = firebase.firestore();
 
     try{
       let user;
-      // if logged in & email matches => reauthenticate; else sign in
       if(auth.currentUser && (!email || auth.currentUser.email === email)){
         const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pw);
         await auth.currentUser.reauthenticateWithCredential(cred);
@@ -355,7 +350,6 @@ const db = firebase.firestore();
         user = res.user;
       }
 
-      // check staff collection role
       const allowed = await checkStaffIsAdmin(user);
       if(!allowed){
         modalError.textContent = 'Account hii hauna ruhusa ya Admin.';
@@ -364,11 +358,14 @@ const db = firebase.firestore();
         return;
       }
 
-      // success -> update UI
-      populateAccountInfo(user, currentStaffRecord);
-      await loadCounts();
-      await loadStaff(); // pre-load staff
+      adminVerified = true;
       adminModal.classList.remove('active'); adminModal.style.display = 'none';
+      modalPassword.value = '';
+      populateAccountInfo(user, currentStaffRecord);
+      signedInBadge.textContent = 'Signed in: ' + (user.email || user.uid);
+      await loadCounts();
+      await loadStaff();
+      await loadPending();
     }catch(err){
       console.error('Sign-in error', err);
       if(err && err.message && err.message.includes('API key not valid')) modalError.textContent = 'API key invalid — hakikisha firebaseConfig ni sahihi.';
@@ -380,7 +377,7 @@ const db = firebase.firestore();
     }
   });
 
-  // check staff doc & role
+  // check staff record & role
   async function checkStaffIsAdmin(user){
     if(!user) return false;
     currentStaffRecord = null;
@@ -402,39 +399,36 @@ const db = firebase.firestore();
     meEmail.value = user.email || user.uid || '';
     meRole.value = staffRec && staffRec.role || '';
     meClass.value = staffRec && staffRec.mainClass || '';
-    signedInBadge.textContent = 'Signed in: ' + (user.email || user.uid);
     roleWarning.style.display = (staffRec && staffRec.role && staffRec.role.toLowerCase().includes('admin')) ? 'none' : 'block';
   }
-  function resetUiForSignedOut(){
-    meName.value = ''; meEmail.value = ''; meRole.value = ''; meClass.value = '';
-    signedInBadge.textContent = 'Not signed in';
-    staffTable.innerHTML = '<tr><td colspan="7" class="muted">Please sign in as Admin to manage staff.</td></tr>';
-    staffCountEl.textContent = '—'; studentsCountEl.textContent = '—'; notifCountEl.textContent = '—';
-  }
 
-  // LOAD COUNTS
+  // load counts (only when adminVerified)
   async function loadCounts(){
+    if(!adminVerified){
+      staffCountEl.textContent = '—'; studentsCountEl.textContent = '—'; notifCountEl.textContent = '—';
+      return;
+    }
     try{
-      // staff count
-      const staffSnap = await db.collection('staff').get();
+      const [staffSnap, stuSnap, noteSnap] = await Promise.all([
+        db.collection('staff').get(),
+        db.collection('students').get(),
+        db.collection('notifications').get()
+      ]);
       staffCountEl.textContent = staffSnap.size;
-      // students
-      const stuSnap = await db.collection('students').get();
       studentsCountEl.textContent = stuSnap.size;
-      // notifications
-      const noteSnap = await db.collection('notifications').get();
       notifCountEl.textContent = noteSnap.size;
     }catch(err){
       console.error('loadCounts error', err);
-      // show permissive messages
-      if(err && err.code === 'permission-denied'){
-        staffCountEl.textContent = 'denied'; studentsCountEl.textContent = 'denied'; notifCountEl.textContent = 'denied';
-      } else { staffCountEl.textContent = 'err'; studentsCountEl.textContent = 'err'; notifCountEl.textContent = 'err'; }
+      staffCountEl.textContent = 'err'; studentsCountEl.textContent='err'; notifCountEl.textContent='err';
     }
   }
 
-  // STAFF: load, render, save
+  // load staff
   async function loadStaff(){
+    if(!adminVerified){
+      staffTable.innerHTML = '<tr><td colspan="7" class="muted">Sign in as Admin to manage staff.</td></tr>';
+      return;
+    }
     staffTable.innerHTML = '<tr><td colspan="7" class="muted">Loading staff...</td></tr>';
     try{
       const snap = await db.collection('staff').orderBy('name','asc').get();
@@ -473,8 +467,9 @@ const db = firebase.firestore();
     staffTable.innerHTML = rows;
   }
 
-  // Staff table events (delegation)
+  // staff table delegation (write ops require adminVerified)
   staffTable.addEventListener('click', async (ev)=>{
+    if(!adminVerified){ alert('You must verify as admin (enter password) to perform this action.'); return; }
     const t = ev.target;
     const row = t.closest('tr[data-id]');
     if(!row) return;
@@ -508,12 +503,13 @@ const db = firebase.firestore();
         }
         toast(settingsStatus, 'Saved');
         await loadStaff(); await loadCounts();
-      }catch(err){ console.error('saveRow', err); alert('Save failed: ' + (err.message||err)); }
+      }catch(err){ alert('Save failed: ' + (err.message||err)); }
     }
   });
 
-  // Save all staff (batch)
+  // Save all (batch)
   saveAllStaffBtn.addEventListener('click', async ()=>{
+    if(!adminVerified){ alert('Verify as admin first.'); return; }
     const rows = Array.from(staffTable.querySelectorAll('tr[data-id]'));
     if(rows.length === 0) return toast(settingsStatus, 'No rows to save');
     if(!confirm('Apply changes for all visible staff rows?')) return;
@@ -531,27 +527,20 @@ const db = firebase.firestore();
         if(before && before.role !== role) roleChanges.push({ before, newRole: role });
       });
       await batch.commit();
-      // create notifications for role changes
       for(const rc of roleChanges){
         const msg = `${rc.before.name || rc.before.email}: Umepewa role ya "${rc.newRole}" kwenye UKSS.`;
         await db.collection('notifications').add({ to: rc.before.email||'', msg, createdAt: new Date().toISOString() });
       }
       toast(settingsStatus, 'All saved');
       await loadStaff(); await loadCounts();
-    }catch(err){ console.error('saveAll', err); alert('Batch save failed: ' + (err.message||err)); }
+    }catch(err){ alert('Batch save failed: ' + (err.message||err)); }
   });
 
-  // Search staff client-side
-  staffSearch.addEventListener('input', (e)=>{
-    const q = e.target.value.trim().toLowerCase();
-    if(!q) return renderStaff(staffList);
-    renderStaff(staffList.filter(s => (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)));
-  });
-
-  // PENDING: simple implementation: find staff without role or active=false
+  // pending load & apply
   async function loadPending(){
     try{
-      const snap = await db.collection('staff').where('role','==','').get(); // example search - adjust as needed
+      // example: pending = staff with empty role or active === false
+      const snap = await db.collection('staff').where('role','==','').get();
       if(snap.empty){ pendingTable.innerHTML = '<tr><td colspan="6" class="muted">No pending staff.</td></tr>'; return; }
       const rows = snap.docs.map(d=>{
         const s = d.data();
@@ -563,13 +552,13 @@ const db = firebase.firestore();
     }catch(err){ console.error('loadPending', err); pendingTable.innerHTML = `<tr><td colspan="6" class="danger">Error loading pending: ${esc(err.message||err)}</td></tr>`; }
   }
 
-  // pending apply (delegation)
   pendingTable.addEventListener('click', async (ev)=>{
     const t = ev.target;
     const row = t.closest('tr[data-id]');
     if(!row) return;
     const id = row.getAttribute('data-id');
     if(t.classList.contains('applyPending')){
+      if(!adminVerified){ alert('Verify as admin first.'); return; }
       const newRole = row.querySelector('.pendingNewRole').value;
       const setActive = row.querySelector('.pendingActive').checked;
       try{
@@ -580,8 +569,8 @@ const db = firebase.firestore();
     }
   });
 
-  // SETTINGS: load + save
-  async function loadSettings(){
+  // settings load/save (write requires adminVerified)
+  async function loadSettingsSafe(){
     try{
       const doc = await db.collection('settings').doc('global').get();
       if(doc.exists){
@@ -590,17 +579,13 @@ const db = firebase.firestore();
         setAcademicYear.value = d.academicYear || '';
         setSmsProvider.value = d.smsProvider || '';
         setGradingNote.value = d.gradingNote || '';
-        if(d.examPeriod){
-          examStart.value = d.examPeriod.start || '';
-          examEnd.value = d.examPeriod.end || '';
-        }
-      } else {
-        setSchoolName.value=''; setAcademicYear.value=''; setSmsProvider.value=''; setGradingNote.value='';
+        if(d.examPeriod){ examStart.value = d.examPeriod.start || ''; examEnd.value = d.examPeriod.end || ''; updateExamCountdown(); }
       }
-    }catch(err){ console.error('loadSettings', err); }
+    }catch(err){ console.error('loadSettingsSafe', err); }
   }
 
   saveSettingsBtn.addEventListener('click', async ()=>{
+    if(!adminVerified){ alert('Verify as admin first.'); return; }
     const payload = {
       schoolName: setSchoolName.value.trim(),
       academicYear: setAcademicYear.value.trim(),
@@ -608,96 +593,68 @@ const db = firebase.firestore();
       gradingNote: setGradingNote.value.trim(),
       updated: new Date().toISOString()
     };
-    try{
-      await db.collection('settings').doc('global').set(payload, { merge:true });
-      toast(settingsStatus, 'Saved');
-    }catch(err){ console.error('saveSettings', err); settingsStatus.textContent = 'Save failed'; }
+    try{ await db.collection('settings').doc('global').set(payload, { merge:true }); toast(settingsStatus, 'Saved'); } catch(err){ console.error('saveSettings', err); settingsStatus.textContent = 'Save failed'; }
   });
 
-  // EXAM period
+  // exam period
   saveExamBtn.addEventListener('click', async ()=>{
+    if(!adminVerified){ alert('Verify as admin first.'); return; }
     const s = examStart.value; const e = examEnd.value;
     if(!s || !e){ alert('Weka start na end'); return; }
-    try{
-      await db.collection('settings').doc('global').set({ examPeriod: { start: s, end: e }, updated: new Date().toISOString() }, { merge:true });
-      updateExamCountdown();
-      toast(settingsStatus, 'Exam period saved');
-    }catch(err){ console.error('saveExam', err); alert('Save failed: ' + (err.message||err)); }
+    try{ await db.collection('settings').doc('global').set({ examPeriod: { start: s, end: e }, updated: new Date().toISOString() }, { merge:true }); updateExamCountdown(); toast(settingsStatus, 'Exam period saved'); }catch(err){ console.error('saveExam', err); alert('Save failed: ' + (err.message||err)); }
   });
 
   clearExamBtn.addEventListener('click', async ()=>{
+    if(!adminVerified){ alert('Verify as admin first.'); return; }
     if(!confirm('Futa exam period?')) return;
-    try{
-      await db.collection('settings').doc('global').set({ examPeriod: firebase.firestore.FieldValue.delete(), updated: new Date().toISOString() }, { merge:true });
-      examStart.value = ''; examEnd.value = ''; updateExamCountdown();
-      toast(settingsStatus, 'Cleared');
-    }catch(err){ console.error('clearExam', err); alert('Clear failed: ' + (err.message||err)); }
+    try{ await db.collection('settings').doc('global').set({ examPeriod: firebase.firestore.FieldValue.delete(), updated: new Date().toISOString() }, { merge:true }); examStart.value=''; examEnd.value=''; updateExamCountdown(); toast(settingsStatus, 'Cleared'); }catch(err){ console.error('clearExam', err); alert('Clear failed: ' + (err.message||err)); }
   });
 
-  function updateExamCountdown(){
-    const s = examStart.value; const e = examEnd.value;
-    if(!s || !e){ examCountdown.textContent = '—'; return; }
-    const end = new Date(e + 'T23:59:59'); const now = new Date();
-    const diff = end - now;
-    if(diff < 0){ examCountdown.textContent = 'Ended'; return; }
-    const days = Math.ceil(diff / (1000*60*60*24));
-    examCountdown.textContent = days + ' day' + (days>1?'s':'') + ' left';
-  }
+  function updateExamCountdown(){ const s = examStart.value; const e = examEnd.value; if(!s||!e){ examCountdown.textContent='—'; return; } const end = new Date(e + 'T23:59:59'); const now = new Date(); const diff = end - now; if(diff < 0){ examCountdown.textContent='Ended'; return;} const days = Math.ceil(diff/(1000*60*60*24)); examCountdown.textContent = days + ' day' + (days>1?'s':'') + ' left'; }
 
-  // LOAD students list (for counts / deletes)
-  async function loadStudents(){
-    try{
-      const snap = await db.collection('students').orderBy('index','asc').get();
-      studentsList = snap.docs.map(d=> ({ id: d.id, ...d.data() }));
-    }catch(err){ console.error('loadStudents', err); studentsList = []; }
-  }
+  // load students & notifications (no write without adminVerified)
+  async function loadStudents(){ try{ const snap = await db.collection('students').orderBy('index','asc').get(); studentsList = snap.docs.map(d=> ({ id: d.id, ...d.data() })); }catch(err){ console.error('loadStudents', err); studentsList = []; } }
+  async function loadNotifications(){ try{ const snap = await db.collection('notifications').orderBy('createdAt','desc').limit(50).get(); notificationsList = snap.docs.map(d=> ({ id: d.id, ...d.data() })); }catch(err){ console.error('loadNotifications', err); notificationsList = []; } }
 
-  // LOGS: load notifications
-  async function loadNotifications(){
-    try{
-      const snap = await db.collection('notifications').orderBy('createdAt','desc').limit(50).get();
-      notificationsList = snap.docs.map(d=> ({ id: d.id, ...d.data() }));
-    }catch(err){ console.error('loadNotifications', err); notificationsList = []; }
-  }
-
-  // opening logs button
   openLogsBtn.addEventListener('click', async ()=>{
     await loadNotifications();
     const msgs = notificationsList.map(n => `${n.createdAt || ''} → ${n.to || ''}: ${n.msg || ''}`).join('\n\n');
     alert(msgs || 'No recent notifications');
   });
 
-  // initial auth listener: populate if already logged-in
+  // auth state listener: do NOT reveal admin UI until adminVerified==true
   auth.onAuthStateChanged(async (u)=>{
     if(u){
-      try{
-        const ok = await checkStaffIsAdmin(u);
-        if(!ok){
-          resetUiForSignedOut();
-          return;
-        }
-        populateAccountInfo(u, currentStaffRecord);
-        await loadCounts();
-        // do not auto-open admin panel, just pre-load staff
-        await loadStaff();
-        await loadPending();
-      }catch(err){
-        console.error('onAuthStateChanged handling error', err);
-      }
+      signedInBadge.textContent = 'Signed in (not verified)';
+      adminVerified = false;
+      await loadSettingsSafe();
+      updateExamCountdown();
+      hideAdminUI();
     } else {
-      resetUiForSignedOut();
+      adminVerified = false;
+      hideAdminUI();
     }
   });
 
-  // initial load for settings
-  (async ()=>{ await loadSettings(); updateExamCountdown(); })();
+  // initial settings load
+  (async ()=>{ await loadSettingsSafe(); updateExamCountdown(); })();
 
-  // expose quick helper if needed
-  window.ukssReloadStaff = loadStaff;
+  // search staff client-side
+  staffSearch.addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    if(!q) return renderStaff(staffList);
+    renderStaff(staffList.filter(s => (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)));
+  });
+
+  // reload staff button (respect adminVerified)
+  reloadStaffBtn.addEventListener('click', ()=> loadStaff());
+  // expose quick helper
+  window.ukssAdmin = { loadStaff, loadCounts, isVerified: ()=>adminVerified };
 })();
 </script>
 </body>
 </html>
+
 
 
 
