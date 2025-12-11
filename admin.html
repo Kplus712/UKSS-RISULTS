@@ -3,481 +3,491 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Admin (Improved)</title>
+  <title>UKSS — Admin (Firebase)</title>
   <style>
+    /* Minimal styling (same look as earlier improved UI) */
     :root{
-      --bg:#0b1220;
-      --panel:#071226;
-      --muted:#9fb0c6;
-      --accent:#bfa034;
-      --accent-2:#2ea3ff;
-      --glass: rgba(255,255,255,0.03);
+      --bg:#071427; --accent:#bfa034; --muted:#9fb0c6;
       --card-radius:12px;
-      --gap:14px;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
       color-scheme: dark;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      min-height:100vh;
-      background: linear-gradient(180deg,#07111a 0%, #071427 100%);
-      color:#e6eef6;
-      font-size:14px;
-      line-height:1.4;
-    }
-
-    /* layout */
-    .app{display:grid;grid-template-columns:260px 1fr;gap:var(--gap);min-height:100vh}
-    .sidebar{
-      padding:20px;
-      border-right:1px solid rgba(255,255,255,0.03);
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-    }
-    .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px}
-    .brand-badge{width:48px;height:48px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#071225}
-    .brand-title{font-weight:700;font-size:16px}
-    .brand-sub{font-size:12px;color:var(--muted)}
-
-    .nav{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    .nav a{
-      display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--muted);text-decoration:none;
-      transition:all .15s;
-    }
-    .nav a:hover{background:var(--glass);color:#fff}
-    .nav a.active{background:linear-gradient(90deg, rgba(191,160,52,0.12), transparent);color:#fff;border-left:3px solid var(--accent);padding-left:8px}
-
-    /* main */
-    .main{padding:18px 22px;overflow:auto}
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}
-    .topbar h2{margin:0;font-size:18px}
-    .topbar .small{color:var(--muted);font-size:13px;margin-top:4px}
-
-    .btn{
-      background:var(--accent);color:#071225;padding:8px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:700;
-    }
-    .btn.btn-ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04);font-weight:600}
-    .btn.btn-primary{background:var(--accent-2);color:#071225}
-    .small{font-size:13px;color:var(--muted)}
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:14px;
-      align-items:start;
-    }
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-      border:1px solid rgba(255,255,255,0.03);
-      padding:14px;border-radius:var(--card-radius);
-      box-shadow: 0 4px 10px rgba(2,6,23,0.3);
-    }
-
-    /* layout columns */
-    .col-4{grid-column: span 4}
-    .col-8{grid-column: span 8}
-    .col-12{grid-column: span 12}
-
-    /* fields */
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    .field{flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px}
-    .label{font-size:13px;color:var(--muted)}
-    .input, .textarea, select{
-      background:transparent;border:1px solid rgba(255,255,255,0.04);padding:9px 10px;border-radius:10px;color:inherit;
-    }
-    .textarea{min-height:72px;resize:vertical}
-
-    /* tables */
-    .matrix-wrap{overflow:auto}
-    table.table{width:100%;border-collapse:collapse;margin-top:8px}
-    thead th{font-size:12px;text-align:left;padding:10px 8px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.03)}
-    tbody td{padding:10px 8px;border-bottom:1px dashed rgba(255,255,255,0.02)}
-    .badge{padding:6px 8px;border-radius:999px;font-size:12px;background:rgba(255,255,255,0.02);color:var(--muted)}
-    .controls{display:flex;gap:8px;align-items:center;margin-top:8px}
-
-    .muted{color:var(--muted)}
-    .danger{color:#ff9b9b}
-
-    /* responsive */
-    @media (max-width: 980px){
-      .app{grid-template-columns: 1fr; }
-      .sidebar{display:flex;justify-content:space-between;align-items:center}
-      .nav{flex-direction:row;overflow:auto;margin-top:0}
-      .col-4, .col-8{grid-column: span 12}
-    }
-
-    /* small helpers */
-    .row-actions{display:flex;gap:8px}
-    .toggle{appearance:none;width:42px;height:26px;border-radius:999px;background:rgba(255,255,255,0.06);position:relative;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+    body{margin:0;background:linear-gradient(180deg,#07111a,#071427);color:#e6eef6;font-size:14px}
+    .app{display:grid;grid-template-columns:260px 1fr;gap:14px;min-height:100vh}
+    .sidebar{padding:18px;border-right:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand-badge{width:44px;height:44px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#071225;font-weight:700}
+    .nav{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+    .nav a{color:var(--muted);text-decoration:none;padding:8px;border-radius:8px}
+    .main{padding:18px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border:1px solid rgba(255,255,255,0.03);padding:12px;border-radius:12px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .input{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .btn{background:var(--accent);color:#071225;padding:8px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    thead th{font-size:12px;color:var(--muted);text-align:left;padding:8px}
+    td{padding:8px;border-bottom:1px dashed rgba(255,255,255,0.02)}
+    .toggle{appearance:none;width:42px;height:26px;border-radius:999px;background:rgba(255,255,255,0.04);position:relative;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
     .toggle::after{content:"";position:absolute;left:4px;top:4px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .15s}
-    .toggle.checked{background:linear-gradient(90deg,var(--accent-2),var(--accent));}
+    .toggle.checked{background:linear-gradient(90deg,#2ea3ff,#bfa034)}
     .toggle.checked::after{transform:translateX(16px);background:#071225}
-
-    .tiny{font-size:12px;color:var(--muted)}
-    .status{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02)}
-    .notice{padding:8px;border-radius:8px;background:rgba(46,163,255,0.06);color:var(--muted);border:1px solid rgba(46,163,255,0.06)}
+    .small{font-size:13px;color:var(--muted)}
+    .hidden{display:none}
+    /* simple responsive */
+    @media (max-width:980px){ .app{grid-template-columns:1fr} .sidebar{display:flex;justify-content:space-between;align-items:center} .nav{flex-direction:row;overflow:auto} }
   </style>
 </head>
 <body>
+  <!-- Firebase SDKs (v8 as requested) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
   <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar card" aria-label="sidebar">
+    <aside class="sidebar card">
       <div class="brand">
         <div class="brand-badge">UK</div>
         <div>
-          <div class="brand-title">UKSS</div>
-          <div class="brand-sub">Results Management</div>
+          <div style="font-weight:700">UKSS</div>
+          <div class="small">Results Management</div>
         </div>
       </div>
 
-      <nav class="nav" id="mainNav">
+      <nav class="nav">
         <a href="#" data-view="marks">🏠 Marks</a>
         <a href="#" data-view="results">📄 Results</a>
         <a href="#" data-view="ranking">🏆 Ranking</a>
-        <a href="#" data-view="behaviour">🧭 Behaviour</a>
-        <a href="#" data-view="sms">📨 SMS</a>
-        <a href="#" data-view="sms_logs">🧾 SMS Logs</a>
         <a href="#" data-view="admin" class="active">🔐 Admin</a>
       </nav>
-      <div style="margin-top:14px" class="small muted">Signed in as <strong id="meNameSide">Admin</strong></div>
+
+      <div style="margin-top:16px" class="small">Signed in as <strong id="sideName">—</strong></div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
-      <!-- TOPBAR -->
-      <header class="topbar">
+      <div class="topbar">
         <div>
-          <h2>🔐 Admin Control Center</h2>
-          <div class="small muted">Full control kwa system owner: staff roles, system settings, logs na approvals za access.</div>
+          <h2 style="margin:0">🔐 Admin Control Center</h2>
+          <div class="small">Ingia kwa Firebase credentials zako. Mfumo utacheki role yako kwenye Firestore.</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button id="logoutBtn" class="btn btn-ghost">Logout</button>
-          <button id="collapseSidebar" class="btn btn-ghost tiny">Toggle Nav</button>
+          <div id="authSection">
+            <button id="btnShowLogin" class="btn">Login</button>
+          </div>
+          <button id="btnLogout" class="btn hidden">Logout</button>
         </div>
-      </header>
+      </div>
 
-      <!-- layout grid -->
-      <div class="grid">
-        <!-- Account card -->
-        <div class="card col-4">
+      <!-- LOGIN MODAL (simple inline) -->
+      <div id="loginBox" class="card hidden" style="max-width:480px;margin-bottom:12px">
+        <h3>Admin Login (Firebase)</h3>
+        <div class="small">Tumia email & password ulizoweka kwenye Firebase Auth.</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-direction:column">
+          <input id="loginEmail" class="input" placeholder="Email" />
+          <input id="loginPassword" class="input" placeholder="Password" type="password" />
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="loginBtn" class="btn">Sign in</button>
+            <button id="cancelLogin" class="btn" style="background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)">Cancel</button>
+          </div>
+          <div id="loginError" class="small" style="color:#ff9b9b"></div>
+        </div>
+      </div>
+
+      <!-- NOT AUTHORIZED NOTICE -->
+      <div id="notAuth" class="card hidden">
+        <h3>Hauna ruhusa</h3>
+        <div class="small">Unaonekana kuwa hauko admin. Tafadhali ingia na account yenye role ya <strong>Admin</strong> au muombe Headmaster/Owner akutole role.</div>
+        <div style="margin-top:8px"><button id="btnSignOut2" class="btn">Sign out</button></div>
+      </div>
+
+      <!-- ADMIN UI -->
+      <div id="adminUI" class="hidden">
+
+        <div class="card" style="margin-bottom:12px">
           <h3>Your Account</h3>
-          <p class="small muted">Taarifa zako na role uliyopewa.</p>
-          <div class="row" style="margin-top:10px">
-            <div class="field"><label class="label">Name</label><input id="meName" class="input" type="text" disabled /></div>
-            <div class="field"><label class="label">Email</label><input id="meEmail" class="input" type="text" disabled /></div>
+          <div class="small">Taarifa ya msimamizi iliyopatikana kutoka Firestore (au kutoka record yako ya staff).</div>
+          <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+            <input id="meName" class="input" placeholder="Name" disabled />
+            <input id="meEmail" class="input" placeholder="Email" disabled />
+            <input id="meRole" class="input" placeholder="Role" disabled />
           </div>
-          <div class="row" style="margin-top:8px">
-            <div class="field"><label class="label">Role</label><input id="meRole" class="input" type="text" disabled /></div>
-            <div class="field"><label class="label">Main Class</label><input id="meClass" class="input" type="text" disabled /></div>
-          </div>
-          <div id="roleWarning" class="small danger" style="margin-top:10px;display:none"></div>
         </div>
 
-        <!-- Staff management -->
-        <div class="card col-8">
+        <div class="card" style="margin-bottom:12px">
           <h3>1. Staff Management</h3>
-          <p class="small muted">Badili roles, class na status ya staff. “Active” ikizimwa, user hawezi login.</p>
-
-          <div class="controls" style="margin-top:10px">
-            <input id="staffSearch" class="input" placeholder="Search name or email..." style="width:100%" />
-            <button id="refreshStaff" class="btn btn-ghost tiny">Refresh</button>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="staffSearch" class="input" placeholder="Search staff by name or email..." />
+            <button id="refreshBtn" class="btn" style="background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)">Refresh</button>
           </div>
 
-          <div class="matrix-wrap" style="margin-top:10px">
-            <table class="table" id="staffTable" aria-describedby="staffTableDesc">
+          <div id="staffTableWrap" style="margin-top:10px;overflow:auto">
+            <table id="staffTable">
               <thead>
-                <tr>
-                  <th>Name</th><th>Email</th><th>Role</th><th>Main Class</th><th>Active</th><th>Updated</th><th></th>
-                </tr>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Main Class</th><th>Active</th><th>Updated</th><th>Actions</th></tr>
               </thead>
-              <tbody><tr><td colspan="7" class="muted tiny">Loading staff...</td></tr></tbody>
+              <tbody><tr><td colspan="7" class="small">Loading staff...</td></tr></tbody>
             </table>
           </div>
 
-          <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:flex-end">
-            <button id="saveStaffBtn" class="btn btn-primary tiny">Save changes</button>
-            <div id="staffStatus" class="tiny muted"></div>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
+            <button id="saveAllBtn" class="btn">Save all changes</button>
+            <div id="staffStatus" class="small" style="align-self:center;color:var(--muted)"></div>
           </div>
         </div>
 
-        <!-- Pending approvals -->
-        <div class="card col-12">
-          <h3>2. Access Control & Approvals</h3>
-          <p class="small muted">Staff wapya au wasio na role/active wataonekana hapa. Wape role sahihi na uwasha “Active”.</p>
-
-          <div class="matrix-wrap" style="margin-top:10px">
-            <table class="table" id="pendingTable">
-              <thead>
-                <tr><th>Name</th><th>Email</th><th>Current Role</th><th>New Role</th><th>Set Active</th><th>Apply</th></tr>
-              </thead>
-              <tbody><tr><td colspan="6" class="muted tiny">Hakuna pending staff.</td></tr></tbody>
-            </table>
+        <div class="card" style="margin-bottom:12px">
+          <h3>2. Pending Approvals</h3>
+          <div id="pendingWrap" style="margin-top:10px;overflow:auto">
+            <table id="pendingTable"><thead><tr><th>Name</th><th>Email</th><th>Requested Role</th><th>Active</th><th>Apply</th></tr></thead><tbody><tr><td colspan="5" class="small">Loading...</td></tr></tbody></table>
           </div>
         </div>
 
-        <!-- System settings -->
-        <div class="card col-8">
+        <div class="card" style="margin-bottom:12px">
           <h3>3. System Settings</h3>
-          <p class="small muted">Taarifa za shule na baadhi ya settings. Zitahifadhiwa localStorage kwa demo — badilisha ili kufunga DB/server.</p>
-
-          <div class="row" style="margin-top:10px">
-            <div class="field"><label class="label">School Name</label><input id="setSchoolName" class="input" placeholder="eg. Mambosasa Secondary School" /></div>
-            <div class="field"><label class="label">School Motto</label><input id="setSchoolMotto" class="input" placeholder="eg. Discipline and Excellence" /></div>
-            <div class="field"><label class="label">School Address</label><input id="setSchoolAddress" class="input" placeholder="eg. P.O. Box 123, Dar es Salaam" /></div>
+          <div class="small">Settings zinahifadhiwa katika `settings/global` doc. Badilisha hapa kisha Save.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <input id="setSchoolName" class="input" placeholder="School name" style="flex:1" />
+            <input id="setAcademicYear" class="input" placeholder="Academic year" style="width:140px" />
           </div>
-
-          <div class="row" style="margin-top:10px">
-            <div class="field"><label class="label">School Phone</label><input id="setSchoolPhone" class="input" placeholder="eg. 0789 000 000" /></div>
-            <div class="field"><label class="label">Current SMS Provider</label><input id="setSmsProvider" class="input" value="Beem Africa" /></div>
-            <div class="field"><label class="label">Academic Year</label><input id="setAcademicYear" class="input" placeholder="eg. 2025" /></div>
+          <div style="margin-top:8px">
+            <textarea id="setGradingNote" class="input" rows="3" placeholder="Grading note" style="width:100%"></textarea>
           </div>
-
-          <div style="margin-top:10px">
-            <label class="label">Grading Scale (summary)</label>
-            <textarea id="setGradingNote" class="textarea" placeholder="eg. A: 75–100, B: 65–74, C: 45–64..."></textarea>
-          </div>
-
-          <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-            <button id="saveSettingsBtn" class="btn">Save Settings</button>
-            <div id="settingsStatus" class="tiny muted"></div>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+            <button id="saveSettings" class="btn">Save Settings</button>
+            <div id="settingsStatus" class="small" style="color:var(--muted)"></div>
           </div>
         </div>
 
-        <!-- Logs -->
-        <div class="card col-4">
-          <h3>4. Logs & Overview</h3>
-          <p class="small muted">Muhtasari wa rekodi muhimu.</p>
-          <div style="margin-top:10px" class="row">
-            <div class="field"><label class="label">Total SMS Logs</label><input id="logSmsCount" class="input" type="text" disabled value="0" /></div>
-            <div class="field"><label class="label">Total Report Cards</label><input id="logReportsCount" class="input" type="text" disabled value="0" /></div>
-            <div class="field"><label class="label">Total Behaviour Records</label><input id="logBehaviourCount" class="input" type="text" disabled value="0" /></div>
-          </div>
+      </div> <!-- adminUI -->
 
-          <div style="margin-top:12px;display:flex;gap:8px">
-            <a href="sms_logs.html" class="btn btn-ghost tiny">Open SMS Logs</a>
-            <a href="results.html" class="btn btn-ghost tiny">Open Results</a>
-          </div>
-        </div>
-
-      </div> <!-- grid -->
     </main>
   </div>
 
-  <!-- lightweight behaviour (demo uses localStorage). Replace handlers with your API calls (Firebase) -->
   <script>
-    // Demo data
-    const demoStaff = [
-      { id: 's1', name:'Asha M. K', email:'asha@school.tz', role:'Admin', mainClass:'', active:true, updated:'2025-11-20' },
-      { id: 's2', name:'James L. P', email:'james@school.tz', role:'Class Teacher', mainClass:'Form 1A', active:true, updated:'2025-11-18' },
-      { id: 's3', name:'Fatima R', email:'fatima@school.tz', role:'Academic', mainClass:'', active:false, updated:'2025-10-08' },
-    ];
-    const demoPending = [
-      { id:'p1', name:'New Staff', email:'new@school.tz', currentRole:'', requestedRole:'Class Teacher' }
-    ];
+  // ---------- CONFIGURE FIREBASE ----------
+  // Replace with your project's config
+  const firebaseConfig = {
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PROJECT_ID.firebaseapp.com",
+    projectId: "PROJECT_ID",
+    // ...other keys...
+  };
+  // init
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-    // Utils
-    const $ = sel => document.querySelector(sel);
-    const renderStaffTable = (list) => {
-      const tbody = document.querySelector('#staffTable tbody');
-      if(!list || list.length===0) { tbody.innerHTML = '<tr><td colspan="7" class="muted tiny">Hakuna staff.</td></tr>'; return; }
-      tbody.innerHTML = '';
-      list.forEach(s=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${escapeHtml(s.name)}</strong></td>
-          <td>${escapeHtml(s.email)}</td>
-          <td>
-            <select data-id="${s.id}" class="roleSelect">
-              <option ${s.role==='Admin'?'selected':''}>Admin</option>
-              <option ${s.role==='Headmaster'?'selected':''}>Headmaster</option>
-              <option ${s.role==='Academic'?'selected':''}>Academic</option>
-              <option ${s.role==='Class Teacher'?'selected':''}>Class Teacher</option>
-            </select>
-          </td>
-          <td><input data-id="${s.id}" class="input mainClassInput" value="${escapeHtml(s.mainClass||'')}" /></td>
-          <td><button class="toggle ${s.active?'checked':''}" data-id="${s.id}" title="Toggle active"></button></td>
-          <td>${s.updated||''}</td>
-          <td class="row-actions">
-            <button class="btn btn-ghost tiny" data-id="${s.id}" data-action="impersonate">Impersonate</button>
-            <button class="btn tiny" data-id="${s.id}" data-action="save">Save</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    };
+  // ---------- UI refs ----------
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  const loginBox = document.getElementById('loginBox');
+  const loginBtn = document.getElementById('loginBtn');
+  const cancelLogin = document.getElementById('cancelLogin');
+  const loginError = document.getElementById('loginError');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const btnLogout = document.getElementById('btnLogout');
+  const authSection = document.getElementById('authSection');
+  const adminUI = document.getElementById('adminUI');
+  const notAuth = document.getElementById('notAuth');
+  const btnSignOut2 = document.getElementById('btnSignOut2');
 
-    const renderPending = (list) => {
-      const tbody = document.querySelector('#pendingTable tbody');
-      if(!list || list.length===0) { tbody.innerHTML = '<tr><td colspan="6" class="muted tiny">Hakuna pending staff.</td></tr>'; return; }
-      tbody.innerHTML = '';
-      list.forEach(p=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(p.name)}</td>
-          <td>${escapeHtml(p.email)}</td>
-          <td>${escapeHtml(p.currentRole||'-')}</td>
-          <td>
-            <select data-id="${p.id}" class="pendingRole">
-              <option ${p.requestedRole==='Admin'?'selected':''}>Admin</option>
-              <option ${p.requestedRole==='Headmaster'?'selected':''}>Headmaster</option>
-              <option ${p.requestedRole==='Academic'?'selected':''}>Academic</option>
-              <option ${p.requestedRole==='Class Teacher'?'selected':''}>Class Teacher</option>
-            </select>
-          </td>
-          <td><button class="toggle ${p.active?'checked':''}" data-id="${p.id}" title="Set active (pending)"></button></td>
-          <td><button class="btn btn-primary tiny" data-id="${p.id}" data-action="apply">Apply</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    };
+  // account fields
+  const meName = document.getElementById('meName');
+  const meEmail = document.getElementById('meEmail');
+  const meRole = document.getElementById('meRole');
+  const sideName = document.getElementById('sideName');
 
-    function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  // staff table
+  const staffTableBody = document.querySelector('#staffTable tbody');
+  const pendingTableBody = document.querySelector('#pendingTable tbody');
+  const staffSearch = document.getElementById('staffSearch');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const saveAllBtn = document.getElementById('saveAllBtn');
+  const staffStatus = document.getElementById('staffStatus');
 
-    // init
-    let staff = JSON.parse(localStorage.getItem('ukss_staff')) || demoStaff.slice();
-    let pending = JSON.parse(localStorage.getItem('ukss_pending')) || demoPending.slice();
-    const settings = JSON.parse(localStorage.getItem('ukss_settings')) || {
-      schoolName:'Mambosasa Secondary School',
-      schoolMotto:'Discipline and Excellence',
-      schoolAddress:'P.O. Box 123, Dar es Salaam',
-      schoolPhone:'0789 000 000',
-      smsProvider:'Beem Africa',
-      academicYear:'2025',
-      gradingNote:'A: 75–100, B: 65–74, C: 45–64, D: 25–44, E: 0–24'
-    };
+  // settings fields
+  const setSchoolName = document.getElementById('setSchoolName');
+  const setAcademicYear = document.getElementById('setAcademicYear');
+  const setGradingNote = document.getElementById('setGradingNote');
+  const saveSettingsBtn = document.getElementById('saveSettings');
+  const settingsStatus = document.getElementById('settingsStatus');
 
-    // populate UI
-    document.getElementById('meName').value = settings.schoolName ? 'System Owner' : 'Admin User';
-    document.getElementById('meEmail').value = 'owner@school.tz';
-    document.getElementById('meRole').value = 'Admin';
-    document.getElementById('meClass').value = '';
+  // local model (client-side)
+  let staffList = [];
+  let pendingList = [];
+  let currentUser = null;
+  let currentStaffRecord = null; // staff doc for current user (to check role)
 
-    // settings fields
-    document.getElementById('setSchoolName').value = settings.schoolName || '';
-    document.getElementById('setSchoolMotto').value = settings.schoolMotto || '';
-    document.getElementById('setSchoolAddress').value = settings.schoolAddress || '';
-    document.getElementById('setSchoolPhone').value = settings.schoolPhone || '';
-    document.getElementById('setSmsProvider').value = settings.smsProvider || '';
-    document.getElementById('setAcademicYear').value = settings.academicYear || '';
-    document.getElementById('setGradingNote').value = settings.gradingNote || '';
+  // ---------- Auth UI ----------
+  btnShowLogin.addEventListener('click', ()=> { loginBox.classList.toggle('hidden'); loginError.innerText=''; });
+  cancelLogin.addEventListener('click', ()=> loginBox.classList.add('hidden'));
 
-    // render initial
-    renderStaffTable(staff);
-    renderPending(pending);
-    document.getElementById('logSmsCount').value = localStorage.getItem('ukss_logs_sms') || '0';
-    document.getElementById('logReportsCount').value = localStorage.getItem('ukss_reports_count') || '0';
-    document.getElementById('logBehaviourCount').value = localStorage.getItem('ukss_behaviour_count') || '0';
-
-    // events
-    document.getElementById('staffSearch').addEventListener('input', (e)=>{
-      const q = e.target.value.trim().toLowerCase();
-      const filtered = staff.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q));
-      renderStaffTable(filtered);
-    });
-
-    document.getElementById('refreshStaff').addEventListener('click', ()=>{
-      staff = JSON.parse(localStorage.getItem('ukss_staff')) || demoStaff.slice();
-      renderStaffTable(staff);
-      document.getElementById('staffStatus').innerText = 'Refreshed';
-      setTimeout(()=> document.getElementById('staffStatus').innerText = '', 1800);
-    });
-
-    // generic toggle & actions using event delegation
-    document.addEventListener('click', (ev)=>{
-      const t = ev.target;
-      if(t.matches('.toggle')){
-        t.classList.toggle('checked');
-        // reflect into staff/pending model
-        const id = t.getAttribute('data-id');
-        let found = staff.find(s=>s.id===id);
-        if(found){ found.active = t.classList.contains('checked'); found.updated = new Date().toISOString().slice(0,10); localStorage.setItem('ukss_staff', JSON.stringify(staff)); }
-        found = pending.find(p=>p.id===id);
-        if(found){ found.active = t.classList.contains('checked'); localStorage.setItem('ukss_pending', JSON.stringify(pending)); }
-      } else if(t.matches('button[data-action="save"]')){
-        const id = t.getAttribute('data-id');
-        const row = t.closest('tr');
-        const role = row.querySelector('.roleSelect').value;
-        const mainClass = row.querySelector('.mainClassInput').value;
-        const st = staff.find(s=>s.id===id);
-        if(st){ st.role = role; st.mainClass = mainClass; st.updated = new Date().toISOString().slice(0,10); localStorage.setItem('ukss_staff', JSON.stringify(staff)); renderStaffTable(staff); flashStatus('#staffStatus','Saved'); }
-      } else if(t.matches('button[data-action="impersonate"]')){
-        const id = t.getAttribute('data-id');
-        const s = staff.find(x=>x.id===id);
-        if(s) alert('Impersonate demo: will open dashboard as ' + s.name);
-      } else if(t.matches('button[data-action="apply"]')){
-        const id = t.getAttribute('data-id');
-        const row = t.closest('tr');
-        const newRole = row.querySelector('.pendingRole').value;
-        // move to staff
-        const pIdx = pending.findIndex(x=>x.id===id);
-        if(pIdx>-1){
-          const p = pending.splice(pIdx,1)[0];
-          const newStaff = { id: 's'+Date.now(), name:p.name, email:p.email, role:newRole, mainClass:'', active:true, updated:new Date().toISOString().slice(0,10) };
-          staff.push(newStaff);
-          localStorage.setItem('ukss_staff', JSON.stringify(staff));
-          localStorage.setItem('ukss_pending', JSON.stringify(pending));
-          renderStaffTable(staff);
-          renderPending(pending);
-          flashStatus('#staffStatus','Applied');
-        }
-      }
-    });
-
-    // Save all staff changes (collect UI values)
-    document.getElementById('saveStaffBtn').addEventListener('click', ()=>{
-      // gather from table
-      document.querySelectorAll('#staffTable tbody tr').forEach(tr=>{
-        const roleSel = tr.querySelector('.roleSelect');
-        const mainIn = tr.querySelector('.mainClassInput');
-        const toggle = tr.querySelector('.toggle');
-        if(!roleSel) return;
-        const id = roleSel.getAttribute('data-id');
-        const s = staff.find(x=>x.id===id);
-        if(s){
-          s.role = roleSel.value;
-          s.mainClass = mainIn.value;
-          s.active = toggle.classList.contains('checked');
-          s.updated = new Date().toISOString().slice(0,10);
-        }
-      });
-      localStorage.setItem('ukss_staff', JSON.stringify(staff));
-      flashStatus('#staffStatus','All changes saved');
-    });
-
-    // Settings save
-    document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
-      const S = {
-        schoolName: document.getElementById('setSchoolName').value.trim(),
-        schoolMotto: document.getElementById('setSchoolMotto').value.trim(),
-        schoolAddress: document.getElementById('setSchoolAddress').value.trim(),
-        schoolPhone: document.getElementById('setSchoolPhone').value.trim(),
-        smsProvider: document.getElementById('setSmsProvider').value.trim(),
-        academicYear: document.getElementById('setAcademicYear').value.trim(),
-        gradingNote: document.getElementById('setGradingNote').value.trim()
-      };
-      localStorage.setItem('ukss_settings', JSON.stringify(S));
-      document.getElementById('settingsStatus').innerText = 'Saved';
-      setTimeout(()=> document.getElementById('settingsStatus').innerText = '', 1800);
-    });
-
-    // sidebar toggle
-    document.getElementById('collapseSidebar').addEventListener('click', ()=>{
-      document.querySelector('.sidebar').classList.toggle('collapsed');
-      const nav = document.getElementById('mainNav');
-      if(nav.style.display === 'none'){ nav.style.display = ''; } else { nav.style.display = 'flex'; }
-    });
-
-    // helper
-    function flashStatus(sel, text){
-      const el = document.querySelector(sel);
-      if(!el) return;
-      el.innerText = text;
-      setTimeout(()=> el.innerText = '', 2000);
+  loginBtn.addEventListener('click', async ()=>{
+    const email = loginEmail.value.trim();
+    const pw = loginPassword.value;
+    loginError.innerText = '';
+    if(!email || !pw){ loginError.innerText = 'Ingiza email na password'; return; }
+    try{
+      await auth.signInWithEmailAndPassword(email, pw);
+      loginBox.classList.add('hidden');
+    }catch(err){
+      console.error(err);
+      loginError.innerText = err.message || 'Login failed';
     }
+  });
 
-    // persist demo arrays if not present
-    if(!localStorage.getItem('ukss_staff')) localStorage.setItem('ukss_staff', JSON.stringify(staff));
-    if(!localStorage.getItem('ukss_pending')) localStorage.setItem('ukss_pending', JSON.stringify(pending));
+  btnLogout.addEventListener('click', ()=> auth.signOut());
+  btnSignOut2.addEventListener('click', ()=> auth.signOut());
+
+  // ---------- Auth state listener ----------
+  auth.onAuthStateChanged(async (user)=>{
+    currentUser = user;
+    if(user){
+      // show signout button
+      btnLogout.classList.remove('hidden');
+      authSection.classList.add('hidden');
+      sideName.innerText = user.email || user.displayName || 'User';
+
+      // load staff record for this uid if exists
+      try{
+        // try doc by uid
+        const staffDocRef = db.collection('staff').doc(user.uid);
+        const staffSnap = await staffDocRef.get();
+        if(staffSnap.exists){
+          currentStaffRecord = { id: staffSnap.id, ...staffSnap.data() };
+        } else {
+          // fallback: search by email
+          const q = await db.collection('staff').where('email','==', user.email).limit(1).get();
+          if(!q.empty){ currentStaffRecord = { id: q.docs[0].id, ...q.docs[0].data() }; }
+        }
+
+        // check role
+        const role = currentStaffRecord ? currentStaffRecord.role : null;
+        meName.value = currentStaffRecord ? currentStaffRecord.name : (user.displayName || '');
+        meEmail.value = user.email || '';
+        meRole.value = role || '—';
+
+        if(role && role.toLowerCase().includes('admin')){
+          // authorized: show admin UI
+          notAuth.classList.add('hidden');
+          adminUI.classList.remove('hidden');
+          loadStaff();
+          loadPending();
+          loadSettings();
+        } else {
+          // not authorized
+          adminUI.classList.add('hidden');
+          notAuth.classList.remove('hidden');
+        }
+
+      }catch(err){
+        console.error('Error fetching staff record', err);
+        adminUI.classList.add('hidden');
+        notAuth.classList.remove('hidden');
+      }
+    } else {
+      // not signed in
+      btnLogout.classList.add('hidden');
+      authSection.classList.remove('hidden');
+      adminUI.classList.add('hidden');
+      notAuth.classList.add('hidden');
+      sideName.innerText = '—';
+      meName.value = ''; meEmail.value=''; meRole.value='';
+    }
+  });
+
+  // ---------- Firestore data functions ----------
+  async function loadStaff(){
+    staffTableBody.innerHTML = '<tr><td colspan="7" class="small">Loading staff...</td></tr>';
+    try{
+      const snap = await db.collection('staff').orderBy('name','asc').get();
+      staffList = snap.docs.map(d=> ({ id: d.id, ...d.data() }) );
+      renderStaffTable(staffList);
+    }catch(err){
+      console.error(err);
+      staffTableBody.innerHTML = '<tr><td colspan="7" class="small">Imeshindikana kupakia staff</td></tr>';
+    }
+  }
+
+  function renderStaffTable(list){
+    if(!list || list.length===0){ staffTableBody.innerHTML = '<tr><td colspan="7" class="small">Hakuna staff.</td></tr>'; return; }
+    const rows = list.map(s=>{
+      const checked = s.active ? 'checked' : '';
+      return `<tr data-id="${s.id}">
+        <td><strong>${escapeHtml(s.name)}</strong></td>
+        <td>${escapeHtml(s.email)}</td>
+        <td>
+          <select class="roleSelect">
+            <option ${s.role==='Admin'?'selected':''}>Admin</option>
+            <option ${s.role==='Headmaster'?'selected':''}>Headmaster</option>
+            <option ${s.role==='Academic'?'selected':''}>Academic</option>
+            <option ${s.role==='Class Teacher'?'selected':''}>Class Teacher</option>
+          </select>
+        </td>
+        <td><input class="input mainClass" value="${escapeHtml(s.mainClass||'')}" /></td>
+        <td><button class="toggle ${s.active? 'checked':''}" data-id="${s.id}"></button></td>
+        <td>${s.updated || ''}</td>
+        <td style="white-space:nowrap"><button class="btn small saveRow" data-id="${s.id}" style="padding:6px 8px">Save</button></td>
+      </tr>`;
+    }).join('');
+    staffTableBody.innerHTML = rows;
+  }
+
+  async function loadPending(){
+    pendingTableBody.innerHTML = '<tr><td colspan="5" class="small">Loading pending...</td></tr>';
+    try{
+      const snap = await db.collection('pending_staff').orderBy('createdAt','asc').get();
+      pendingList = snap.docs.map(d=> ({ id:d.id, ...d.data() }) );
+      renderPending(pendingList);
+    }catch(err){
+      console.error(err);
+      pendingTableBody.innerHTML = '<tr><td colspan="5" class="small">Imeshindikana kupakia pending</td></tr>';
+    }
+  }
+
+  function renderPending(list){
+    if(!list || list.length===0){ pendingTableBody.innerHTML = '<tr><td colspan="5" class="small">Hakuna pending staff.</td></tr>'; return; }
+    const rows = list.map(p=>`
+      <tr data-id="${p.id}">
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.email)}</td>
+        <td>${escapeHtml(p.requestedRole || p.role || 'Class Teacher')}</td>
+        <td><button class="toggle ${p.active?'checked':''}" data-id="${p.id}"></button></td>
+        <td><button class="btn small applyPending" data-id="${p.id}">Apply</button></td>
+      </tr>
+    `).join('');
+    pendingTableBody.innerHTML = rows;
+  }
+
+  async function loadSettings(){
+    try{
+      const doc = await db.collection('settings').doc('global').get();
+      if(doc.exists){
+        const data = doc.data();
+        setSchoolName.value = data.schoolName || '';
+        setAcademicYear.value = data.academicYear || '';
+        setGradingNote.value = data.gradingNote || '';
+        settingsStatus.innerText = '';
+      } else {
+        settingsStatus.innerText = 'No settings found (will create on save)';
+      }
+    }catch(err){
+      console.error(err);
+      settingsStatus.innerText = 'Failed to load settings';
+    }
+  }
+
+  // ---------- event delegation for table actions ----------
+  document.addEventListener('click', async (ev)=>{
+    const t = ev.target;
+    if(t.matches('.toggle')){
+      t.classList.toggle('checked');
+      const id = t.getAttribute('data-id');
+      // reflect only visually; Save will persist
+      staffStatus.innerText = 'Toggle changed (remember to Save)';
+      setTimeout(()=> staffStatus.innerText = '', 1500);
+    } else if(t.matches('.saveRow')){
+      const id = t.getAttribute('data-id');
+      const tr = document.querySelector(`tr[data-id="${id}"]`);
+      if(!tr) return;
+      const role = tr.querySelector('.roleSelect').value;
+      const mainClass = tr.querySelector('.mainClass').value;
+      const active = tr.querySelector('.toggle').classList.contains('checked');
+      try{
+        await db.collection('staff').doc(id).set({ role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
+        staffStatus.innerText = 'Saved';
+        setTimeout(()=> staffStatus.innerText = '', 1500);
+        loadStaff();
+      }catch(err){
+        console.error(err); alert('Save failed: '+err.message);
+      }
+    } else if(t.matches('.applyPending')){
+      const id = t.getAttribute('data-id');
+      // move pending to staff collection
+      try{
+        const pdoc = await db.collection('pending_staff').doc(id).get();
+        if(!pdoc.exists) { alert('Pending not found'); return; }
+        const data = pdoc.data();
+        // create staff doc (use generated id)
+        const newStaff = {
+          name: data.name,
+          email: data.email,
+          role: data.requestedRole || data.role || 'Class Teacher',
+          mainClass: data.mainClass || '',
+          active: true,
+          updated: new Date().toISOString()
+        };
+        await db.collection('staff').add(newStaff);
+        await db.collection('pending_staff').doc(id).delete();
+        loadStaff(); loadPending();
+        flash('#staffStatus','Applied pending');
+      }catch(err){
+        console.error(err); alert('Apply failed: '+err.message);
+      }
+    }
+  });
+
+  // search filter
+  staffSearch.addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    if(!q) renderStaffTable(staffList);
+    else renderStaffTable(staffList.filter(s=> (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)));
+  });
+
+  refreshBtn.addEventListener('click', ()=> { loadStaff(); loadPending(); flash('#staffStatus','Refreshed'); });
+
+  // save all visible edits (gathers rows and writes in batch)
+  saveAllBtn.addEventListener('click', async ()=>{
+    const rows = Array.from(document.querySelectorAll('#staffTable tbody tr[data-id]'));
+    const batch = db.batch();
+    rows.forEach(r=>{
+      const id = r.getAttribute('data-id');
+      const role = r.querySelector('.roleSelect').value;
+      const mainClass = r.querySelector('.mainClass').value;
+      const active = r.querySelector('.toggle').classList.contains('checked');
+      const ref = db.collection('staff').doc(id);
+      batch.set(ref, { role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
+    });
+    try{
+      await batch.commit();
+      flash('#staffStatus','All saved');
+      loadStaff();
+    }catch(err){
+      console.error(err); alert('Batch save failed: '+err.message);
+    }
+  });
+
+  // settings save
+  saveSettingsBtn.addEventListener('click', async ()=>{
+    const payload = {
+      schoolName: setSchoolName.value.trim(),
+      academicYear: setAcademicYear.value.trim(),
+      gradingNote: setGradingNote.value.trim(),
+      updated: new Date().toISOString()
+    };
+    try{
+      await db.collection('settings').doc('global').set(payload, { merge:true });
+      settingsStatus.innerText = 'Saved';
+      setTimeout(()=> settingsStatus.innerText = '', 1800);
+    }catch(err){
+      console.error(err); settingsStatus.innerText = 'Save failed';
+    }
+  });
+
+  // helper functions
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function flash(sel, text){
+    const el = document.querySelector(sel);
+    if(!el) return;
+    el.innerText = text;
+    setTimeout(()=> el.innerText = '', 2000);
+  }
+
+  // ---------- initial guidance ----------
+  // If you want admin to be recognized only by custom claims (safer),
+  // set a custom claim 'admin': true on the user and check via auth.currentUser.getIdTokenResult().
+  // This example checks role in 'staff' collection for simplicity.
+
   </script>
 </body>
 </html>
+
