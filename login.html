@@ -4,6 +4,30 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UKSS — Login</title>
+
+  <!-- ===== Defensive: hide any app shell to avoid double-login UI =====
+       Paste this as early as possible so it runs before other UI shows.
+  -->
+  <script>
+    (function(){
+      try {
+        // If login page is loaded but the app shell is present (old markup),
+        // hide it to prevent two login UIs showing.
+        var shells = document.querySelectorAll('.app, .main, .sidebar, header.topbar, .brand, .brand-badge, .brand-title');
+        shells.forEach(function(el){
+          try { el.style.display = 'none'; } catch(e){}
+        });
+        // ensure body backgrounds from app shell don't override login styles
+        try { document.documentElement.style.background = ''; document.body.style.background = ''; } catch(e){}
+        // make login-card visible if present
+        var loginCard = document.querySelector('.login-card');
+        if(loginCard) loginCard.style.display = 'block';
+      } catch(e){
+        console.warn('Login defensive hide failed', e);
+      }
+    })();
+  </script>
+
   <link rel="stylesheet" href="./style.css" />
   <style>
     body{
@@ -24,6 +48,7 @@
       background:rgba(15,23,42,0.96);
       box-shadow:0 20px 60px rgba(0,0,0,0.55);
       border:1px solid rgba(148,163,184,0.35);
+      display:block;
     }
     .login-header{
       display:flex;
@@ -169,32 +194,26 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- App scripts -->
+  <!-- App scripts: ensure database.js defines firebaseConfig + auth/db, then auth.js contains submit handler -->
   <script src="./js/database.js"></script>
-  <script src="./js/auth.js?v=2"></script>
+  <script src="./js/auth.js?v=3"></script>
 
-  <!-- small helper: ensure loginStatus visible toggles work on form submit -->
+  <!-- quick UX helper to show loader instantly on Enter key -->
   <script>
-    // If user focuses password and presses Enter, show loader class immediately for perceived speed
     (function(){
       const form = document.getElementById('loginForm');
       const status = document.getElementById('loginStatus');
       const submit = document.getElementById('loginSubmit');
+      if(!form) return;
       form.addEventListener('submit', ()=> {
-        if(status) {
-          status.classList.remove('hidden');
-          status.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo';
-        }
-        if(submit) {
-          submit.disabled = true;
-          submit.textContent = 'Logging in...';
-        }
+        if(status){ status.classList.remove('hidden'); status.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo'; }
+        if(submit){ submit.disabled = true; submit.textContent = 'Logging in...'; }
       });
-      // if auth.js resets status/submit, this will be overwritten as intended.
     })();
   </script>
 </body>
 </html>
+
 
 
 
