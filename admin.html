@@ -1,288 +1,214 @@
-<!-- Save as admin_popup_full.html -->
 <!doctype html>
 <html lang="sw">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UKSS — Admin Popup (Full)</title>
-  <meta name="theme-color" content="#0b1320" />
+  <title>UKSS — Admin (Compact Full)</title>
+  <meta name="theme-color" content="#071427" />
   <style>
-    /* === GLOBAL (minimal) === */
+    /* -------------------------
+       Basic look & compact modal
+       -------------------------*/
     :root{
-      --bg:#071427; --panel:#061224; --muted:#9fb0c6; --accent:#bfa034; --accent-2:#2ea3ff;
-      --card-radius:12px; --glass: rgba(255,255,255,0.03);
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --bg:#071427; --card:#0b1724; --muted:#9fb0c6; --accent:#bfa034; --accent-2:#2ea3ff;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#07111a,#071427);color:#e6eef6;font-size:14px}
-    .btn{background:var(--accent);color:#071225;padding:8px 10px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .btn{background:var(--accent);color:#071225;padding:8px 10px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
     .small{font-size:13px;color:var(--muted)}
-    input,input[type="text"],textarea,select{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
+    input, textarea, select { background: transparent; border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:8px; color:inherit; }
     textarea{resize:vertical}
 
-    /* === ADMIN OVERLAY === */
-    .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:9999}
-    .admin-overlay.active{display:flex}
-    .admin-modal{
-      width:min(1120px,96vw);max-height:92vh;background:linear-gradient(180deg,#071427,#050b16);
-      border-radius:14px;border:1px solid rgba(255,255,255,0.06);box-shadow:0 30px 80px rgba(0,0,0,0.7);
-      display:flex;flex-direction:column;overflow:hidden;
+    /* Compact admin gate modal (small) */
+    .admin-gate-backdrop {
+      position: fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:1400;
+      background: rgba(0,0,0,0.28);
     }
-    .admin-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);background:linear-gradient(90deg, rgba(191,160,52,0.08), transparent)}
-    .admin-title{font-weight:800;font-size:16px}
-    .admin-body{padding:12px 16px;overflow:auto}
-    .admin-tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-    .admin-tab{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;background:transparent;color:var(--muted);font-weight:600}
-    .admin-tab.active{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:#071225;border-color:transparent}
-    .admin-section{display:none}
-    .admin-section.active{display:block}
+    .admin-gate-backdrop.active { display:flex; }
+    .admin-gate {
+      width:460px; max-width:94%; border-radius:12px; padding:14px; background: linear-gradient(180deg,#071427,#061025);
+      border:1px solid rgba(255,255,255,0.06); box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+    }
+    .admin-gate h3{margin:0 0 6px}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:8px}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+    .error{color:#ff9b9b;margin-top:8px;min-height:18px}
 
-    /* grid inside modal */
-    .admin-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-    .col-12{grid-column:span 12}
+    /* Compact controls inside modal */
+    #compactControls { display:none; margin-top:12px; border-radius:8px; padding:8px; border:1px solid rgba(255,255,255,0.03); background:rgba(255,255,255,0.02); }
+    .small-btn{padding:6px 8px;border-radius:8px;border:0;cursor:pointer}
+    .small-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+
+    /* Full admin panel modal (embedded below compact) */
+    .admin-panel { margin-top:12px; display:none; border-radius:8px; background:rgba(12,18,32,0.7); padding:10px; border:1px solid rgba(255,255,255,0.04); max-height:58vh; overflow:auto;}
+    .panel-tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .tab{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;color:var(--muted)}
+    .tab.active{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:#071225;border-color:transparent}
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
     .col-8{grid-column:span 8}
     .col-4{grid-column:span 4}
-    @media(max-width:900px){ .admin-grid{grid-template-columns:repeat(6,1fr)} .col-8,.col-4,.col-12{grid-column:span 6} }
+    .col-12{grid-column:span 12}
+    @media(max-width:900px){ .col-8,.col-4,.col-12{grid-column:span 12} }
 
-    .card{background:rgba(12,18,32,0.7);border-radius:12px;padding:10px;border:1px solid rgba(255,255,255,0.04)}
-    .label{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .inline-row{display:flex;gap:8px;align-items:center}
-
-    /* table */
-    .table-wrap{max-height:280px;overflow:auto;margin-top:8px}
-    table{width:100%;border-collapse:collapse}
-    thead th{font-size:12px;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
-    tbody td{padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .card{background:transparent;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
+    .table { width:100%; border-collapse:collapse; margin-top:8px; }
+    thead th{ font-size:12px;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid rgba(255,255,255,0.04) }
+    tbody td{ padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03) }
     .toggle{appearance:none;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,0.04);position:relative;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
     .toggle::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:all .14s}
     .toggle.checked{background:linear-gradient(90deg,var(--accent-2),var(--accent))}
     .toggle.checked::after{transform:translateX(16px);background:#071225}
 
-    .danger{color:#ff9b9b}
-    .notice{background:rgba(46,163,255,0.06);padding:8px;border-radius:8px;color:var(--muted);border:1px solid rgba(46,163,255,0.06)}
-
-    .countdown{font-size:22px;font-weight:800;color:var(--accent);}
-
-    /* small helpers */
-    .muted{color:var(--muted)}
-    .right{margin-left:auto}
+    .countdown{font-size:20px;font-weight:800;color:var(--accent)}
   </style>
 </head>
 <body>
-  <!-- ===========================
-       ADMIN POPUP (FULL)
-       =========================== -->
-  <div id="adminOverlay" class="admin-overlay" aria-hidden="true">
-    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
-      <div class="admin-header">
-        <div>
-          <div id="adminTitle" class="admin-title">🔐 Admin Control — UKSS</div>
-          <div class="small muted" id="adminSubtitle">Manage staff, settings, students & exam periods</div>
+
+  <!-- Example place to add admin trigger: change to match your marks page topbar -->
+  <button id="openAdminBtn" class="btn ghost" style="position:fixed;right:18px;bottom:18px;z-index:1000">🔐 Admin</button>
+
+  <!-- Compact Admin Gate Backdrop -->
+  <div id="adminBackdrop" class="admin-gate-backdrop" aria-hidden="true">
+    <div class="admin-gate" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+      <h3 id="adminTitle">Admin sign-in (compact)</h3>
+      <div class="muted">Tumia email & password zako za Firebase. Ikiwa tayari ume-login, unaweza kuingiza tu password (Reauthenticate).</div>
+
+      <div style="margin-top:10px" class="row">
+        <input id="gateEmail" type="text" placeholder="Email (acha ikiwa ume-login)" />
+      </div>
+      <div style="margin-top:8px" class="row">
+        <input id="gatePassword" type="password" placeholder="Password" />
+      </div>
+
+      <div class="actions">
+        <button id="gateCancel" class="btn ghost">Cancel</button>
+        <button id="gateSubmit" class="btn">Sign in</button>
+      </div>
+
+      <div id="gateError" class="error" role="status"></div>
+
+      <!-- Compact quick controls shown after successful signin & role check -->
+      <div id="compactControls">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><strong id="compactUserLabel"></strong> <div class="small muted" id="compactUserRole"></div></div>
+          <div class="muted">Quick actions</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="small muted" id="adminUserBadge"></div>
-          <button id="adminClose" class="btn ghost">Close</button>
+
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="quickRecalc" class="small-btn">Recalculate Rankings</button>
+          <button id="quickDeleteStudent" class="small-btn small-ghost">Delete Student by Index</button>
+          <button id="openFullPanel" class="small-btn">Open Admin Panel</button>
+          <button id="quickNotif" class="small-btn small-ghost">Create Role Notice</button>
         </div>
       </div>
 
-      <div class="admin-body">
-        <div class="admin-tabs" role="tablist" aria-label="Admin tabs">
-          <button class="admin-tab active" data-tab="tab-account">Account</button>
-          <button class="admin-tab" data-tab="tab-staff">Staff</button>
-          <button class="admin-tab" data-tab="tab-students">Students</button>
-          <button class="admin-tab" data-tab="tab-settings">Settings</button>
-          <button class="admin-tab" data-tab="tab-exams">Exam Period</button>
-          <button class="admin-tab" data-tab="tab-logs">Logs</button>
+      <!-- Full admin panel (inside same modal) -->
+      <div id="adminPanel" class="admin-panel" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="panel-tabs" role="tablist">
+            <div class="tab active" data-tab="tabStaff">Staff</div>
+            <div class="tab" data-tab="tabStudents">Students</div>
+            <div class="tab" data-tab="tabSettings">Settings</div>
+            <div class="tab" data-tab="tabExam">Exam Period</div>
+            <div class="tab" data-tab="tabLogs">Logs</div>
+          </div>
+          <div><button id="closePanelBtn" class="btn ghost">Close panel</button></div>
         </div>
 
-        <div id="adminNotAllowed" class="card danger" style="display:none;margin-bottom:10px;">
-          Hauna ruhusa kama Admin. Ingia na account yenye role ya <strong>Admin</strong> au muombe owner akukabidhi role.
+        <div id="tabStaff" class="card" style="margin-top:10px">
+          <h4 style="margin:0 0 6px">Staff Management</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="staffSearch" placeholder="Search staff name/email" />
+            <button id="staffRefresh" class="btn ghost">Refresh</button>
+          </div>
+          <div style="margin-top:8px;overflow:auto;max-height:220px">
+            <table class="table" id="staffTable">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Main Class</th><th>Active</th><th>Updated</th><th></th></tr></thead>
+              <tbody><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+            </table>
+          </div>
         </div>
 
-        <div class="admin-grid">
-          <!-- ACCOUNT -->
-          <section id="tab-account" class="admin-section active col-12">
-            <div class="card">
-              <h4 style="margin:0 0 8px">Your Account</h4>
-              <div class="inline-row" style="gap:12px;flex-wrap:wrap">
-                <div style="min-width:180px;flex:1">
-                  <div class="label">Name</div>
-                  <input id="admName" type="text" disabled />
-                </div>
-                <div style="min-width:220px;flex:1">
-                  <div class="label">Email</div>
-                  <input id="admEmail" type="text" disabled />
-                </div>
-                <div style="min-width:140px">
-                  <div class="label">Role</div>
-                  <input id="admRole" type="text" disabled />
-                </div>
-                <div>
-                  <div class="label">Logout</div>
-                  <button id="admSignOut" class="btn ghost">Sign out</button>
-                </div>
-              </div>
-              <div style="margin-top:8px" class="muted">When you are assigned a role, system will auto-create a short notification (in Notifications collection) and you may preview it in Logs tab.</div>
-            </div>
-          </section>
+        <div id="tabStudents" class="card" style="margin-top:10px;display:none">
+          <h4 style="margin:0 0 6px">Students</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="studentsSearch" placeholder="Search by name or index" />
+            <button id="studentsRefresh" class="btn ghost">Refresh</button>
+          </div>
+          <div style="margin-top:8px;overflow:auto;max-height:220px">
+            <table class="table" id="studentsTable">
+              <thead><tr><th>Index</th><th>Name</th><th>Total</th><th>Average</th><th>Rank</th><th>Actions</th></tr></thead>
+              <tbody><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
 
-          <!-- STAFF -->
-          <section id="tab-staff" class="admin-section col-12">
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <h4 style="margin:0 0 6px">Staff Management</h4>
-                  <div class="small muted">Change roles, main class, activate/deactivate, delete staff.</div>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input id="staffSearch" placeholder="Search name/email..." />
-                  <button id="staffRefresh" class="btn ghost">Refresh</button>
-                </div>
-              </div>
+        <div id="tabSettings" class="card" style="margin-top:10px;display:none">
+          <h4 style="margin:0 0 6px">Settings</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:180px"><div class="small muted">School Name</div><input id="setSchool" /></div>
+            <div style="width:140px"><div class="small muted">Academic Year</div><input id="setYear" /></div>
+          </div>
+          <div style="margin-top:8px"><div class="small muted">Grading note</div><textarea id="setNote" rows="3"></textarea></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px"><button id="saveSettings" class="btn">Save</button><span id="settingsStatus" class="small muted"></span></div>
+        </div>
 
-              <div class="table-wrap">
-                <table id="staffTable">
-                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Main Class</th><th>Active</th><th>Updated</th><th></th></tr></thead>
-                  <tbody><tr><td colspan="7" class="muted">Loading staff...</td></tr></tbody>
-                </table>
-              </div>
+        <div id="tabExam" class="card" style="margin-top:10px;display:none">
+          <h4 style="margin:0 0 6px">Exam Period</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div><div class="small muted">Start</div><input id="examStart" type="date" /></div>
+            <div><div class="small muted">End</div><input id="examEnd" type="date" /></div>
+            <div style="margin-left:auto;text-align:right"><div class="small muted">Days left</div><div id="daysLeft" class="countdown">—</div></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+            <button id="saveExam" class="btn">Save Period</button>
+            <button id="clearExam" class="btn ghost">Clear</button>
+          </div>
+        </div>
 
-              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
-                <button id="staffSaveAll" class="btn">Save changes</button>
-                <span id="staffStatus" class="small muted"></span>
-              </div>
-            </div>
-          </section>
-
-          <!-- STUDENTS -->
-          <section id="tab-students" class="admin-section col-12">
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <h4 style="margin:0 0 6px">Students — Manage Records</h4>
-                  <div class="small muted">Search, view and permanently delete student records (use with caution).</div>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input id="studentSearch" placeholder="Search by name/index..." />
-                  <button id="studentRefresh" class="btn ghost">Refresh</button>
-                </div>
-              </div>
-
-              <div class="table-wrap">
-                <table id="studentsTable">
-                  <thead><tr><th>Index</th><th>Name</th><th>Total</th><th>Average</th><th>Rank</th><th>Actions</th></tr></thead>
-                  <tbody><tr><td colspan="6" class="muted">Loading students...</td></tr></tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- SETTINGS -->
-          <section id="tab-settings" class="admin-section col-8">
-            <div class="card">
-              <h4 style="margin:0 0 6px">System Settings</h4>
-              <div class="small muted">Stored at <code>settings/global</code>.</div>
-
-              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-                <div style="flex:1;min-width:200px"><div class="label">School Name</div><input id="setSchoolName" /></div>
-                <div style="width:140px"><div class="label">Academic Year</div><input id="setAcademicYear" /></div>
-              </div>
-
-              <div style="margin-top:8px">
-                <div class="label">Grading Note</div>
-                <textarea id="setGradingNote" rows="3" placeholder="A: 75–100, B: 65–74 ..."></textarea>
-              </div>
-
-              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
-                <button id="saveSettings" class="btn">Save Settings</button>
-                <span id="settingsStatus" class="small muted"></span>
-              </div>
-            </div>
-          </section>
-
-          <!-- EXAM PERIOD -->
-          <section id="tab-exams" class="admin-section col-4">
-            <div class="card">
-              <h4 style="margin:0 0 6px">Exam Period</h4>
-              <div class="small muted">Set exam start & end so system shows countdown (days remaining).</div>
-
-              <div style="margin-top:8px">
-                <div class="label">Start Date</div>
-                <input id="examStart" type="date" />
-              </div>
-              <div style="margin-top:8px">
-                <div class="label">End Date</div>
-                <input id="examEnd" type="date" />
-              </div>
-
-              <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div class="label">Days Left</div>
-                  <div id="examCountdown" class="countdown">—</div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <button id="saveExamPeriod" class="btn">Save Period</button>
-                  <button id="clearExamPeriod" class="btn ghost">Clear</button>
-                </div>
-              </div>
-
-              <div style="margin-top:8px" class="muted small">Exam period saved to <code>settings/global.examPeriod</code>. Countdown updates automatically when overlay opens.</div>
-            </div>
-          </section>
-
-          <!-- LOGS -->
-          <section id="tab-logs" class="admin-section col-12">
-            <div class="card">
-              <h4 style="margin:0 0 6px">Logs & Notifications</h4>
-              <div class="small muted">Recent notifications created when roles assigned, etc.</div>
-
-              <div style="margin-top:8px" class="table-wrap">
-                <table id="logsTable">
-                  <thead><tr><th>When</th><th>To</th><th>Message</th></tr></thead>
-                  <tbody><tr><td colspan="3" class="muted">Loading notifications...</td></tr></tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-        </div> <!-- admin-grid -->
-      </div> <!-- body -->
+        <div id="tabLogs" class="card" style="margin-top:10px;display:none">
+          <h4 style="margin:0 0 6px">Notifications / Logs</h4>
+          <div style="overflow:auto;max-height:220px">
+            <table class="table" id="logsTable">
+              <thead><tr><th>Time</th><th>To</th><th>Message</th></tr></thead>
+              <tbody><tr><td colspan="3" class="muted">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div> <!-- adminPanel -->
     </div>
   </div>
 
-  <!-- ===========================
-       OPTIONAL: Add a button on your page to open admin popup.
-       If you already have topbar button, call openAdminOverlay() from there.
-       Example button for testing: -->
-  <div style="position:fixed;bottom:18px;right:18px;z-index:900">
-    <button id="openAdminDemo" class="btn ghost">🔐 Open Admin (demo)</button>
-  </div>
-
-  <!-- ===========================
-       Firebase v8 SDKs (required)
-       Replace or remove initializeApp if Firebase already initialized in your app.
-       =========================== -->
+  <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA8QMDOD-bUXpElehkg2BlJhKE1_cbvKek",
-  authDomain: "school-results-management.firebaseapp.com",
-  databaseURL: "https://school-results-management-default-rtdb.firebaseio.com",
-  projectId: "school-results-management",
-  storageBucket: "school-results-management.firebasestorage.app",
-  messagingSenderId: "755154296958",
-  appId: "1:755154296958:web:e4c5f9bc0e6cce3e9cf82f",
-  measurementId: "G-MDN4Q3C22J"
-};
+  /*****************************************************************
+   * IMPORTANT:
+   * Replace firebaseConfig with your project's config below.
+   * If Firebase is already initialized elsewhere (e.g., database.js),
+   * REMOVE the initializeApp block to avoid double init.
+   *****************************************************************/
+  const firebaseConfig = {
+    apiKey: "PASTE_API_KEY_HERE",
+    authDomain: "PROJECT_ID.firebaseapp.com",
+    projectId: "PROJECT_ID",
+    // ...other keys...
+  };
 
-  // Initialize Firebase (safe to remove if already initialized in your app)
   if(!firebase.apps || !firebase.apps.length){
-    firebase.initializeApp(firebaseConfig);
+    try {
+      firebase.initializeApp(firebaseConfig);
+    } catch(e){
+      console.error('Firebase init error', e);
+    }
   }
 
   const auth = firebase.auth();
@@ -291,58 +217,60 @@ const firebaseConfig = {
 
   <script>
   (function(){
-    // ----- UI refs -----
-    const overlay = document.getElementById('adminOverlay');
-    const openDemo = document.getElementById('openAdminDemo');
-    const adminClose = document.getElementById('adminClose');
-    const adminUserBadge = document.getElementById('adminUserBadge');
-    const notAllowed = document.getElementById('adminNotAllowed');
+    // UI refs
+    const openAdminBtn = document.getElementById('openAdminBtn');
+    const backdrop = document.getElementById('adminBackdrop');
+    const gateEmail = document.getElementById('gateEmail');
+    const gatePassword = document.getElementById('gatePassword');
+    const gateError = document.getElementById('gateError');
+    const gateSubmit = document.getElementById('gateSubmit');
+    const gateCancel = document.getElementById('gateCancel');
 
-    // tabs
-    document.querySelectorAll('.admin-tab').forEach(btn=>{
-      btn.addEventListener('click', ()=> {
-        document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));
-        document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
-        btn.classList.add('active');
-        const id = btn.dataset.tab;
-        const sec = document.getElementById(id);
-        if(sec) sec.classList.add('active');
-      });
-    });
+    const compactControls = document.getElementById('compactControls');
+    const compactUserLabel = document.getElementById('compactUserLabel');
+    const compactUserRole = document.getElementById('compactUserRole');
 
-    // account refs
-    const admName = document.getElementById('admName');
-    const admEmail = document.getElementById('admEmail');
-    const admRole = document.getElementById('admRole');
-    const admSignOut = document.getElementById('admSignOut');
+    const quickRecalc = document.getElementById('quickRecalc');
+    const quickDeleteStudent = document.getElementById('quickDeleteStudent');
+    const openFullPanel = document.getElementById('openFullPanel');
+    const quickNotif = document.getElementById('quickNotif');
 
-    // staff refs
+    const adminPanel = document.getElementById('adminPanel');
+    const panelTabs = Array.from(document.querySelectorAll('.tab'));
+    const tabSections = {
+      tabStaff: document.getElementById('tabStaff'),
+      tabStudents: document.getElementById('tabStudents'),
+      tabSettings: document.getElementById('tabSettings'),
+      tabExam: document.getElementById('tabExam'),
+      tabLogs: document.getElementById('tabLogs')
+    };
+    const closePanelBtn = document.getElementById('closePanelBtn');
+
+    // staff
     const staffTableBody = document.querySelector('#staffTable tbody');
     const staffSearch = document.getElementById('staffSearch');
     const staffRefresh = document.getElementById('staffRefresh');
-    const staffSaveAll = document.getElementById('staffSaveAll');
-    const staffStatus = document.getElementById('staffStatus');
 
-    // students refs
+    // students
     const studentsTableBody = document.querySelector('#studentsTable tbody');
-    const studentSearch = document.getElementById('studentSearch');
-    const studentRefresh = document.getElementById('studentRefresh');
+    const studentsSearch = document.getElementById('studentsSearch');
+    const studentsRefresh = document.getElementById('studentsRefresh');
 
     // settings
-    const setSchoolName = document.getElementById('setSchoolName');
-    const setAcademicYear = document.getElementById('setAcademicYear');
-    const setGradingNote = document.getElementById('setGradingNote');
-    const saveSettingsBtn = document.getElementById('saveSettings');
+    const setSchool = document.getElementById('setSchool');
+    const setYear = document.getElementById('setYear');
+    const setNote = document.getElementById('setNote');
+    const saveSettings = document.getElementById('saveSettings');
     const settingsStatus = document.getElementById('settingsStatus');
 
-    // exams
+    // exam
     const examStart = document.getElementById('examStart');
     const examEnd = document.getElementById('examEnd');
-    const examCountdown = document.getElementById('examCountdown');
-    const saveExamPeriod = document.getElementById('saveExamPeriod');
-    const clearExamPeriod = document.getElementById('clearExamPeriod');
+    const daysLeft = document.getElementById('daysLeft');
+    const saveExam = document.getElementById('saveExam');
+    const clearExam = document.getElementById('clearExam');
 
-    // logs / notifications
+    // logs
     const logsTableBody = document.querySelector('#logsTable tbody');
 
     // local models
@@ -351,264 +279,259 @@ const firebaseConfig = {
     let notificationsList = [];
     let currentStaffRecord = null;
 
-    // ----------------- Helpers -----------------
+    // helpers
     function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
-    function flash(el, text='Saved'){
-      if(!el) return;
-      el.textContent = text;
-      setTimeout(()=> el.textContent = '', 1800);
-    }
+    function flash(el,txt){ if(!el) return; el.textContent = txt; setTimeout(()=>el.textContent='',1800); }
 
-    // ----------------- Overlay open/close -----------------
-    async function openAdminOverlay(){
-      overlay.classList.add('active');
-
+    // open compact gate
+    openAdminBtn.addEventListener('click', async ()=>{
+      gateError.textContent = '';
+      compactControls.style.display = 'none';
+      adminPanel.style.display = 'none';
+      // prefill email if user logged in
       const user = auth.currentUser;
-      if(!user){
-        // not logged - show message
-        notAllowed.style.display = 'block';
-        notAllowed.textContent = 'Tafadhali ingia kwenye mfumo kwanza (Firebase Auth).';
-        adminUserBadge.textContent = '';
-        hideAllSections();
-        return;
-      }
-      adminUserBadge.textContent = user.email || user.uid;
+      if(user && user.email) gateEmail.value = user.email;
+      backdrop.classList.add('active');
+      gatePassword.focus();
+    });
 
-      // get staff record for user
+    gateCancel.addEventListener('click', ()=> {
+      backdrop.classList.remove('active');
+      gatePassword.value = ''; gateError.textContent = '';
+    });
+
+    // sign-in / reauthenticate flow
+    gateSubmit.addEventListener('click', async ()=>{
+      gateError.textContent = '';
+      gateSubmit.disabled = true;
+      const email = (gateEmail.value||'').trim();
+      const pw = gatePassword.value || '';
+      if(!email || !pw){ gateError.textContent = 'Ingiza email na password.'; gateSubmit.disabled = false; return; }
+
       try{
-        let staffDoc = await db.collection('staff').doc(user.uid).get();
-        if(!staffDoc.exists){
+        let user;
+        // if someone already logged and same email -> reauthenticate
+        if(auth.currentUser && auth.currentUser.email === email){
+          try{
+            const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+            user = auth.currentUser;
+          }catch(reErr){
+            // fall back to signInWithEmailAndPassword
+            const res = await auth.signInWithEmailAndPassword(email, pw);
+            user = res.user;
+          }
+        } else {
+          const res = await auth.signInWithEmailAndPassword(email, pw);
+          user = res.user;
+        }
+
+        // check role in staff collection (uid first, then by email)
+        const isAdmin = await checkIsAdmin(user);
+        if(!isAdmin){
+          // signout if we signed in with non-admin
+          try{ await auth.signOut(); } catch(e){}
+          gateError.textContent = 'Huna ruhusa ya Admin kwa account hii.';
+          gateSubmit.disabled = false;
+          return;
+        }
+
+        // authorized -> show compact controls
+        compactUserLabel.textContent = user.displayName || user.email || user.uid;
+        compactUserRole.textContent = currentStaffRecord ? ('Role: ' + (currentStaffRecord.role||'')) : '';
+        compactControls.style.display = '';
+        adminPanel.style.display = 'none';
+        gatePassword.value = '';
+        gateError.textContent = '';
+      } catch(err){
+        console.error('gate sign-in error', err);
+        if(err && err.message && err.message.includes('API key not valid')) gateError.textContent = 'API key invalid — tafadhali weka firebaseConfig sahihi au toa duplicate init.';
+        else if(err && err.code === 'auth/wrong-password') gateError.textContent = 'Password sio sahihi.';
+        else if(err && err.code === 'auth/user-not-found') gateError.textContent = 'Account haipo.';
+        else gateError.textContent = err.message || 'Login failed';
+      } finally {
+        gateSubmit.disabled = false;
+      }
+    });
+
+    async function checkIsAdmin(user){
+      if(!user) return false;
+      try{
+        // try doc by uid
+        const docRef = db.collection('staff').doc(user.uid);
+        const snap = await docRef.get();
+        if(snap.exists){
+          currentStaffRecord = { id: snap.id, ...snap.data() };
+        } else {
           const q = await db.collection('staff').where('email','==', user.email).limit(1).get();
-          if(!q.empty) staffDoc = q.docs[0];
+          if(!q.empty) currentStaffRecord = { id: q.docs[0].id, ...q.docs[0].data() };
         }
-        if(!staffDoc.exists){
-          notAllowed.style.display = 'block';
-          notAllowed.textContent = 'Account yako haipo kwenye staff collection. Hakuna ruhusa ya admin.';
-          hideAllSections();
-          return;
-        }
-        currentStaffRecord = { id: staffDoc.id, ...staffDoc.data() };
-        admName.value = currentStaffRecord.name || '';
-        admEmail.value = currentStaffRecord.email || user.email || '';
-        admRole.value = currentStaffRecord.role || '';
-
-        // check admin role
-        const role = (currentStaffRecord.role||'').toLowerCase();
-        if(!role.includes('admin')){
-          notAllowed.style.display = 'block';
-          notAllowed.textContent = 'Hauna ruhusa ya Admin. Muombe owner kukupatia role.';
-          hideAllSections();
-          return;
-        }
-
-        // allowed
-        notAllowed.style.display = 'none';
-        await Promise.all([loadStaff(), loadStudents(), loadSettings(), loadNotifications()]);
-        updateExamCountdown(); // in case exam period loaded
+        if(!currentStaffRecord) return false;
+        return (currentStaffRecord.role||'').toLowerCase().includes('admin');
       }catch(err){
-        console.error('openAdminOverlay error', err);
-        notAllowed.style.display = 'block';
-        notAllowed.textContent = 'Hitilafu wakati wa ku-check ruhusa.';
-        hideAllSections();
+        console.error('checkIsAdmin',err);
+        throw err;
       }
     }
 
-    function hideAllSections(){
-      document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
-    }
+    // quick actions
+    quickRecalc.addEventListener('click', async ()=>{
+      // placeholder — plug your recalc logic here (or call cloud function)
+      alert('Recalculate rankings — run your recalc function here.');
+    });
 
-    adminClose.addEventListener('click', ()=> overlay.classList.remove('active'));
-    openDemo.addEventListener('click', ()=> openAdminOverlay());
+    quickDeleteStudent.addEventListener('click', async ()=>{
+      const idx = prompt('Weka index ya mwanafunzi kufuta (mfano: 12345):');
+      if(!idx) return;
+      if(!confirm('Una hakika unataka kufuta record ya mwanafunzi mwenye index: ' + idx + ' ?')) return;
+      try{
+        // search student by index and delete first match
+        const q = await db.collection('students').where('index','==', idx).limit(1).get();
+        if(q.empty){ alert('Student not found'); return; }
+        const id = q.docs[0].id;
+        await db.collection('students').doc(id).delete();
+        alert('Student deleted');
+      }catch(err){ console.error(err); alert('Delete failed: '+(err.message||err)); }
+    });
 
-    // sign out
-    admSignOut.addEventListener('click', ()=> auth.signOut().then(()=>{ overlay.classList.remove('active'); alert('Signed out'); }).catch(console.error));
+    quickNotif.addEventListener('click', async ()=>{
+      const user = auth.currentUser;
+      if(!user){ alert('Not signed in'); return; }
+      try{
+        await db.collection('notifications').add({ to: user.email||'', msg: 'Quick admin notification', createdAt: new Date().toISOString() });
+        alert('Notification created');
+      }catch(err){ console.error(err); alert('Failed to create notification: '+(err.message||err)); }
+    });
 
-    // ----------------- STAFF -----------------
+    openFullPanel.addEventListener('click', async ()=>{
+      // load full admin panel data and show
+      await loadAllForPanel();
+      adminPanel.style.display = '';
+    });
+
+    closePanelBtn.addEventListener('click', ()=> {
+      adminPanel.style.display = 'none';
+    });
+
+    // panel tab switching
+    panelTabs.forEach(t=>{
+      t.addEventListener('click', ()=>{
+        panelTabs.forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        const id = t.dataset.tab;
+        Object.keys(tabSections).forEach(k=> tabSections[k].style.display = 'none');
+        const section = tabSections[id];
+        if(section) section.style.display = '';
+      });
+    });
+
+    // ----------------- FULL PANEL: STAFF -----------------
     async function loadStaff(){
-      staffTableBody.innerHTML = '<tr><td colspan="7" class="small muted">Loading staff...</td></tr>';
+      staffTableBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
       try{
         const snap = await db.collection('staff').orderBy('name','asc').get();
-        staffList = snap.docs.map(d=> ({ id:d.id, ...d.data() }) );
-        renderStaffTable(staffList);
-      }catch(err){
-        console.error(err);
-        staffTableBody.innerHTML = '<tr><td colspan="7" class="small muted">Failed to load staff</td></tr>';
-      }
+        staffList = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        renderStaff(staffList);
+      }catch(err){ console.error(err); staffTableBody.innerHTML = '<tr><td colspan="7" class="muted">Failed to load</td></tr>'; }
     }
 
-    function renderStaffTable(list){
-      if(!list || list.length===0){ staffTableBody.innerHTML = '<tr><td colspan="7" class="muted small">Hakuna staff</td></tr>'; return; }
-      const rows = list.map(s=>{
+    function renderStaff(list){
+      if(!list || list.length===0){ staffTableBody.innerHTML = '<tr><td colspan="7" class="muted">Hakuna staff</td></tr>'; return; }
+      const rows = list.map(s=> {
         const checked = s.active ? 'checked' : '';
         return `<tr data-id="${s.id}">
-          <td><strong>${escapeHtml(s.name)}</strong></td>
-          <td>${escapeHtml(s.email)}</td>
-          <td>
-            <select class="roleSel">
-              <option ${s.role==='Admin'?'selected':''}>Admin</option>
-              <option ${s.role==='Headmaster'?'selected':''}>Headmaster</option>
-              <option ${s.role==='Academic'?'selected':''}>Academic</option>
-              <option ${s.role==='Class Teacher'?'selected':''}>Class Teacher</option>
-            </select>
-          </td>
-          <td><input class="mainClassInput" value="${escapeHtml(s.mainClass||'')}" /></td>
-          <td><button class="toggle ${checked}" data-id="${s.id}"></button></td>
+          <td><strong>${escapeHtml(s.name||'')}</strong></td>
+          <td>${escapeHtml(s.email||'')}</td>
+          <td><select class="roleSel"><option ${s.role==='Admin'?'selected':''}>Admin</option><option ${s.role==='Headmaster'?'selected':''}>Headmaster</option><option ${s.role==='Academic'?'selected':''}>Academic</option><option ${s.role==='Class Teacher'?'selected':''}>Class Teacher</option></select></td>
+          <td><input class="mainClass" value="${escapeHtml(s.mainClass||'')}" /></td>
+          <td><button class="toggle ${checked}"></button></td>
           <td>${escapeHtml(s.updated||'')}</td>
-          <td style="white-space:nowrap">
-            <button class="btn ghost deleteStaff" data-id="${s.id}" style="padding:6px 8px">Delete</button>
-            <button class="btn ghost saveRow" data-id="${s.id}" style="padding:6px 8px">Save</button>
-          </td>
-        </tr>`;
-      }).join('');
+          <td style="white-space:nowrap"><button class="btn ghost saveRow" data-id="${s.id}" style="padding:6px 8px">Save</button> <button class="btn ghost deleteRow" data-id="${s.id}" style="padding:6px 8px">Delete</button></td>
+        </tr>`; }).join('');
       staffTableBody.innerHTML = rows;
     }
 
     staffSearch.addEventListener('input', e=>{
       const q = e.target.value.trim().toLowerCase();
-      if(!q) return renderStaffTable(staffList);
-      const filtered = staffList.filter(s=> (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q));
-      renderStaffTable(filtered);
+      if(!q) return renderStaff(staffList);
+      renderStaff(staffList.filter(s=> (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)));
     });
 
     staffRefresh.addEventListener('click', ()=> loadStaff());
 
-    // events delegation for staff actions
     staffTableBody.addEventListener('click', async (ev)=>{
       const t = ev.target;
       const row = t.closest('tr[data-id]');
       if(!row) return;
       const id = row.getAttribute('data-id');
 
-      // toggle
       if(t.classList.contains('toggle')){
         t.classList.toggle('checked');
-        staffStatus.textContent = 'Toggles changed (remember to save)';
-        setTimeout(()=> staffStatus.textContent = '', 1600);
         return;
       }
-
-      // delete staff
-      if(t.classList.contains('deleteStaff')){
-        if(!confirm('Una hakika unataka kufuta staff hii kabisa? (Action hii ni irrevocable)')) return;
-        try{
-          await db.collection('staff').doc(id).delete();
-          flash(staffStatus,'Deleted');
-          await loadStaff();
-        }catch(err){ console.error(err); alert('Delete failed: '+err.message) }
+      if(t.classList.contains('deleteRow')){
+        if(!confirm('Futa staff kabisa?')) return;
+        try{ await db.collection('staff').doc(id).delete(); alert('Deleted'); await loadStaff(); } catch(err){ console.error(err); alert('Delete failed: '+err.message) }
         return;
       }
-
-      // save single row
       if(t.classList.contains('saveRow')){
         try{
           const role = row.querySelector('.roleSel').value;
-          const mainClass = row.querySelector('.mainClassInput').value;
+          const mainClass = row.querySelector('.mainClass').value;
           const active = row.querySelector('.toggle').classList.contains('checked');
-          await db.collection('staff').doc(id).set({ role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
-
-          // create notification if role changed: detect from local model
-          const before = staffList.find(s=>s.id===id);
+          const docRef = db.collection('staff').doc(id);
+          // fetch before to detect role change
+          const beforeSnap = await docRef.get();
+          const before = beforeSnap.exists ? beforeSnap.data() : null;
+          await docRef.set({ role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
+          // if role changed, create notification
           if(before && before.role !== role){
-            const msg = createRoleNotification(before.name || before.email, role);
+            const msg = `${before.name || before.email}: Umepewa role ya "${role}".`;
             await db.collection('notifications').add({ to: before.email||'', msg, createdAt: new Date().toISOString() });
           }
-
-          flash(staffStatus,'Saved');
+          alert('Saved');
           await loadStaff();
         }catch(err){ console.error(err); alert('Save failed: '+err.message) }
       }
     });
 
-    staffSaveAll.addEventListener('click', async ()=>{
-      const rows = Array.from(staffTableBody.querySelectorAll('tr[data-id]'));
-      const batch = db.batch();
-      const roleChanges = [];
-      rows.forEach(r=>{
-        const id = r.getAttribute('data-id');
-        const role = r.querySelector('.roleSel').value;
-        const mainClass = r.querySelector('.mainClassInput').value;
-        const active = r.querySelector('.toggle').classList.contains('checked');
-        const ref = db.collection('staff').doc(id);
-        batch.set(ref, { role, mainClass, active, updated: new Date().toISOString() }, { merge:true });
-
-        const before = staffList.find(s=>s.id===id);
-        if(before && before.role !== role) roleChanges.push({ before, newRole: role });
-      });
-
-      try{
-        await batch.commit();
-        // create notifications for role changes
-        for(const r of roleChanges){
-          const msg = createRoleNotification(r.before.name || r.before.email, r.newRole);
-          await db.collection('notifications').add({ to: r.before.email||'', msg, createdAt: new Date().toISOString() });
-        }
-        flash(staffStatus,'All saved');
-        await loadStaff();
-      }catch(err){ console.error(err); alert('Batch save failed: '+err.message) }
-    });
-
-    // ----------------- STUDENTS -----------------
+    // ----------------- FULL PANEL: STUDENTS -----------------
     async function loadStudents(){
-      studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted small">Loading students...</td></tr>';
+      studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
       try{
         const snap = await db.collection('students').orderBy('index','asc').get();
-        studentsList = snap.docs.map(d=> ({ id:d.id, ...d.data() }) );
+        studentsList = snap.docs.map(d=>({ id:d.id, ...d.data() }));
         renderStudents(studentsList);
-      }catch(err){
-        console.error(err);
-        studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted small">Failed to load students</td></tr>';
-      }
+      }catch(err){ console.error(err); studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted">Failed</td></tr>'; }
     }
 
     function renderStudents(list){
-      if(!list || list.length===0){ studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted small">Hakuna students</td></tr>'; return; }
-      const rows = list.map(s=>{
-        return `<tr data-id="${s.id}">
-          <td>${escapeHtml(s.index||'')}</td>
-          <td><strong>${escapeHtml(s.name||'')}</strong></td>
-          <td>${typeof s.total === 'number' ? s.total.toFixed(2) : '-'}</td>
-          <td>${typeof s.average === 'number' ? s.average.toFixed(2) : '-'}</td>
-          <td>${s.rank||'-'}</td>
-          <td style="white-space:nowrap">
-            <button class="btn ghost viewStudent" data-id="${s.id}" style="padding:6px 8px">View</button>
-            <button class="btn ghost deleteStudent" data-id="${s.id}" style="padding:6px 8px">Delete</button>
-          </td>
-        </tr>`;
-      }).join('');
+      if(!list || list.length===0){ studentsTableBody.innerHTML = '<tr><td colspan="6" class="muted">Hakuna students</td></tr>'; return; }
+      const rows = list.map(s=>`<tr data-id="${s.id}"><td>${escapeHtml(s.index||'')}</td><td><strong>${escapeHtml(s.name||'')}</strong></td><td>${typeof s.total==='number'? s.total.toFixed(2):'-'}</td><td>${typeof s.average==='number'? s.average.toFixed(2):'-'}</td><td>${s.rank||'-'}</td><td><button class="btn ghost viewStud" data-id="${s.id}" style="padding:6px 8px">View</button> <button class="btn ghost deleteStud" data-id="${s.id}" style="padding:6px 8px">Delete</button></td></tr>`).join('');
       studentsTableBody.innerHTML = rows;
     }
 
-    studentSearch.addEventListener('input', e=>{
+    studentsSearch.addEventListener('input', e=>{
       const q = e.target.value.trim().toLowerCase();
       if(!q) return renderStudents(studentsList);
-      const filtered = studentsList.filter(s=> (s.name||'').toLowerCase().includes(q) || String(s.index||'').toLowerCase().includes(q));
-      renderStudents(filtered);
+      renderStudents(studentsList.filter(s=> (s.name||'').toLowerCase().includes(q) || String(s.index||'').toLowerCase().includes(q)));
     });
 
-    studentRefresh.addEventListener('click', ()=> loadStudents());
+    studentsRefresh.addEventListener('click', ()=> loadStudents());
 
-    // events delegation for students
     studentsTableBody.addEventListener('click', async (ev)=>{
       const t = ev.target;
       const row = t.closest('tr[data-id]');
       if(!row) return;
       const id = row.getAttribute('data-id');
-
-      if(t.classList.contains('viewStudent')){
+      if(t.classList.contains('viewStud')){
         const s = studentsList.find(x=>x.id===id);
         if(!s) return alert('Student not found');
-        // Simple view - show JSON for now (could be prettier)
-        alert('Student record:\\n\\n' + JSON.stringify(s, null, 2));
-        return;
+        alert('Student:\\n\\n'+JSON.stringify(s,null,2));
       }
-
-      if(t.classList.contains('deleteStudent')){
-        if(!confirm('Una hakika? Hii itaondoa record ya mwanafunzi kabisa.')) return;
-        try{
-          await db.collection('students').doc(id).delete();
-          await loadStudents();
-          alert('Student deleted');
-        }catch(err){ console.error(err); alert('Delete failed: '+err.message) }
+      if(t.classList.contains('deleteStud')){
+        if(!confirm('Una hakika unataka kufuta record ya mwanafunzi?')) return;
+        try{ await db.collection('students').doc(id).delete(); alert('Deleted'); await loadStudents(); } catch(err){ console.error(err); alert('Delete failed: '+err.message) }
       }
     });
 
@@ -618,115 +541,100 @@ const firebaseConfig = {
         const doc = await db.collection('settings').doc('global').get();
         if(doc.exists){
           const d = doc.data();
-          setSchoolName.value = d.schoolName || '';
-          setAcademicYear.value = d.academicYear || '';
-          setGradingNote.value = d.gradingNote || '';
-          // exam period
+          setSchool.value = d.schoolName || '';
+          setYear.value = d.academicYear || '';
+          setNote.value = d.gradingNote || '';
           if(d.examPeriod){
-            const s = d.examPeriod.start || '';
-            const e = d.examPeriod.end || '';
-            examStart.value = s ? s.slice(0,10) : '';
-            examEnd.value = e ? e.slice(0,10) : '';
+            examStart.value = d.examPeriod.start || '';
+            examEnd.value = d.examPeriod.end || '';
           }
-        } else {
-          setSchoolName.value = ''; setAcademicYear.value = ''; setGradingNote.value = '';
         }
-      }catch(err){ console.error(err); settingsStatus.textContent = 'Load failed'; }
+      }catch(err){ console.error(err); }
     }
 
-    saveSettingsBtn.addEventListener('click', async ()=>{
-      const payload = {
-        schoolName: setSchoolName.value.trim(),
-        academicYear: setAcademicYear.value.trim(),
-        gradingNote: setGradingNote.value.trim(),
-        updated: new Date().toISOString()
-      };
-      try{
-        await db.collection('settings').doc('global').set(payload, { merge:true });
-        flash(settingsStatus,'Saved');
-      }catch(err){ console.error(err); settingsStatus.textContent = 'Save failed'; }
+    saveSettings.addEventListener('click', async ()=>{
+      const payload = { schoolName: setSchool.value.trim(), academicYear: setYear.value.trim(), gradingNote: setNote.value.trim(), updated:new Date().toISOString() };
+      try{ await db.collection('settings').doc('global').set(payload,{merge:true}); flash(settingsStatus,'Saved'); } catch(err){ console.error(err); settingsStatus.textContent='Save failed'; }
     });
 
     // ----------------- EXAM PERIOD -----------------
-    function updateExamCountdown(){
-      const s = examStart.value;
-      const e = examEnd.value;
-      if(!s || !e){ examCountdown.textContent = '—'; return; }
-      const today = new Date(); const end = new Date(e + 'T23:59:59');
-      const diffMs = end - today;
-      if(diffMs < 0){ examCountdown.textContent = 'Ended'; return; }
-      const daysLeft = Math.ceil(diffMs / (1000*60*60*24));
-      examCountdown.textContent = daysLeft + ' day' + (daysLeft>1?'s':'') + ' left';
+    async function saveExamPeriod(){
+      const s = examStart.value; const e = examEnd.value;
+      if(!s || !e){ alert('Weka start na end'); return; }
+      try{
+        await db.collection('settings').doc('global').set({ examPeriod: { start: s, end: e }, updated: new Date().toISOString() }, { merge:true });
+        updateDaysLeft();
+        flash(settingsStatus,'Saved');
+      }catch(err){ console.error(err); alert('Save failed: '+err.message); }
     }
 
-    examStart.addEventListener('change', updateExamCountdown);
-    examEnd.addEventListener('change', updateExamCountdown);
-
-    saveExamPeriod.addEventListener('click', async ()=>{
-      const s = examStart.value; const e = examEnd.value;
-      if(!s || !e){ alert('Weka tarehe zote (start na end)'); return; }
-      const payload = { examPeriod: { start: s, end: e }, updated: new Date().toISOString() };
-      try{
-        await db.collection('settings').doc('global').set(payload, { merge:true });
-        updateExamCountdown();
-        flash(document.getElementById('admSettingsStatus'),'Saved');
-      }catch(err){ console.error(err); alert('Save failed: '+err.message); }
-    });
-
-    clearExamPeriod.addEventListener('click', async ()=>{
+    async function clearExamPeriod(){
       if(!confirm('Futa exam period?')) return;
       try{
         await db.collection('settings').doc('global').set({ examPeriod: firebase.firestore.FieldValue.delete(), updated: new Date().toISOString() }, { merge:true });
-        examStart.value = ''; examEnd.value = ''; updateExamCountdown();
-        flash(document.getElementById('admSettingsStatus'),'Cleared');
+        examStart.value = ''; examEnd.value = ''; updateDaysLeft();
+        flash(settingsStatus,'Cleared');
       }catch(err){ console.error(err); alert('Clear failed: '+err.message); }
-    });
+    }
 
-    // ----------------- NOTIFICATIONS / LOGS -----------------
+    function updateDaysLeft(){
+      const s = examStart.value; const e = examEnd.value;
+      if(!s || !e){ daysLeft.textContent = '—'; return; }
+      const end = new Date(e + 'T23:59:59'); const now = new Date();
+      const diff = end - now;
+      if(diff < 0) { daysLeft.textContent = 'Ended'; return; }
+      const days = Math.ceil(diff / (1000*60*60*24));
+      daysLeft.textContent = days + ' day' + (days>1?'s':'') + ' left';
+    }
+
+    saveExam.addEventListener('click', saveExamPeriod);
+    clearExam.addEventListener('click', clearExamPeriod);
+    examStart.addEventListener('change', updateDaysLeft);
+    examEnd.addEventListener('change', updateDaysLeft);
+
+    // ----------------- LOGS -----------------
     async function loadNotifications(){
-      logsTableBody.innerHTML = '<tr><td colspan="3" class="muted small">Loading notifications...</td></tr>';
+      logsTableBody.innerHTML = '<tr><td colspan="3" class="muted">Loading...</td></tr>';
       try{
-        const snap = await db.collection('notifications').orderBy('createdAt','desc').limit(40).get();
-        notificationsList = snap.docs.map(d=> ({ id:d.id, ...d.data() }) );
+        const snap = await db.collection('notifications').orderBy('createdAt','desc').limit(50).get();
+        notificationsList = snap.docs.map(d=>({ id:d.id, ...d.data() }));
         renderNotifications(notificationsList);
-      }catch(err){ console.error(err); logsTableBody.innerHTML = '<tr><td colspan="3" class="muted small">Failed to load notifications</td></tr>';}
+      }catch(err){ console.error(err); logsTableBody.innerHTML = '<tr><td colspan="3" class="muted">Failed</td></tr>'; }
     }
 
     function renderNotifications(list){
-      if(!list || list.length===0){ logsTableBody.innerHTML = '<tr><td colspan="3" class="muted small">Hakuna notifications</td></tr>'; return; }
-      const rows = list.map(n=>{
-        return `<tr>
-          <td>${escapeHtml(n.createdAt ? (new Date(n.createdAt)).toLocaleString() : '')}</td>
-          <td>${escapeHtml(n.to || '')}</td>
-          <td>${escapeHtml(n.msg || '')}</td>
-        </tr>`;
-      }).join('');
+      if(!list.length){ logsTableBody.innerHTML = '<tr><td colspan="3" class="muted">Hakuna notifications</td></tr>'; return; }
+      const rows = list.map(n=>`<tr><td>${escapeHtml(n.createdAt || '')}</td><td>${escapeHtml(n.to||'')}</td><td>${escapeHtml(n.msg||'')}</td></tr>`).join('');
       logsTableBody.innerHTML = rows;
     }
 
-    // ----------------- Notification text generator -----------------
-    function createRoleNotification(nameOrEmail, role){
-      // short friendly message in Swahili
-      return `${nameOrEmail}: Umepewa role ya "${role}" kwenye mfumo wa UKSS. Tafadhali ingia kujua zaidi.`;
+    // ----------------- Load all for panel -----------------
+    async function loadAllForPanel(){
+      await Promise.all([loadStaff(), loadStudents(), loadSettings(), loadNotifications()]);
+      updateDaysLeft();
     }
 
-    // ----------------- initial auth listener (update UI when user changes) -----------------
-    auth.onAuthStateChanged((user)=>{
-      if(user){
-        adminUserBadge.textContent = user.email || user.uid;
+    // Expose a function to open gate from other code
+    window.openAdminCompact = ()=> openAdminBtn.click();
+
+    // close modal by clicking outside
+    backdrop.addEventListener('click', (e)=> { if(e.target === backdrop) backdrop.classList.remove('active'); });
+
+    // auth state listener: update compact user info
+    auth.onAuthStateChanged((u)=>{
+      if(u){
+        compactUserLabel.textContent = u.email || u.uid;
       } else {
-        adminUserBadge.textContent = '';
+        compactUserLabel.textContent = '';
+        compactUserRole.textContent = '';
+        compactControls.style.display = 'none';
+        adminPanel.style.display = 'none';
       }
     });
 
-    // ----------------- initial load helpers -----------------
-    // If you want the overlay to open when page loads for a logged in admin, uncomment:
-    // auth.onAuthStateChanged((u)=>{ if(u) openAdminOverlay(); });
+    // expose some functions for integration
+    window.admin_recalcPlaceholder = ()=> alert('Run your recalc logic here');
 
-    // small utility: show overlay from other parts of your app:
-    window.openAdminOverlay = openAdminOverlay;
-
-    // ----- end of IIFE -----
   })();
   </script>
 </body>
