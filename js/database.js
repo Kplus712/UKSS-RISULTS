@@ -54,6 +54,3 @@ async function getDocById(collectionRef, id){
   return { id: doc.id, ...doc.data() };
 }
 
-
-
-
