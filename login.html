@@ -77,7 +77,18 @@
     .btn-primary{
       width:100%;
       margin-top:8px;
+      display:inline-block;
+      padding:9px 12px;
+      border-radius:10px;
+      border:0;
+      font-weight:700;
+      background:linear-gradient(90deg,#bfa034,#facc15);
+      color:#071225;
+      cursor:pointer;
+      font-size:14px;
     }
+    .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; }
+
     .error{
       margin-top:6px;
       font-size:12px;
@@ -122,7 +133,7 @@
 </head>
 <body>
 
-  <form id="loginForm" class="login-card">
+  <form id="loginForm" class="login-card" autocomplete="on" novalidate>
     <div class="login-header">
       <div class="login-logo">UK</div>
       <div>
@@ -133,20 +144,20 @@
 
     <div class="field">
       <label for="email">Email</label>
-      <input id="email" type="email" class="input" placeholder="you@school.ac.tz" />
+      <input id="email" name="email" type="email" class="input" placeholder="you@school.ac.tz" required />
     </div>
 
     <div class="field">
       <label for="password">Password</label>
-      <input id="password" type="password" class="input" placeholder="********" />
+      <input id="password" name="password" type="password" class="input" placeholder="********" required />
     </div>
 
-    <button id="loginSubmit" class="btn btn-primary" type="submit">Login</button>
+    <button id="loginSubmit" class="btn-primary" type="submit">Login</button>
 
-    <div id="loginError" class="error"></div>
+    <div id="loginError" class="error" role="status" aria-live="polite"></div>
 
     <!-- notification ya "Logging in..." -->
-    <div id="loginStatus" class="status hidden"></div>
+    <div id="loginStatus" class="status hidden" role="status" aria-live="polite"></div>
 
     <div class="foot">
       Managed by UK School System · For password reset, contact system admin.
@@ -161,7 +172,29 @@
   <!-- App scripts -->
   <script src="./js/database.js"></script>
   <script src="./js/auth.js?v=2"></script>
+
+  <!-- small helper: ensure loginStatus visible toggles work on form submit -->
+  <script>
+    // If user focuses password and presses Enter, show loader class immediately for perceived speed
+    (function(){
+      const form = document.getElementById('loginForm');
+      const status = document.getElementById('loginStatus');
+      const submit = document.getElementById('loginSubmit');
+      form.addEventListener('submit', ()=> {
+        if(status) {
+          status.classList.remove('hidden');
+          status.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo';
+        }
+        if(submit) {
+          submit.disabled = true;
+          submit.textContent = 'Logging in...';
+        }
+      });
+      // if auth.js resets status/submit, this will be overwritten as intended.
+    })();
+  </script>
 </body>
 </html>
+
 
 
