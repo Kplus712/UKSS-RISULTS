@@ -6,6 +6,42 @@
   <title>UKSS — Marks & Students</title>
   <link rel="stylesheet" href="./style.css" />
 
+  <!-- ===== EARLY GUARD: place BEFORE firebase or any UI to prevent flash =====
+       Behavior:
+       - If sessionStorage.justSignedIn === '1' -> allow page load once, then clear flag.
+       - Otherwise redirect immediately to login.html (prevents marks.html from opening).
+       - This runs very early so page content won't flash.
+  -->
+  <script>
+    (function(){
+      try {
+        console.log('[GUARD] early guard running on marks.html');
+
+        // Allow once-per-login transition (set by login form on successful signIn)
+        var just = null;
+        try { just = sessionStorage.getItem('justSignedIn'); } catch(e) { console.warn('[GUARD] sessionStorage read failed', e); }
+
+        // If not freshly signed in, block and redirect immediately.
+        if (just !== '1') {
+          console.warn('[GUARD] justSignedIn not found -> redirecting to login.html');
+          // ensure no stale flag remains
+          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+          // Use replace so back button doesn't go back to protected page
+          window.location.replace('login.html');
+          return;
+        }
+
+        // If we reach here, allow page load once and clear the flag immediately.
+        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+        console.log('[GUARD] justSignedIn found -> allowing page load (flag cleared).');
+      } catch (err) {
+        console.error('[GUARD] fatal guard error', err);
+        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+
   <style>
     /* ===== extra modern tweaks for this page only ===== */
 
@@ -174,6 +210,9 @@
       border-color:#3b82f6;
       box-shadow:0 0 0 1px rgba(59,130,246,0.5);
     }
+
+    /* lightweight guard notice for debug (hidden normally) */
+    #guardDebug { display:none; font-size:12px; color:#f97373; margin-bottom:8px; }
   </style>
 </head>
 <body>
@@ -196,7 +235,7 @@
       <a href="behaviour.html">🧭 Behaviour</a>
       <a href="sms.html">📨 SMS</a>
       <a href="sms_logs.html">🧾 SMS Logs</a>
-      <a href="admin.html">🔐 Admin</a>
+      <a href="admin.html" id="navAdminLink">🔐 Admin</a>
     </nav>
   </aside>
 
@@ -209,7 +248,7 @@
         <p class="small">
           Hatua: (1) Tengeneza madarasa Form I–IV ➜ 
           (2) Ongeza masomo ➜ 
-          (3) Sajili wanafunzi Form I–IV ➜ 
+          (3) Sajili wanafunzi Form I–F4 ➜ 
           (4) Chagua mtihani na ujaze alama.
         </p>
 
@@ -406,6 +445,9 @@
   </main>
 </div>
 
+<!-- Optional hidden debug box to show guard logs on UI (turn on when debugging) -->
+<div id="guardDebug" style="position:fixed;right:12px;bottom:12px;background:#111827aa;padding:8px;border-radius:8px;color:#fff;display:none;"></div>
+
 <!-- Firebase CDN v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -413,8 +455,53 @@
 
 <!-- App scripts -->
 <script src="./js/database.js"></script>
+
+<!-- Quick post-load safety: if by any chance firebase.currentUser exists but the session was not "justSignedIn",
+     we sign them out and redirect. This is an extra layer (runs after firebase is available). -->
+<script>
+  (function(){
+    // run after database.js loaded
+    try {
+      console.log('[GUARD] post-load safety running');
+      // only run if firebase auth is available
+      if(window.firebase && firebase.auth){
+        firebase.auth().onAuthStateChanged(function(user){
+          console.log('[GUARD] post-load onAuthStateChanged user=', user ? user.email : null);
+          // if there is a user but page was not allowed by justSignedIn flag, force sign out
+          var allowed = false;
+          try { allowed = sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ allowed = false; }
+          if(user && !allowed){
+            console.warn('[GUARD] user session exists but not freshly signed in -> signing out and redirecting');
+            sessionStorage.removeItem('justSignedIn');
+            firebase.auth().signOut().then(function(){
+              window.location.replace('login.html');
+            }).catch(function(e){
+              console.warn('[GUARD] signOut failed', e);
+              window.location.replace('login.html');
+            });
+            return;
+          }
+          // if allowed and user exists, clear the flag (it was consumed by the head guard earlier, but double-safe)
+          if(allowed){
+            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+            console.log('[GUARD] allowed session (justSignedIn) — continuing.');
+          }
+        });
+      } else {
+        console.log('[GUARD] firebase.auth not available yet for post-load safety');
+      }
+    } catch(err){
+      console.error('[GUARD] post-load safety error', err);
+    }
+  })();
+</script>
+
+<!-- Page logic: your marks.js should remain the primary script to load lists, exams, marks etc.
+     If you want, you can also paste an updated marks.js and I will adapt it to check role and hide Admin link. -->
 <script src="./js/marks.js"></script>
+
 </body>
 </html>
+
 
 
