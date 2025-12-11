@@ -1,230 +1,229 @@
-// js/auth.js (UPDATED)
-// Login / logout / page guard for UKSS + welcome notification on login
+// js/auth.js (REPLACE your old auth.js with this file)
+// Depends on: firebase SDK loaded and js/database.js (which defines global `auth` and `db`)
 
-// Pages zinazochukuliwa kama "login pages"
+"use strict";
+
+/*
+ Behavior:
+ - Uses global `auth` and `db` from ./js/database.js
+ - Prevents app pages from being accessible when not logged in
+ - Login form shows "Unatafuta..." status while role is resolved
+ - After successful login, shows welcome notification (Notification API or UI fallback)
+ - Redirects to marks.html on success (same behavior as before)
+ - Safeguard: if an anonymous user is present, signs out to force explicit login
+*/
+
 const LOGIN_PAGES  = ["login.html", "index.html"];
-// Pages zinazoruhusu kutembelewa bila login
 const PUBLIC_PAGES = ["login.html", "index.html"];
-
 const currentPath  = window.location.pathname.split("/").pop() || "index.html";
 const isPublicPage = PUBLIC_PAGES.includes(currentPath);
 
-// Helper: get firestore db (try existing `db` then firebase.firestore())
-function getDb(){
-  if (typeof db !== "undefined" && db) return db;
-  if (typeof firebase !== "undefined" && firebase && firebase.firestore) return firebase.firestore();
-  return null;
+function el(id){ return document.getElementById(id); }
+function showEl(id){ const e = el(id); if(e) e.classList.remove('hidden'); }
+function hideEl(id){ const e = el(id); if(e) e.classList.add('hidden'); }
+function setStatus(text){
+  const s = el('loginStatus');
+  if(!s) return;
+  if(!text) { s.classList.add('hidden'); s.textContent = ''; }
+  else { s.classList.remove('hidden'); s.textContent = text; }
+}
+function setError(text){
+  const e = el('loginError');
+  if(!e) { if(text) alert(text); return; }
+  e.textContent = text || '';
 }
 
-function capitalize(s){
-  if(!s) return s;
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// Notification helper: uses Notification API if allowed, else fallback to status/alert
+// Notification helper (tries Notification API, falls back to UI or alert)
 function showWelcomeNotification(title, body){
-  // Try Notification API
+  // prefer Notification API
   try{
-    if ("Notification" in window){
-      if (Notification.permission === "granted"){
+    if("Notification" in window){
+      if(Notification.permission === "granted"){
         new Notification(title, { body });
         return;
       }
-      if (Notification.permission !== "denied"){
+      if(Notification.permission !== "denied"){
         Notification.requestPermission().then(perm => {
-          if (perm === "granted") new Notification(title, { body });
+          if(perm === "granted") new Notification(title, { body });
           else {
-            // fallback
-            const statusBox = document.getElementById("loginStatus");
-            if(statusBox) statusBox.textContent = body;
+            // fallback to UI
+            const status = el('loginStatus');
+            if(status){ status.classList.remove('hidden'); status.textContent = body; }
             else alert(title + "\n\n" + body);
           }
-        }).catch(()=> {
-          const statusBox = document.getElementById("loginStatus");
-          if(statusBox) statusBox.textContent = body;
+        }).catch(()=>{
+          const status = el('loginStatus');
+          if(status){ status.classList.remove('hidden'); status.textContent = body; }
           else alert(title + "\n\n" + body);
         });
         return;
       }
     }
     // fallback
-    const statusBox = document.getElementById("loginStatus");
-    if(statusBox) statusBox.textContent = body;
+    const status = el('loginStatus');
+    if(status){ status.classList.remove('hidden'); status.textContent = body; }
     else alert(title + "\n\n" + body);
   }catch(e){
-    const statusBox = document.getElementById("loginStatus");
-    if(statusBox) statusBox.textContent = body;
+    const status = el('loginStatus');
+    if(status){ status.classList.remove('hidden'); status.textContent = body; }
     else alert(title + "\n\n" + body);
   }
 }
 
-// =================== 1. GLOBAL GUARD ===================
-document.addEventListener("DOMContentLoaded", function () {
-  if (typeof auth === "undefined" || !auth) {
-    console.warn("Auth SDK not available for guard.");
+// db helper
+function getDb(){
+  if(typeof db !== 'undefined' && db) return db;
+  if(typeof firebase !== 'undefined' && firebase && firebase.firestore) return firebase.firestore();
+  return null;
+}
+
+// fetch role from staff collection (uid preferred, fallback to email)
+async function fetchRoleForUser(user){
+  if(!user) return null;
+  const dbRef = getDb();
+  if(!dbRef) return null;
+  try{
+    // try uid
+    const doc = await dbRef.collection('staff').doc(user.uid).get();
+    if(doc && doc.exists) return (doc.data().role || '').toLowerCase();
+    // fallback: search by email
+    const q = await dbRef.collection('staff').where('email','==',user.email).limit(1).get();
+    if(q && !q.empty) return (q.docs[0].data().role || '').toLowerCase();
+    return null;
+  }catch(err){
+    console.error('fetchRoleForUser error', err);
+    return null;
+  }
+}
+
+// Utility to capitalise role label
+function cap(s){ if(!s) return s; return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// -------------- Global Guard (auth state) --------------
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof auth === 'undefined' || !auth){
+    console.warn('[AUTH] auth global not available. Ensure database.js is loaded before auth.js.');
     return;
   }
 
-  console.log("[AUTH] guard initialised on", currentPath);
+  console.log('[AUTH] guard initialising on', currentPath);
 
-  auth.onAuthStateChanged(function (user) {
-    console.log("[AUTH] state changed:", user ? user.email : null);
+  // If an anonymous user exists (unexpected), sign them out to force explicit login
+  // This prevents accidental anonymous sessions that show app without credentials
+  if(auth.currentUser && auth.currentUser.isAnonymous){
+    console.warn('[AUTH] anonymous session detected - signing out to force explicit login.');
+    auth.signOut().catch(e => console.warn('Sign out failed', e));
+  }
 
-    // Hakuna user, na page si public → peleka login
-    if (!user && !isPublicPage) {
-      window.location.href = "login.html";
+  auth.onAuthStateChanged(async function(user){
+    console.log('[AUTH] state changed:', user ? user.email : null);
+
+    // No user and page is protected -> redirect to login
+    if(!user && !isPublicPage){
+      console.log('[AUTH] no user - redirect to login');
+      window.location.href = 'login.html';
       return;
     }
 
-    // Kuna user, na tupo kwenye mojawapo ya login pages → peleka marks
-    if (user && LOGIN_PAGES.includes(currentPath)) {
-      console.log("[AUTH] logged in on login page, redirecting to marks.html");
-      window.location.href = "marks.html";
+    // If user exists and we're on login page -> go to marks (original flow)
+    if(user && LOGIN_PAGES.includes(currentPath)){
+      console.log('[AUTH] logged in on login page; redirecting to marks.html');
+      window.location.href = 'marks.html';
+      return;
     }
+
+    // If user exists on protected page, optionally prefetch role (no UI reveal here)
+    // We will let page components decide what to show depending on role.
   });
 
-  // Logout button (kwa marks, sms, results, n.k.)
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", function () {
-      auth
-        .signOut()
-        .then(function () {
-          window.location.href = "login.html";
-        })
-        .catch(function (err) {
-          console.error(err);
-          alert("Failed to logout: " + err.message);
-        });
+  // Logout binding (common selector across pages)
+  const logoutBtn = el('logoutBtn');
+  if(logoutBtn){
+    logoutBtn.addEventListener('click', function(){
+      auth.signOut().then(()=> window.location.href = 'login.html').catch(err=> { console.error(err); alert('Failed to logout: '+ err.message); });
     });
   }
 });
 
-// =================== 2. LOGIN HANDLER (with "unatafuta" + welcome) ===================
-document.addEventListener("DOMContentLoaded", function () {
-  const loginForm = document.getElementById("loginForm");
-  if (!loginForm) {
-    console.log("[AUTH] No login form on this page.");
+// -------------- Login handler (with search status + welcome) --------------
+document.addEventListener('DOMContentLoaded', function(){
+  const form = el('loginForm');
+  if(!form){
+    console.log('[AUTH] No login form found on this page; skipping login handler.');
     return;
   }
-  console.log("[AUTH] Login form found. Binding submit handler.");
 
-  const emailInput  = document.getElementById("email");
-  const passInput   = document.getElementById("password");
-  const errorBox    = document.getElementById("loginError");
-  const submitBtn   = document.getElementById("loginSubmit");
-  const statusBox   = document.getElementById("loginStatus");
+  const emailInput = el('email');
+  const passInput  = el('password');
+  const submitBtn  = el('loginSubmit');
+  const errorBox   = el('loginError');
+  const statusBox  = el('loginStatus');
 
   function showError(msg){
-    console.error("[AUTH] login error:", msg);
-
-    let niceMessage = msg;
-    if (msg && msg.indexOf("INVALID_LOGIN_CREDENTIALS") !== -1) {
-      niceMessage = "Email au password si sahihi. Hakikisha zinafanana na zilizoko Firebase Auth.";
-    }
-    if (errorBox) errorBox.textContent = niceMessage;
-    else alert(niceMessage);
+    console.error('[AUTH] login error:', msg);
+    if(errorBox){ errorBox.textContent = msg; }
+    else alert(msg);
   }
 
-  // fetch role from staff collection (by uid then by email)
-  async function fetchRoleForUser(user){
-    if(!user) return null;
-    const dbRef = getDb();
-    if(!dbRef) return null;
-    try{
-      const doc = await dbRef.collection('staff').doc(user.uid).get();
-      if(doc && doc.exists){
-        return (doc.data().role || '').toLowerCase();
-      }
-      const q = await dbRef.collection('staff').where('email','==',user.email).limit(1).get();
-      if(q && !q.empty){
-        return (q.docs[0].data().role || '').toLowerCase();
-      }
-      return null;
-    }catch(err){
-      console.error('fetchRoleForUser error', err);
-      return null;
-    }
-  }
-
-  loginForm.addEventListener("submit", function (e) {
+  form.addEventListener('submit', function(e){
     e.preventDefault();
-    if (errorBox) errorBox.textContent = "";
-    if (statusBox) statusBox.classList.remove("hidden");
-
-    console.log("[AUTH] Login submit clicked.");
-
-    const email = (emailInput?.value || "").trim();
-    const pass  = passInput?.value || "";
-
-    if (!email || !pass) {
-      showError("Please enter email and password.");
+    if(!auth){
+      showError('System auth not initialised.');
       return;
     }
 
-    if (typeof auth === "undefined" || !auth) {
-      showError("System auth is not initialised. Hakikisha firebase-auth.js na database.js zimepakiwa vizuri.");
+    const email = (emailInput && emailInput.value || '').trim();
+    const pass  = (passInput && passInput.value) || '';
+
+    if(!email || !pass){
+      showError('Please enter email and password.');
       return;
     }
 
-    if (statusBox) {
-      statusBox.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo';
-    }
-
-    if (submitBtn) {
-      submitBtn.textContent = "Logging in...";
-      submitBtn.disabled = true;
-    }
+    // UI: show searching status
+    if(statusBox){ statusBox.classList.remove('hidden'); statusBox.innerHTML = '<span class="loader"></span> Unatafuta… taarifa zako, subiri kidogo'; }
+    if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; }
+    if(errorBox) errorBox.textContent = '';
 
     // sign in
-    auth
-      .signInWithEmailAndPassword(email, pass)
-      .then(async function (cred) {
-        console.log("[AUTH] signIn success; determining role & showing welcome...");
-
+    auth.signInWithEmailAndPassword(email, pass)
+      .then(async cred => {
+        console.log('[AUTH] signIn successful, fetching role...');
         const user = auth.currentUser || (cred && cred.user);
-        // show quick searching status
-        if (statusBox) statusBox.innerHTML = '<span class="loader"></span> Unatafuta role yako...';
+        // show searching role status
+        if(statusBox) statusBox.innerHTML = '<span class="loader"></span> Unatafuta role yako...';
 
         const role = await fetchRoleForUser(user);
-        const roleLabel = role ? capitalize(role) : "User";
-        const welcomeTitle = `Karibu ${roleLabel}`;
-        const welcomeBody  = user && user.email ? `${user.email} — umeingia kama ${roleLabel}` : `Umeingia kama ${roleLabel}`;
+        const roleLabel = role ? cap(role) : 'User';
+        const title = `Karibu ${roleLabel}`;
+        const body  = `${user.email} — umeingia kama ${roleLabel}`;
 
-        // show notification (Notification API or fallback)
-        showWelcomeNotification(welcomeTitle, welcomeBody);
+        // show Notification (or fallback)
+        showWelcomeNotification(title, body);
 
-        // also update status box (non-blocking)
-        if (statusBox) statusBox.textContent = welcomeBody;
+        // set statusBox for UX
+        if(statusBox){ statusBox.textContent = body; }
 
-        // re-enable button quickly (though we'll redirect)
-        if (submitBtn) { submitBtn.textContent = "Login"; submitBtn.disabled = false; }
+        // re-enable button (cosmetic)
+        if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
 
-        // Redirect to marks.html (preserve original redirect behaviour)
-        // Use a tiny timeout so notification/status has chance to appear; not necessary but nicer UX
-        try{
-          setTimeout(()=> { window.location.href = "marks.html"; }, 500);
-        }catch(e){
-          console.error('redirect failed', e);
-          // fallback
-          window.location.href = "marks.html";
-        }
+        // redirect to marks (preserve existing flow)
+        setTimeout(()=> window.location.href = 'marks.html', 500);
       })
-      .catch(function (err) {
-        const msg = (err && err.message) ? err.message : String(err);
+      .catch(err => {
+        console.error('[AUTH] signIn error', err);
+        // show friendly message where possible
+        let msg = (err && err.message) ? err.message : String(err);
+        if(msg && msg.indexOf('INVALID_LOGIN_CREDENTIALS') !== -1) msg = 'Email au password si sahihi.';
         showError(msg);
 
-        if (statusBox) {
-          statusBox.textContent = "";
-          statusBox.classList.add("hidden");
-        }
-        if (submitBtn) {
-          submitBtn.textContent = "Login";
-          submitBtn.disabled = false;
-        }
+        if(statusBox){ statusBox.classList.add('hidden'); statusBox.textContent = ''; }
+        if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
       });
   });
+
 });
+
 
 
 
