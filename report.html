@@ -5,268 +5,127 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UKSS — Student Report</title>
   <link rel="stylesheet" href="./style.css" />
-
   <style>
-    body{
-      background:#020617;
-    }
-    .report-shell{
-      max-width:900px;
-      margin:0 auto;
-    }
-    .report-page{
-      background:#fff;
-      color:#000;
-      padding:18px 22px;
-      border-radius:8px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.35);
-      font-family: "Times New Roman", serif;
-      font-size:12px;
-    }
-    .rep-header{
-      text-align:center;
-      margin-bottom:6px;
-      text-transform:uppercase;
-    }
-    .rep-header h2{
-      margin:0;
-      font-size:14px;
-      font-weight:bold;
-    }
-    .rep-header h3{
-      margin:2px 0;
-      font-size:13px;
-      font-weight:bold;
-    }
-    .rep-meta-row{
-      display:flex;
-      justify-content:space-between;
-      font-size:11px;
-      margin:4px 0;
-    }
-    .rep-meta-row div{
-      width:48%;
-    }
-    .rep-table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:6px;
-      font-size:11px;
-    }
-    .rep-table th,
-    .rep-table td{
-      border:1px solid #000;
-      padding:3px 4px;
-    }
-    .rep-table th{
-      text-align:center;
-      background:#e5e5e5;
-    }
-    .rep-table td.num{
-      text-align:center;
-    }
-    .rep-section-title{
-      font-weight:bold;
-      margin-top:6px;
-      text-decoration:underline;
-      font-size:11px;
-    }
-    .rep-flex{
-      display:flex;
-      justify-content:space-between;
-      font-size:11px;
-      margin-top:4px;
-    }
-    .rep-box{
-      border:1px solid #000;
-      padding:4px 6px;
-      min-height:40px;
-      margin-top:3px;
-    }
-    .rep-sign-row{
-      display:flex;
-      justify-content:space-between;
-      margin-top:12px;
-      font-size:11px;
-    }
-    .rep-sign-block{
-      width:48%;
-    }
-    .rep-sign-block .label{
-      font-weight:bold;
-    }
-    .rep-footer{
-      margin-top:10px;
-      font-size:10px;
-      border-top:1px dashed #000;
-      padding-top:4px;
-    }
-    .badge-division{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:4px;
-      border:1px solid #000;
-      font-weight:bold;
-    }
-    .topbar-print{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:10px;
-    }
-    .topbar-print .btn{
-      font-size:12px;
-      padding:4px 10px;
-    }
-    .small-gray{
-      color:#94a3b8;
-      font-size:12px;
-    }
+    /* keep your existing print-friendly styles; these are enhancements */
+    body{background:#020617;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Times New Roman", serif;color:#e6eef6}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:260px;padding:28px;background:linear-gradient(180deg,#04221a,#01261f);box-sizing:border-box}
+    .main{flex:1;padding:22px}
+    .report-shell{max-width:900px;margin:0 auto}
+    .report-page{background:#fff;color:#000;padding:18px 22px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.35);font-family:"Times New Roman",serif;font-size:12px}
+    .rep-header{text-align:center;margin-bottom:6px;text-transform:uppercase}
+    .rep-header h2{margin:0;font-size:14px;font-weight:bold}
+    .rep-meta-row{display:flex;justify-content:space-between;font-size:11px;margin:4px 0}
+    .rep-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px}
+    .rep-table th,.rep-table td{border:1px solid #000;padding:3px 4px}
+    .rep-table th{text-align:center;background:#e5e5e5}
+    .rep-box{border:1px solid #000;padding:8px;min-height:40px;margin-top:6px}
+    .rep-sign-row{display:flex;justify-content:space-between;margin-top:12px;font-size:11px}
+    .rep-sign-block{width:48%}
+    .badge-division{display:inline-block;padding:2px 6px;border-radius:4px;border:1px solid #000;font-weight:bold}
+    .topbar-print{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .topbar-print .btn{font-size:12px;padding:6px 10px;border-radius:8px;border:none;cursor:pointer}
+    .btn-primary{background:#16a34a;color:#fff}
+    .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);color:#374151}
+    .status-bar{padding:8px;border-radius:6px;margin-bottom:8px}
+    .status-info{background:#f0f9ff;color:#0369a1;border:1px solid #bfdbfe}
+    .status-warning{background:#fff7ed;color:#7c2d12;border:1px solid #ffedd5}
+    .small-gray{color:#6b7280;font-size:12px}
 
+    /* print */
     @media print{
-      body{
-        background:#fff;
-      }
-      .app,
-      .sidebar{
-        display:none;
-      }
-      .report-shell{
-        margin:0;
-      }
-      .report-page{
-        box-shadow:none;
-        border-radius:0;
-      }
+      body{background:#fff}
+      .app .sidebar{display:none}
+      .report-page{box-shadow:none;border-radius:0}
+      .topbar-print .btn{display:none}
     }
   </style>
 </head>
 <body>
-
 <div class="app">
-  <!-- SIDEBAR (optional, kama hutaki ondoa kabisa) -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-badge">UK</div>
-      <div>
-        <div class="brand-title">UKSS</div>
-        <div class="brand-sub">Results Management</div>
-      </div>
-    </div>
-
-    <nav class="nav">
-      <a href="marks.html">🏠 Marks</a>
-      <a href="results.html">📄 Results</a>
-      <a href="ranking.html">🏆 Ranking</a>
-      <a href="behaviour.html">🧭 Behaviour</a>
-      <a href="sms.html">📨 SMS</a>
-      <a href="sms_logs.html">🧾 SMS Logs</a>
-      <a href="admin.html">🔐 Admin</a>
+  <aside class="sidebar" aria-hidden="true">
+    <div style="color:#fff;font-weight:700;font-size:18px;margin-bottom:12px">UKSS</div>
+    <nav style="color:#c7f0df">
+      <div style="margin:6px 0">🏠 <a href="marks.html" style="color:inherit;text-decoration:none">Marks</a></div>
+      <div style="margin:6px 0">📄 <a href="results.html" style="color:inherit;text-decoration:none">Results</a></div>
+      <div style="margin:6px 0">🔐 <a href="admin.html" style="color:inherit;text-decoration:none">Admin</a></div>
     </nav>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
     <div class="report-shell">
-
       <div class="topbar-print">
         <div>
           <h2 style="margin:0;font-size:16px;">Student Report Form</h2>
           <p id="repExamLabel" class="small-gray"></p>
         </div>
-        <div>
-          <button class="btn btn-ghost" onclick="window.history.back()">↩ Back</button>
-          <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" onclick="window.history.back()">↩ Back</button>
+          <button class="btn-primary" id="printBtn" onclick="window.print()">🖨 Print</button>
         </div>
       </div>
 
-      <div id="reportStatus" class="status-bar status-info hidden">Loading report...</div>
+      <div id="reportStatus" class="status-bar status-info" style="display:none">Loading report…</div>
 
       <div id="reportPage" class="report-page" style="display:none;">
-        <!-- HEADER -->
         <div class="rep-header">
-          <div style="font-size:11px;">THE PRESIDENT'S OFFICE, REGIONAL ADMINISTRATION AND LOCAL GOVERNMENT</div>
-          <div style="font-size:11px;" id="repCouncil">MERU DISTRICT COUNCIL</div>
-          <h2 id="repSchoolName">UMOJA KING'ORI SECONDARY SCHOOL</h2>
-          <div style="font-size:11px;">RIPOTI YA MAENDELEO YA KITAALUMA KIDATO CHA KWANZA HADI CHA NNE</div>
-          <h3 id="repExamTitle">ANNUAL EXAMINATION REPORT</h3>
+          <div style="font-size:11px;" id="repCouncil">REGIONAL / DISTRICT</div>
+          <h2 id="repSchoolName">SCHOOL NAME</h2>
+          <div style="font-size:11px;" id="repExamTitle">EXAM TITLE</div>
         </div>
 
-        <!-- CONTACT INFO -->
         <div class="rep-meta-row">
           <div>
-            Simu: <span id="repSchoolPhone">0754 418250</span><br/>
-            Email: <span id="repSchoolEmail">umoja.kingori@yahoo.com</span>
+            Simu: <span id="repSchoolPhone">---</span><br/>
+            Email: <span id="repSchoolEmail">---</span>
           </div>
           <div style="text-align:right;">
-            S.L.P <span id="repSchoolBox">17075</span><br/>
+            S.L.P <span id="repSchoolBox">---</span><br/>
             Tarehe: <span id="repDate">-</span>
           </div>
         </div>
 
-        <!-- STUDENT INFO -->
-        <div class="rep-meta-row" style="border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 0;margin-top:4px;">
+        <div class="rep-meta-row" style="border-top:1px solid #000;border-bottom:1px solid #000;padding:6px 0;margin-top:8px;">
           <div>
-            KWA MZAZI WA: <span id="repParentName">...........................</span><br/>
-            Mwanafunzi: <span id="repStudentName">...........................</span>
+            KWA MZAZI WA: <span id="repParentName">-</span><br/>
+            Mwanafunzi: <span id="repStudentName">-</span>
           </div>
-          <div>
-            Kidato: <span id="repForm">FORM I</span><br/>
-            Mkondo: <span id="repStream">A</span> &nbsp; Adm No: <span id="repAdmNo">---</span>
+          <div style="text-align:right">
+            Kidato: <span id="repForm">-</span><br/>
+            Mkondo: <span id="repStream">-</span> &nbsp; Adm No: <span id="repAdmNo">-</span>
           </div>
         </div>
 
-        <!-- SUBJECT TABLE -->
-        <table class="rep-table">
+        <table class="rep-table" aria-describedby="repSubjectsBody">
           <thead>
-          <tr>
-            <th>No</th>
-            <th>Somo</th>
-            <th>Alama</th>
-            <th>Daraja</th>
-            <th>Maoni</th>
-          </tr>
+            <tr><th>No</th><th>Somo</th><th>Alama</th><th>Daraja</th><th>Maoni (walimu)</th></tr>
           </thead>
           <tbody id="repSubjectsBody">
-          <tr><td colspan="5">Loading subjects...</td></tr>
+            <tr><td colspan="5">Loading...</td></tr>
           </tbody>
         </table>
 
-        <!-- SUMMARY -->
-        <div class="rep-section-title">A. Tathmini ya Ufaulu</div>
-        <div class="rep-flex">
-          <div>
-            Jumla ya alama zake: <strong><span id="repTotalMarks">0</span></strong><br/>
-            Wastani wa Alama zake: <strong><span id="repAverage">0</span></strong>
-          </div>
-          <div>
-            Nafasi ya ufaulu darasani: <strong><span id="repPosition">-</span></strong> kati ya
-            <strong><span id="repClassSize">-</span></strong><br/>
-            Division: <span id="repDivision" class="badge-division">-</span>
-          </div>
+        <div class="rep-section-title" style="margin-top:8px;font-weight:bold">A. Tathmini ya Ufaulu</div>
+        <div class="rep-flex" style="display:flex;justify-content:space-between">
+          <div>Jumla ya alama zake: <strong><span id="repTotalMarks">0</span></strong><br/>Wastani: <strong><span id="repAverage">0</span></strong></div>
+          <div>Nafasi: <strong><span id="repPosition">-</span></strong> kati ya <strong><span id="repClassSize">-</span></strong><br/>Division: <span id="repDivision" class="badge-division">-</span></div>
         </div>
 
-        <!-- TABIA NA MAENDELEO -->
-        <div class="rep-section-title">B. Tabia na Maendeleo ya Mwanafunzi</div>
-        <div class="rep-box" id="repBehaviourBox">
-          <!-- unaweza kujaza kutoka behaviour collection baadaye -->
-          Tabia kwa ujumla: <span id="repBehaviourSummary">Mzuri</span>.
-        </div>
+        <div style="margin-top:8px" class="rep-section-title">B. Tabia & Maendeleo</div>
+        <div id="repBehaviourBox" class="rep-box">Loading behaviour...</div>
 
-        <!-- MAONI YA WALIMU -->
-        <div class="rep-section-title">C. Maoni ya Waalimu</div>
+        <div style="margin-top:8px" class="rep-section-title">C. Maoni ya Waalimu</div>
         <div class="rep-box">
-          <strong>Mwalimu wa Darasa:</strong> <span id="repClassTeacher">__________</span><br/>
-          Maoni: <span id="repTeacherComment">Wastani wako ni wa kati, ongeza juhudi kufikia daraja la juu zaidi.</span>
+          <strong>Mwalimu wa Darasa:</strong> <span id="repClassTeacher">_</span><br/>
+          <div id="repTeacherComment">Maoni ya mwalimu wa darasa hayajapatikana.</div>
         </div>
 
-        <div class="rep-section-title">D. Maoni ya Mwalimu Mkuu</div>
+        <div style="margin-top:8px" class="rep-section-title">D. Maoni ya Mwalimu Mkuu</div>
         <div class="rep-box">
-          <strong>Mwalimu Mkuu:</strong> <span id="repHeadName">________________</span><br/>
-          Maoni: <span id="repHeadComment">Naipongeza juhudi uliyoonyesha. Endelea kuzingatia masomo na nidhamu.</span>
+          <strong>Mwalimu Mkuu:</strong> <span id="repHeadName">_</span><br/>
+          <div id="repHeadComment">Maoni ya mwalimu mkuu hayajapatikana.</div>
         </div>
 
-        <!-- SIGNATURES -->
         <div class="rep-sign-row">
           <div class="rep-sign-block">
             <div class="label">Tarehe ya kufunga shule:</div>
@@ -274,6 +133,7 @@
             <div class="label" style="margin-top:6px;">Tarehe ya kufungua shule:</div>
             <div><span id="repOpeningDate">______________</span></div>
           </div>
+
           <div class="rep-sign-block">
             <div class="label">Sahihi ya Mwalimu wa Darasa:</div>
             <div>________________________</div>
@@ -282,24 +142,26 @@
           </div>
         </div>
 
-        <!-- FOOTER -->
-        <div class="rep-footer">
-          ZINGATIA: <em>Kipande hiki cha ripoti kirudishwe shuleni kilichosainiwa na mzazi/mlezi katika kikao cha kwanza.</em><br/>
-          Maoni ya Mzazi/Mlezi: _______________________________________________
+        <div style="margin-top:10px;font-size:11px">
+          <strong>Maoni ya Mzazi/Mlezi:</strong> _______________________________________________
         </div>
       </div>
     </div>
   </main>
 </div>
 
-<!-- Firebase v8 -->
+<!-- Firebase SDK v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+<!-- your firebase init -->
 <script src="./js/database.js"></script>
+
+<!-- report logic -->
 <script src="./js/report.js"></script>
 </body>
 </html>
+
 
 
