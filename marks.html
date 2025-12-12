@@ -6,10 +6,9 @@
   <title>UKSS — Marks & Students</title>
   <link rel="stylesheet" href="./style.css" />
 
-  <!-- ===== EARLY GUARD: place BEFORE firebase or any UI to prevent flash =====
-       Behavior:
-       - If sessionStorage.justSignedIn === '1' -> allow page load once, then clear flag.
-       - Otherwise redirect immediately to index.html (prevents marks.html from opening).
+  <!-- ===== EARLY GUARD: run BEFORE firebase UI to prevent flash =====
+       - If sessionStorage.justSignedIn === '1' -> allow page load (do NOT clear flag here).
+       - Otherwise redirect immediately to index.html (login).
   -->
   <script>
     (function(){
@@ -21,14 +20,18 @@
 
         if (just !== '1') {
           console.warn('[GUARD] justSignedIn not found -> redirecting to index.html');
+          // ensure no stale flag remains
           try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+          // Use replace so back button doesn't return to protected page
           window.location.replace('index.html');
           return;
         }
 
-        // consume flag and allow load
-        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-        console.log('[GUARD] justSignedIn found -> allowing page load (flag cleared).');
+        // If we reach here, we allow the page to load.
+        // IMPORTANT: do NOT remove the flag here — let post-load guard remove it after
+        // firebase onAuthStateChanged confirms the authenticated user.
+        console.log('[GUARD] justSignedIn found -> allowing page load (flag will be consumed by post-load guard).');
+
       } catch (err) {
         console.error('[GUARD] fatal guard error', err);
         try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
@@ -294,6 +297,7 @@
   </main>
 </div>
 
+<!-- Optional hidden debug box to show guard logs on UI (turn on when debugging) -->
 <div id="guardDebug" style="position:fixed;right:12px;bottom:12px;background:#111827aa;padding:8px;border-radius:8px;color:#fff;display:none;"></div>
 
 <!-- Firebase CDN v8 -->
@@ -304,30 +308,47 @@
 <!-- App scripts -->
 <script src="./js/database.js"></script>
 
-<!-- Quick post-load safety: runs after firebase is available (uses index.html) -->
+<!-- ===== POST-LOAD GUARD: only acts AFTER firebase is available =====
+     - Wait for firebase.auth().onAuthStateChanged.
+     - If user is null -> redirect to index.html
+     - If user exists && sessionStorage.justSignedIn === '1' -> consume flag and continue
+     - If user exists && no flag -> sign out and redirect (prevents stale sessions opening this page)
+-->
 <script>
   (function(){
     try {
       console.log('[GUARD] post-load safety running');
-      if(window.firebase && firebase.auth){
+
+      if (window.firebase && firebase.auth) {
         firebase.auth().onAuthStateChanged(function(user){
           console.log('[GUARD] post-load onAuthStateChanged user=', user ? user.email : null);
+
           var allowed = false;
           try { allowed = sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ allowed = false; }
-          if(user && !allowed){
-            console.warn('[GUARD] user session exists but not freshly signed in -> signing out and redirecting');
-            try{ sessionStorage.removeItem('justSignedIn'); } catch(e){}
-            firebase.auth().signOut().then(function(){
-              window.location.replace('index.html');
-            }).catch(function(e){
-              console.warn('[GUARD] signOut failed', e);
+
+          if (!user) {
+            console.warn('[GUARD] no authenticated user -> redirecting to login');
+            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+            window.location.replace('index.html');
+            return;
+          }
+
+          // user exists
+          if (user && allowed) {
+            // SAFE: only now clear the flag so subsequent reloads won't bypass guard
+            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+            console.log('[GUARD] authenticated session confirmed -> flag cleared, continuing to load page.');
+            return;
+          }
+
+          // If user exists but flag missing -> force sign out and redirect (prevents unauthorized open)
+          if (user && !allowed) {
+            console.warn('[GUARD] user exists but no fresh flag -> signing out and redirecting');
+            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+            firebase.auth().signOut().finally(function(){
               window.location.replace('index.html');
             });
             return;
-          }
-          if(allowed){
-            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-            console.log('[GUARD] allowed session (justSignedIn) — continuing.');
           }
         });
       } else {
@@ -335,6 +356,8 @@
       }
     } catch(err){
       console.error('[GUARD] post-load safety error', err);
+      try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+      window.location.replace('index.html');
     }
   })();
 </script>
