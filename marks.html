@@ -5,51 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UKSS — Marks & Students</title>
   <link rel="stylesheet" href="./style.css" />
-
-  <!-- EARLY GUARD: run BEFORE firebase UI to prevent flash
-       - If sessionStorage.justSignedIn === '1' -> allow page load (DO NOT clear flag here)
-       - Otherwise redirect immediately to index.html (login)
-  -->
-  <script>
-    (function(){
-      try {
-        console.log('[GUARD] early guard running on marks.html');
-
-        var just = null;
-        try { just = sessionStorage.getItem('justSignedIn'); } catch(e) { console.warn('[GUARD] sessionStorage read failed', e); }
-
-        if (just !== '1') {
-          console.warn('[GUARD] justSignedIn not found -> redirecting to index.html');
-          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          window.location.replace('index.html');
-          return;
-        }
-
-        // Allowed to load — DO NOT clear the flag yet.
-        console.log('[GUARD] justSignedIn found -> allowing page load (flag will be validated/consumed by post-load guard).');
-      } catch (err) {
-        console.error('[GUARD] early guard fatal', err);
-        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-        window.location.replace('index.html');
-      }
-    })();
-  </script>
-
   <style>
-    /* (abbreviated styles for brevity, same as your previous design) */
-    .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
-    .stepper { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-    .step-pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); font-size:11px; display:flex; align-items:center; gap:6px; opacity:0.7; }
-    .step-pill.active{ background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; opacity:1; box-shadow:0 6px 16px rgba(37,99,235,0.35); border:none; }
-    .tabs{ display:flex; border-radius:999px; background:rgba(15,23,42,0.65); padding:3px; width:max-content; }
-    .tab-btn{ border:none; background:transparent; padding:6px 14px; font-size:12px; border-radius:999px; cursor:pointer; opacity:0.7; white-space:nowrap; }
-    .tab-btn.active{ background:rgba(15,23,42,0.95); opacity:1; box-shadow:0 4px 10px rgba(0,0,0,0.4); }
-    .grid-2{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; }
-    @media(max-width:900px){ .grid-2{ grid-template-columns:minmax(0,1fr); } }
-    .table-mini{ width:100%; border-collapse:collapse; font-size:12px; }
-    .matrix-table{ width:100%; border-collapse:collapse; font-size:11px; overflow:auto; }
-    .matrix-input{ width:64px; padding:3px 4px; border-radius:6px; border:1px solid rgba(148,163,184,0.8); background:rgba(15,23,42,0.85); color:#e5e7eb; font-size:11px; text-align:center; }
-    #guardDebug { display:none; font-size:12px; color:#f97373; margin-bottom:8px; }
+    /* trimmed styles (use your style.css for full look) */
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#e5e7eb;background:linear-gradient(180deg,#061014,#05121a);}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:260px;padding:28px;background:linear-gradient(180deg,#052018,#03221a)}
+    .brand-badge{width:52px;height:52px;border-radius:12px;background:#16a34a;color:#04201a;display:inline-flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:8px;}
+    .main{flex:1;padding:28px;overflow:auto}
+    .card{background:rgba(12,18,22,0.6);padding:18px;border-radius:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+    .row{display:flex;gap:12px;align-items:center}
+    .field{min-width:0;flex:1}
+    .label{font-size:13px;color:#a8b3bf;margin-bottom:6px;display:block}
+    .input,.select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.25);color:#fff}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,#10b981,#059669);color:#04201a}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:#cbd5e1}
+    .small{font-size:13px;color:#9ca3af}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    .matrix-input{width:64px;padding:6px}
+    /* modal */
+    .modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:9999}
+    .modal.show{display:flex}
+    .modal-card{width:min(900px,95%);background:#021219;padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.04)}
+    .textarea{width:100%;min-height:220px;padding:10px;border-radius:8px;background:#0b1620;color:#e6eef6;border:1px solid rgba(255,255,255,0.03)}
   </style>
 </head>
 <body>
@@ -59,116 +38,135 @@
     <div class="brand">
       <div class="brand-badge">UK</div>
       <div>
-        <div class="brand-title">UKSS</div>
-        <div class="brand-sub">Results Management</div>
+        <div class="brand-title" style="color:#e6f7ee;font-weight:700">UKSS</div>
+        <div class="brand-sub small">Results Management</div>
       </div>
     </div>
 
-    <nav class="nav">
-      <a href="marks.html" class="active">🏠 Marks & Students</a>
-      <a href="results.html">📄 Results</a>
-      <a href="ranking.html">🏆 Ranking</a>
-      <a href="behaviour.html">🧭 Behaviour</a>
-      <a href="sms.html">📨 SMS</a>
-      <a href="sms_logs.html">🧾 SMS Logs</a>
-      <a href="admin.html" id="navAdminLink">🔐 Admin</a>
+    <nav style="margin-top:18px;color:#cbd5e1">
+      <div style="margin-bottom:8px">🏠 <a href="marks.html" style="color:inherit;text-decoration:none">Marks</a></div>
+      <div>📄 <a href="results.html" style="color:inherit;text-decoration:none">Results</a></div>
+      <div>🔐 <a href="admin.html" style="color:inherit;text-decoration:none">Admin</a></div>
     </nav>
   </aside>
 
   <main class="main">
-    <header class="topbar">
+
+    <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
       <div>
-        <h2>📘 Marks & Students</h2>
-        <p class="small">
-          Hatua: (1) Tengeneza madarasa Form I–IV ➜ (2) Ongeza masomo ➜ (3) Sajili wanafunzi ➜ (4) Chagua mtihani na ujaze alama.
-        </p>
-
-        <div class="stepper">
-          <div class="step-pill" id="stepClassPill"><span class="badge">1</span> Madarasa (Form I–IV)</div>
-          <div class="step-pill" id="stepStudentsPill"><span class="badge">2</span> Masomo ya Darasa</div>
-          <div class="step-pill" id="stepExamPill"><span class="badge">3</span> Usajili wa Wanafunzi (F1–F4)</div>
-          <div class="step-pill" id="stepMarksPill"><span class="badge">4</span> Mitihani & Alama</div>
-        </div>
+        <h2 style="margin:0">📘 Marks & Students</h2>
+        <p class="small">Hatua: (1) Tengeneza madarasa ➜ (2) Ongeza masomo ➜ (3) Sajili wanafunzi ➜ (4) Chagua mtihani na ujaze alama.</p>
       </div>
-
-      <div class="top-actions">
+      <div style="display:flex;gap:8px">
         <button id="loadSampleBtn" class="btn btn-ghost">Load Sample</button>
+        <button id="generateSmsBtn" class="btn btn-primary">Generate SMS</button>
       </div>
     </header>
 
-    <!-- rest of page UI (unchanged) -->
     <section class="card">
-      <div class="row row-wrap">
+      <div class="row">
         <div class="field">
           <label class="label">Class (Form & Stream)</label>
-          <select id="classSelect" class="input"></select>
+          <select id="classSelect" class="select"></select>
         </div>
-        <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
+        <div>
+          <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
+        </div>
         <div class="field">
           <label class="label">Exam in this class</label>
-          <select id="examSelect" class="input"></select>
+          <select id="examSelect" class="select"></select>
         </div>
-        <button id="addExamBtn" class="btn btn-ghost">+ Add Exam (Test, Midterm, Annual)</button>
+        <div>
+          <button id="addExamBtn" class="btn btn-ghost">+ Add Exam</button>
+        </div>
       </div>
 
-      <div class="stats-bar">
-        <div class="stat-chip">👥 Students: <span id="statStudents">0</span></div>
-        <div class="stat-chip">📚 Subjects: <span id="statSubjects">0</span></div>
-        <div class="stat-chip">🧪 Current exam: <span id="statExamName">—</span></div>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <div class="small">👥 Students: <span id="statStudents">0</span></div>
+        <div class="small">📚 Subjects: <span id="statSubjects">0</span></div>
+        <div class="small">🧪 Current exam: <span id="statExamName">—</span></div>
       </div>
     </section>
 
     <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="tabs">
           <button class="tab-btn active" data-tab="studentsTab">Students & Subjects</button>
           <button class="tab-btn" data-tab="marksTab">Marks Matrix</button>
         </div>
-        <button id="generateReportsBtn" class="btn btn-primary">Generate Reports</button>
+        <div style="display:flex;gap:8px">
+          <button id="generateReportsBtn" class="btn btn-ghost">Open Results Page</button>
+        </div>
       </div>
 
       <div id="studentsTab" class="tab-panel">
-        <div class="grid-2">
+        <div style="display:grid;grid-template-columns:1fr 420px;gap:16px">
           <div>
-            <h3>Register Student (Form I–IV)</h3>
-            <div class="form-row" style="margin-top:10px;">
-              <div class="field"><label class="label">Examination No</label><input id="Examination No" class="input" placeholder="S5631/000" autocomplete="off" /></div>
-              <div class="field"><label class="label">First name</label><input id="stuFirst" class="input" placeholder="Kelvin" autocomplete="given-name" /></div>
-              <div class="field"><label class="label">Last name</label><input id="stuLast" class="input" placeholder="Deogratias" autocomplete="family-name" /></div>
-              <div class="field"><label class="label">Stream</label><input id="stuLast" cladss="input" placeholder="stream A" autocomplete="stream A-B" /></div>
-            </div>
-
-            <div class="form-row" style="margin-top:10px;">
-              <div class="field">
-                <label class="label">Sex</label>
-                <select id="stuSex" class="input"><option value="">--</option><option value="F">F</option><option value="M">M</option></select>
+            <h3 style="margin-top:0">Register Student (Form I–IV)</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div style="flex:1">
+                <label class="label">Admission No</label>
+                <input id="stuAdmission" class="input" placeholder="F1A/001" autocomplete="off" />
               </div>
-              <div class="field"><label class="label">Guardian phone</label><input id="stuPhone" class="input" placeholder="0712345678" autocomplete="tel" /></div>
+              <div style="flex:1">
+                <label class="label">First name</label>
+                <input id="stuFirst" class="input" placeholder="Kelvin" autocomplete="given-name" />
+              </div>
+              <div style="flex:1">
+                <label class="label">Last name</label>
+                <input id="stuLast" class="input" placeholder="Deogratias" autocomplete="family-name" />
+              </div>
+              <div style="width:140px">
+                <label class="label">Stream</label>
+                <select id="stuStream" class="select">
+                  <option value="">--</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                </select>
+              </div>
             </div>
 
-            <div class="row" style="margin-top:12px;"><button id="addStudentBtn" class="btn btn-primary">Save Student</button></div>
-
-            <hr style="margin:16px 0;opacity:0.15;border:none;border-top:1px solid #1f2937;">
-            <h3>Subjects in this class</h3>
-            <div class="form-row" style="margin-top:10px;">
-              <div class="field"><label class="label">Subject code</label><input id="subCode" class="input" placeholder="BUS" autocomplete="off" /></div>
-              <div class="field"><label class="label">Subject name</label><input id="subName" class="input" placeholder="Business Studies" autocomplete="off" /></div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <div style="flex:1">
+                <label class="label">Sex</label>
+                <select id="stuSex" class="select"><option value="">--</option><option value="F">F</option><option value="M">M</option></select>
+              </div>
+              <div style="flex:1">
+                <label class="label">Guardian phone</label>
+                <input id="stuPhone" class="input" placeholder="0712345678" autocomplete="tel" />
+              </div>
+              <div style="width:140px;align-self:flex-end">
+                <button id="addStudentBtn" class="btn btn-primary" style="width:100%">Save Student</button>
+              </div>
             </div>
-            <div class="row" style="margin-top:10px;"><button id="addSubjectBtn" class="btn btn-ghost">+ Add Subject</button></div>
+
+            <hr style="opacity:0.12;margin:12px 0">
+
+            <h3 style="margin-top:0">Subjects in this class</h3>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><label class="label">Subject code</label><input id="subCode" class="input" placeholder="BUS" /></div>
+              <div style="flex:2"><label class="label">Subject name</label><input id="subName" class="input" placeholder="Business Studies" /></div>
+              <div style="width:130px;align-self:flex-end"><button id="addSubjectBtn" class="btn btn-ghost" style="width:100%">+ Add Subject</button></div>
+            </div>
           </div>
 
           <div>
-            <h3>Overview</h3>
-            <div style="margin-top:10px;">
-              <p class="label">Students</p>
-              <div class="list-box small" style="max-height:200px;overflow:auto;">
-                <table class="table-mini" id="studentsMiniTable"><thead><tr><th>#</th><th>Adm</th><th>Name</th><th>Sex</th><th>Phone</th></tr></thead><tbody></tbody></table>
+            <h3 style="margin-top:0">Overview</h3>
+            <p class="small">Wanafunzi na masomo ya darasa hili (Form husika).</p>
+
+            <div style="margin-top:8px">
+              <p class="label small">Students</p>
+              <div style="max-height:260px;overflow:auto;border-radius:8px">
+                <table class="table-mini" id="studentsMiniTable">
+                  <thead><tr><th>#</th><th>Adm</th><th>Name</th><th>Stream</th><th>Sex</th><th>Phone</th></tr></thead>
+                  <tbody></tbody>
+                </table>
               </div>
             </div>
 
-            <div style="margin-top:14px;">
-              <p class="label">Subjects</p>
-              <div class="list-box small" style="max-height:160px;overflow:auto;">
+            <div style="margin-top:14px">
+              <p class="label small">Subjects</p>
+              <div style="max-height:200px;overflow:auto;border-radius:8px">
                 <table class="table-mini" id="subjectsMiniTable"><thead><tr><th>Code</th><th>Name</th></tr></thead><tbody></tbody></table>
               </div>
             </div>
@@ -176,10 +174,10 @@
         </div>
       </div>
 
-      <div id="marksTab" class="tab-panel" style="display:none;">
-        <div class="matrix-header">
-          <div><h3>Marks Matrix</h3><p class="small">Chagua darasa na mtihani, kisha jaza alama za mwisho za kila somo (0 – 100).</p></div>
-          <div class="pill">Exam: <span id="pillExamLabel">—</span></div>
+      <div id="marksTab" class="tab-panel" style="display:none;margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><h3 style="margin:0">Marks Matrix</h3><p class="small">Chagua darasa na mtihani, kisha jaza alama (0–100).</p></div>
+          <div class="pill small">Exam: <span id="pillExamLabel">—</span></div>
         </div>
         <div id="marksMatrixWrap" class="matrix-wrap"></div>
       </div>
@@ -187,98 +185,377 @@
   </main>
 </div>
 
-<div id="guardDebug" style="position:fixed;right:12px;bottom:12px;background:#111827aa;padding:8px;border-radius:8px;color:#fff;display:none;"></div>
+<!-- modal: SMS preview -->
+<div id="smsModal" class="modal"><div class="modal-card">
+  <h3>SMS Preview</h3>
+  <p class="small">Copy the lines below to your SMS provider (format: phone — message)</p>
+  <textarea id="smsPreview" class="textarea"></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+    <button id="smsCopyBtn" class="btn btn-ghost">Copy to clipboard</button>
+    <button id="smsCloseBtn" class="btn btn-primary">Close</button>
+  </div>
+</div></div>
 
 <!-- Firebase CDN v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<!-- App scripts -->
+<!-- database.js must be loaded (your existing file) -->
 <script src="./js/database.js"></script>
 
-<!-- POST-LOAD GUARD: wait for Firebase onAuthStateChanged or timeout -->
+<!-- Page logic (inline for convenience) -->
 <script>
-  (function(){
-    const LOG = function(){ console.log('[GUARD]','MARKS',...arguments); };
-    const WARN = function(){ console.warn('[GUARD]','MARKS',...arguments); };
+/* marks.js inline — handles classes, students (with stream), exams, subjects, marks, and Generate SMS */
+(async function(){
+  // shortcuts to DOM
+  const classSelect = document.getElementById('classSelect');
+  const examSelect  = document.getElementById('examSelect');
+  const addClassBtn = document.getElementById('addClassBtn');
+  const addExamBtn  = document.getElementById('addExamBtn');
+  const statStudents = document.getElementById('statStudents');
+  const statSubjects = document.getElementById('statSubjects');
+  const statExamName = document.getElementById('statExamName');
+  const studentsMiniBody = document.querySelector('#studentsMiniTable tbody');
+  const subjectsMiniBody = document.querySelector('#subjectsMiniTable tbody');
+  const pillExamLabel = document.getElementById('pillExamLabel');
+  const marksMatrixWrap = document.getElementById('marksMatrixWrap');
 
-    async function waitForAuthState(timeoutMs = 3000){
-      return new Promise(resolve => {
-        let done = false;
-        let timer = setTimeout(()=> {
-          if(done) return;
-          done = true;
-          WARN('waitForAuthState timed out after', timeoutMs, 'ms');
-          resolve(null);
-        }, timeoutMs);
+  const addStudentBtn = document.getElementById('addStudentBtn');
+  const stuAdmission = document.getElementById('stuAdmission');
+  const stuFirst = document.getElementById('stuFirst');
+  const stuLast = document.getElementById('stuLast');
+  const stuPhone = document.getElementById('stuPhone');
+  const stuSex = document.getElementById('stuSex');
+  const stuStream = document.getElementById('stuStream');
 
-        if(!window.firebase || !firebase.auth){
-          clearTimeout(timer);
-          done = true;
-          WARN('firebase.auth not present while waiting');
-          resolve(null);
-          return;
-        }
+  const subCode = document.getElementById('subCode');
+  const subName = document.getElementById('subName');
+  const addSubjectBtn = document.getElementById('addSubjectBtn');
 
-        const unsub = firebase.auth().onAuthStateChanged(user => {
-          if(done) return;
-          done = true;
-          clearTimeout(timer);
-          unsub();
-          LOG('onAuthStateChanged fired ->', user ? user.email : null);
-          resolve(user);
-        });
+  const loadSampleBtn = document.getElementById('loadSampleBtn');
+  const generateSmsBtn = document.getElementById('generateSmsBtn');
+  const generateReportsBtn = document.getElementById('generateReportsBtn');
+
+  const smsModal = document.getElementById('smsModal');
+  const smsPreview = document.getElementById('smsPreview');
+  const smsCopyBtn = document.getElementById('smsCopyBtn');
+  const smsCloseBtn = document.getElementById('smsCloseBtn');
+
+  const classesCol = db.collection('classes');
+
+  let currentClassId = null;
+  let currentExamId  = null;
+  let subjects = [];
+  let exams = [];
+  let students = [];
+
+  function sanitizeId(str){
+    return (str||'').toUpperCase().trim().replace(/\s+/g,'_').replace(/[^A-Z0-9_]/g,'');
+  }
+
+  function toast(msg){ console.log('[MARKS]', msg); }
+
+  // load classes
+  async function loadClasses(){
+    classSelect.innerHTML = '';
+    const snap = await classesCol.orderBy('name').get();
+    if(snap.empty){
+      const opt=document.createElement('option'); opt.value=''; opt.textContent='-- Add class first --'; classSelect.appendChild(opt);
+      currentClassId = null; await loadClassData(); return;
+    }
+    snap.forEach(doc=>{
+      const opt=document.createElement('option'); opt.value=doc.id; opt.textContent = doc.data().name || doc.id; classSelect.appendChild(opt);
+    });
+    currentClassId = classSelect.value || snap.docs[0].id;
+    await loadClassData();
+  }
+
+  addClassBtn.addEventListener('click', async ()=>{
+    const name = prompt('Enter class name e.g. FORM ONE A');
+    if(!name) return;
+    const id = sanitizeId(name);
+    await classesCol.doc(id).set({ name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    toast('Class saved');
+    await loadClasses();
+    classSelect.value = id; currentClassId = id; await loadClassData();
+  });
+
+  classSelect.addEventListener('change', async ()=>{ currentClassId = classSelect.value || null; await loadClassData(); });
+
+  // load class data
+  async function loadClassData(){
+    if(!currentClassId){
+      subjects=[]; students=[]; exams=[]; renderOverview(); renderExamOptions(); renderMarksMatrix(); return;
+    }
+    await Promise.all([loadSubjects(), loadExams(), loadStudentsAndMarks()]);
+    renderOverview(); renderExamOptions(); renderMarksMatrix();
+  }
+
+  async function loadSubjects(){
+    subjects=[];
+    const snap = await classesCol.doc(currentClassId).collection('subjects').orderBy('code').get();
+    snap.forEach(d=> subjects.push({id:d.id,...d.data()}));
+  }
+  async function loadExams(){
+    exams=[];
+    const snap = await classesCol.doc(currentClassId).collection('exams').orderBy('createdAt','asc').get();
+    snap.forEach(d=>exams.push({id:d.id,...d.data()}));
+    if(!exams.length) currentExamId = null;
+    else if(!currentExamId) currentExamId = exams[0].id;
+  }
+  async function loadStudentsAndMarks(){
+    students=[];
+    const snap = await classesCol.doc(currentClassId).collection('students').orderBy('admissionNo').get();
+    const promises = [];
+    snap.forEach(doc=>{
+      const data = doc.data() || {};
+      const s = {
+        id: doc.id,
+        admissionNo: data.admissionNo || doc.id,
+        firstName: data.firstName||'',
+        lastName: data.lastName||'',
+        fullName: (data.fullName || ((data.firstName||'')+' '+(data.lastName||'')).trim()).trim(),
+        guardianPhone: data.guardianPhone || '',
+        sex: data.sex || '',
+        stream: data.stream || '',
+        marks: data.marks || {}
+      };
+      students.push(s);
+      // no extra fetch required cause doc contained marks
+    });
+    // compute totals for current exam (if exists) -> done on demand
+  }
+
+  // render overview
+  function renderOverview(){
+    statStudents.textContent = students.length;
+    statSubjects.textContent = subjects.length;
+
+    // students table
+    studentsMiniBody.innerHTML = '';
+    students.forEach((s,idx)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${idx+1}</td><td>${s.admissionNo}</td><td>${s.fullName}</td><td>${s.stream||''}</td><td>${s.sex||''}</td><td>${s.guardianPhone||''}</td>`;
+      studentsMiniBody.appendChild(tr);
+    });
+
+    // subjects table
+    subjectsMiniBody.innerHTML = '';
+    subjects.forEach(s=>{
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${s.code}</td><td>${s.name}</td>`;
+      subjectsMiniBody.appendChild(tr);
+    });
+  }
+
+  // exam select
+  function renderExamOptions(){
+    examSelect.innerHTML='';
+    if(!currentClassId){ examSelect.appendChild(new Option('-- Select class --','')); statExamName.textContent='—'; pillExamLabel.textContent='—'; return; }
+    if(!exams.length){ examSelect.appendChild(new Option('-- No exam yet --','')); statExamName.textContent='—'; pillExamLabel.textContent='—'; return; }
+    exams.forEach(ex=> examSelect.appendChild(new Option(ex.displayName||ex.name||ex.id, ex.id)));
+    if(currentExamId) examSelect.value = currentExamId; else { currentExamId = examSelect.value || exams[0].id; }
+    const ex = exams.find(e=>e.id===currentExamId);
+    const label = ex ? (ex.displayName||ex.name||ex.id) : '—';
+    statExamName.textContent = label; pillExamLabel.textContent = label;
+  }
+  examSelect.addEventListener('change', ()=>{ currentExamId = examSelect.value || null; renderExamOptions(); renderMarksMatrix(); });
+
+  // add exam
+  addExamBtn.addEventListener('click', async ()=>{
+    if(!currentClassId) return alert('Select class first.');
+    const name = prompt('Exam name (e.g. TEST 1, MIDTERM 2025, ANNUAL 2025)');
+    if(!name) return;
+    const id = sanitizeId(name || Date.now().toString());
+    await classesCol.doc(currentClassId).collection('exams').doc(id).set({ name, displayName: name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    toast('Exam added'); await loadExams(); renderExamOptions(); renderMarksMatrix();
+  });
+
+  // add subject
+  addSubjectBtn.addEventListener('click', async ()=>{
+    if(!currentClassId) return alert('Select class first');
+    const code = (subCode.value||'').toUpperCase().trim();
+    const name = (subName.value||'').trim();
+    if(!code || !name) return alert('Fill subject code & name');
+    await classesCol.doc(currentClassId).collection('subjects').doc(code).set({ code, name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    subCode.value=''; subName.value=''; toast('Subject added'); await loadSubjects(); renderOverview(); renderMarksMatrix();
+  });
+
+  // add student (stream saved)
+  addStudentBtn.addEventListener('click', async ()=>{
+    if(!currentClassId) return alert('Select class first');
+    const admissionRaw = (stuAdmission.value||'').trim(); const admission = admissionRaw.toUpperCase();
+    const docId = sanitizeId(admissionRaw || Date.now().toString());
+    const first = (stuFirst.value||'').trim(); const last = (stuLast.value||'').trim();
+    const phone = (stuPhone.value||'').trim(); const sex = (stuSex.value||'').trim(); const stream = (stuStream.value||'').trim();
+    if(!admission || !first || !last) return alert('Admission, First and Last name required');
+    const fullName = `${first} ${last}`.trim();
+    try{
+      await classesCol.doc(currentClassId).collection('students').doc(docId).set({
+        admissionNo: admission, firstName: first, lastName: last, fullName, guardianPhone: phone, sex, stream, marks:{}, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      stuAdmission.value=''; stuFirst.value=''; stuLast.value=''; stuPhone.value=''; stuSex.value=''; stuStream.value='';
+      await loadStudentsAndMarks(); renderOverview(); renderMarksMatrix(); toast('Student saved');
+    }catch(err){ console.error(err); alert('Failed to save student'); }
+  });
+
+  // marks matrix rendering (single mark per subject)
+  function renderMarksMatrix(){
+    marksMatrixWrap.innerHTML = '';
+    if(!currentClassId){ marksMatrixWrap.textContent = 'Please select a class.'; return; }
+    if(!currentExamId){ marksMatrixWrap.textContent = 'Add and select exam to start entering marks.'; return; }
+    if(!subjects.length || !students.length){ marksMatrixWrap.textContent = 'Make sure this class has subjects and registered students.'; return; }
+
+    const table = document.createElement('table'); table.className='matrix-table';
+    const thead = document.createElement('thead'); const r = document.createElement('tr');
+    r.innerHTML = `<th>#</th><th>Adm</th><th>Student</th><th>Stream</th><th>Sex</th>`;
+    subjects.forEach(s=>{ const th=document.createElement('th'); th.textContent = s.code; r.appendChild(th); });
+    thead.appendChild(r); table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
+    students.forEach((stu, idx)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${idx+1}</td><td>${stu.admissionNo}</td><td>${stu.fullName}</td><td>${stu.stream||''}</td><td>${stu.sex||''}</td>`;
+      const examMarks = (stu.marks && stu.marks[currentExamId] && stu.marks[currentExamId].subjects) || {};
+      subjects.forEach(sub=>{
+        const val = examMarks[sub.code] ?? '';
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type='number'; input.min='0'; input.max='100'; input.className='matrix-input'; input.value = (val==null?'':val);
+        input.dataset.stuId = stu.id; input.dataset.subCode = sub.code;
+        td.appendChild(input); tr.appendChild(td);
       });
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody); marksMatrixWrap.appendChild(table);
+    table.addEventListener('change', onMatrixChange);
+  }
+
+  async function onMatrixChange(e){
+    const input = e.target; if(!input.classList.contains('matrix-input')) return;
+    const stuId = input.dataset.stuId; const subCode = input.dataset.subCode;
+    let value = input.value === '' ? null : Number(input.value);
+    if(value != null && (value < 0 || value > 100)){ alert('Mark must be 0–100'); input.focus(); return; }
+    try{
+      const stuRef = classesCol.doc(currentClassId).collection('students').doc(stuId);
+      await stuRef.set({ marks: { [currentExamId]: { subjects: { [subCode]: value } } } }, { merge:true });
+      // update local
+      const s = students.find(x=>x.id===stuId); if(!s.marks) s.marks = {}; if(!s.marks[currentExamId]) s.marks[currentExamId] = { subjects:{} };
+      s.marks[currentExamId].subjects[subCode] = value;
+    }catch(err){ console.error(err); alert('Failed to save mark'); }
+  }
+
+  // generate SMS — compute totals, averages, ranks, divisions, then preview
+  generateSmsBtn.addEventListener('click', async ()=>{
+    if(!currentClassId || !currentExamId) return alert('Select class and exam first.');
+    // ensure latest students loaded
+    await loadStudentsAndMarks();
+    await loadSubjects(); // subjects list needed
+    // compute totals
+    const rows = [];
+    for(const s of students){
+      const examMarks = (s.marks && s.marks[currentExamId] && s.marks[currentExamId].subjects) || {};
+      let total = 0, count = 0;
+      subjects.forEach(sub=>{
+        const v = examMarks[sub.code];
+        if(typeof v === 'number'){ total += v; count++; }
+      });
+      const avg = count ? (total / count) : 0;
+      rows.push({ id: s.id, fullName: s.fullName, admissionNo: s.admissionNo, phone: s.guardianPhone||'', stream: s.stream||'', total, avg });
+    }
+    // ranking by total desc (ties share positions)
+    rows.sort((a,b)=> b.total - a.total);
+    let lastTotal = null, lastRank = 0;
+    rows.forEach((r,i)=>{
+      if(r.total === lastTotal){ r.rank = lastRank; } else { r.rank = i+1; lastRank = r.rank; lastTotal = r.total; }
+    });
+    const totalStudents = rows.length;
+
+    // division mapping (adjust as you like)
+    function divisionForAvg(avg){
+      if(avg >= 75) return 'I';
+      if(avg >= 60) return 'II';
+      if(avg >= 45) return 'III';
+      if(avg >= 35) return 'IV';
+      return 'V';
     }
 
-    (async function(){
-      try{
-        LOG('post-load guard starting; waiting for firebase auth confirmation (3s max)');
-        const user = await waitForAuthState(3000);
+    // Build messages: "Mzazi wa -------, kwenye matokeo ya [EXAM] jumla ya alama zake [total], wastani wa alama zake [avg], Amekuwa mtu wa [rank], kati ya wanafunzi [totalStudents] katika darasa lake. division [div] ya points [total]."
+    const examLabel = (exams.find(e=>e.id===currentExamId)?.displayName) || currentExamId;
+    const lines = rows.map(r=>{
+      const avgText = r.avg ? r.avg.toFixed(2) : '0';
+      const div = divisionForAvg(r.avg);
+      const message = `Mzazi wa ${r.fullName}, kwenye matokeo ya ${examLabel} jumla ya alama zake ${r.total}, wastani wa alama zake ${avgText}, Amekuwa mtu wa ${r.rank}, kati ya wanafunzi ${totalStudents} katika darasa lake. division ${div} ya points ${r.total}.`;
+      // phone normalization: if empty, leave blank
+      const phone = (r.phone || '').replace(/\s+/g,'');
+      return `${phone} — ${message}`;
+    });
 
-        const allowed = (function(){
-          try { return sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ return false; }
-        })();
+    smsPreview.value = lines.join('\n\n');
+    smsModal.classList.add('show');
+  });
 
-        LOG('post-load: user=', user ? user.email : null, 'allowedFlag=', allowed);
+  smsCloseBtn.addEventListener('click', ()=> smsModal.classList.remove('show'));
+  smsCopyBtn.addEventListener('click', ()=>{
+    smsPreview.select();
+    document.execCommand('copy');
+    alert('Copied to clipboard');
+  });
 
-        if(!user){
-          // no user after wait: redirect to login
-          WARN('No firebase user found -> redirect to index.html');
-          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          window.location.replace('index.html');
-          return;
-        }
+  // generate reports button -> navigate to results page
+  generateReportsBtn.addEventListener('click', ()=>{
+    if(!currentClassId || !currentExamId) return alert('Select class and exam first.');
+    window.location.href = `results.html?class=${encodeURIComponent(currentClassId)}&exam=${encodeURIComponent(currentExamId)}`;
+  });
 
-        // user exists
-        if(user && allowed){
-          // success: consume flag now and continue
-          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          LOG('Authenticated user confirmed and flag present -> continuing');
-          return;
-        }
+  // load sample data (for testing)
+  loadSampleBtn.addEventListener('click', async ()=>{
+    if(!confirm('Load sample data (classes, subjects, exams, students)?')) return;
+    try{
+      const clsId = 'FORM_ONE_A';
+      await classesCol.doc(clsId).set({ name:'FORM ONE A', createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+      const subsRef = classesCol.doc(clsId).collection('subjects');
+      const sampleSubs = [{code:'ENG',name:'English'},{code:'MATH',name:'Mathematics'},{code:'KIS',name:'Kiswahili'},{code:'BUS',name:'Business'},{code:'GEO',name:'Geography'}];
+      for(const s of sampleSubs) await subsRef.doc(s.code).set({...s, createdAt: firebase.firestore.FieldValue.serverTimestamp()}, { merge:true });
 
-        // user exists but not freshly signed in: sign out and redirect
-        if(user && !allowed){
-          WARN('User present but justSignedIn flag missing -> signing out and redirecting');
-          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          firebase.auth().signOut().finally(()=> window.location.replace('index.html'));
-          return;
-        }
+      const examsRef = classesCol.doc(clsId).collection('exams');
+      await examsRef.doc('TEST_1').set({ name:'TEST 1', displayName:'TEST 1', createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
 
-      }catch(err){
-        console.error('[GUARD] post-load fatal', err);
-        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-        window.location.replace('index.html');
+      const stuRef = classesCol.doc(clsId).collection('students');
+      for(let i=1;i<=8;i++){
+        const adm = `F1A/${String(i).padStart(3,'0')}`; const docId = sanitizeId(adm);
+        await stuRef.doc(docId).set({
+          admissionNo: adm, firstName: 'STU'+i, lastName:'', fullName:'STU'+i, guardianPhone: '07'+(10000000 + Math.floor(Math.random()*89999999)), sex: i%2===0?'M':'F', stream: (i%2===0?'A':'B'), marks: {
+            'TEST_1': { subjects: { ENG: Math.floor(Math.random()*41)+50, MATH: Math.floor(Math.random()*41)+40, KIS: Math.floor(Math.random()*41)+45, BUS: Math.floor(Math.random()*41)+40, GEO: Math.floor(Math.random()*41)+35 } }
+          }, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge:true });
       }
-    })();
-  })();
+
+      toast('Sample data loaded');
+      await loadClasses();
+      currentClassId = clsId; classSelect.value = clsId;
+      await loadClassData();
+
+    }catch(err){ console.error(err); alert('Failed to load sample data'); }
+  });
+
+  // init
+  try{ await loadClasses(); } catch(err){ console.error(err); toast('Failed to load classes'); }
+
+  // tabs switching
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+      const t = btn.dataset.tab;
+      document.getElementById('studentsTab').style.display = t==='studentsTab' ? 'block' : 'none';
+      document.getElementById('marksTab').style.display = t==='marksTab' ? 'block' : 'none';
+    });
+  });
+
+})();
 </script>
-
-<!-- Your page logic -->
-<script src="./js/marks.js"></script>
-
 </body>
 </html>
+
 
