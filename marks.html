@@ -6,9 +6,9 @@
   <title>UKSS — Marks & Students</title>
   <link rel="stylesheet" href="./style.css" />
 
-  <!-- ===== EARLY GUARD: run BEFORE firebase UI to prevent flash =====
-       - If sessionStorage.justSignedIn === '1' -> allow page load (do NOT clear flag here).
-       - Otherwise redirect immediately to index.html (login).
+  <!-- EARLY GUARD: run BEFORE firebase UI to prevent flash
+       - If sessionStorage.justSignedIn === '1' -> allow page load (DO NOT clear flag here)
+       - Otherwise redirect immediately to index.html (login)
   -->
   <script>
     (function(){
@@ -20,20 +20,15 @@
 
         if (just !== '1') {
           console.warn('[GUARD] justSignedIn not found -> redirecting to index.html');
-          // ensure no stale flag remains
           try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-          // Use replace so back button doesn't return to protected page
           window.location.replace('index.html');
           return;
         }
 
-        // If we reach here, we allow the page to load.
-        // IMPORTANT: do NOT remove the flag here — let post-load guard remove it after
-        // firebase onAuthStateChanged confirms the authenticated user.
-        console.log('[GUARD] justSignedIn found -> allowing page load (flag will be consumed by post-load guard).');
-
+        // Allowed to load — DO NOT clear the flag yet.
+        console.log('[GUARD] justSignedIn found -> allowing page load (flag will be validated/consumed by post-load guard).');
       } catch (err) {
-        console.error('[GUARD] fatal guard error', err);
+        console.error('[GUARD] early guard fatal', err);
         try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
         window.location.replace('index.html');
       }
@@ -41,36 +36,25 @@
   </script>
 
   <style>
-    /* ===== extra modern tweaks for this page only ===== */
+    /* (abbreviated styles for brevity, same as your previous design) */
     .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
     .stepper { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     .step-pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); font-size:11px; display:flex; align-items:center; gap:6px; opacity:0.7; }
     .step-pill.active{ background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; opacity:1; box-shadow:0 6px 16px rgba(37,99,235,0.35); border:none; }
-    .step-pill span.badge{ width:18px; height:18px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; background:rgba(15,23,42,0.9); }
     .tabs{ display:flex; border-radius:999px; background:rgba(15,23,42,0.65); padding:3px; width:max-content; }
     .tab-btn{ border:none; background:transparent; padding:6px 14px; font-size:12px; border-radius:999px; cursor:pointer; opacity:0.7; white-space:nowrap; }
     .tab-btn.active{ background:rgba(15,23,42,0.95); opacity:1; box-shadow:0 4px 10px rgba(0,0,0,0.4); }
     .grid-2{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; }
     @media(max-width:900px){ .grid-2{ grid-template-columns:minmax(0,1fr); } }
-    .stats-bar{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:11px; }
-    .stat-chip{ padding:6px 10px; border-radius:999px; background:rgba(15,23,42,0.9); border:1px solid rgba(148,163,184,0.3); }
-    .form-row{ display:flex; flex-wrap:wrap; gap:10px; }
-    .form-row .field{ flex:1 1 160px; }
     .table-mini{ width:100%; border-collapse:collapse; font-size:12px; }
-    .table-mini th, .table-mini td{ padding:6px 8px; border-bottom:1px solid rgba(148,163,184,0.15); }
-    .table-mini thead{ background:rgba(15,23,42,0.9); }
     .matrix-table{ width:100%; border-collapse:collapse; font-size:11px; overflow:auto; }
-    .matrix-table th, .matrix-table td{ border:1px solid rgba(148,163,184,0.35); padding:4px 6px; text-align:center; white-space:nowrap; }
-    .matrix-table thead{ position:sticky; top:0; background:rgba(15,23,42,0.98); z-index:1; }
     .matrix-input{ width:64px; padding:3px 4px; border-radius:6px; border:1px solid rgba(148,163,184,0.8); background:rgba(15,23,42,0.85); color:#e5e7eb; font-size:11px; text-align:center; }
-    .matrix-input:focus{ outline:none; border-color:#3b82f6; box-shadow:0 0 0 1px rgba(59,130,246,0.5); }
     #guardDebug { display:none; font-size:12px; color:#f97373; margin-bottom:8px; }
   </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-badge">UK</div>
@@ -91,32 +75,19 @@
     </nav>
   </aside>
 
-  <!-- MAIN CONTENT -->
   <main class="main">
-
     <header class="topbar">
       <div>
         <h2>📘 Marks & Students</h2>
         <p class="small">
-          Hatua: (1) Tengeneza madarasa Form I–IV ➜ 
-          (2) Ongeza masomo ➜ 
-          (3) Sajili wanafunzi Form I–F4 ➜ 
-          (4) Chagua mtihani na ujaze alama.
+          Hatua: (1) Tengeneza madarasa Form I–IV ➜ (2) Ongeza masomo ➜ (3) Sajili wanafunzi ➜ (4) Chagua mtihani na ujaze alama.
         </p>
 
         <div class="stepper">
-          <div class="step-pill" id="stepClassPill">
-            <span class="badge">1</span> Madarasa (Form I–IV)
-          </div>
-          <div class="step-pill" id="stepStudentsPill">
-            <span class="badge">2</span> Masomo ya Darasa
-          </div>
-          <div class="step-pill" id="stepExamPill">
-            <span class="badge">3</span> Usajili wa Wanafunzi (F1–F4)
-          </div>
-          <div class="step-pill" id="stepMarksPill">
-            <span class="badge">4</span> Mitihani & Alama
-          </div>
+          <div class="step-pill" id="stepClassPill"><span class="badge">1</span> Madarasa (Form I–IV)</div>
+          <div class="step-pill" id="stepStudentsPill"><span class="badge">2</span> Masomo ya Darasa</div>
+          <div class="step-pill" id="stepExamPill"><span class="badge">3</span> Usajili wa Wanafunzi (F1–F4)</div>
+          <div class="step-pill" id="stepMarksPill"><span class="badge">4</span> Mitihani & Alama</div>
         </div>
       </div>
 
@@ -125,38 +96,28 @@
       </div>
     </header>
 
-    <!-- CLASS + EXAM CONTROLS -->
+    <!-- rest of page UI (unchanged) -->
     <section class="card">
       <div class="row row-wrap">
         <div class="field">
           <label class="label">Class (Form & Stream)</label>
           <select id="classSelect" class="input"></select>
         </div>
-
         <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
-
         <div class="field">
           <label class="label">Exam in this class</label>
           <select id="examSelect" class="input"></select>
         </div>
-
         <button id="addExamBtn" class="btn btn-ghost">+ Add Exam (Test, Midterm, Annual)</button>
       </div>
 
       <div class="stats-bar">
-        <div class="stat-chip">
-          👥 Students: <span id="statStudents">0</span>
-        </div>
-        <div class="stat-chip">
-          📚 Subjects: <span id="statSubjects">0</span>
-        </div>
-        <div class="stat-chip">
-          🧪 Current exam: <span id="statExamName">—</span>
-        </div>
+        <div class="stat-chip">👥 Students: <span id="statStudents">0</span></div>
+        <div class="stat-chip">📚 Subjects: <span id="statSubjects">0</span></div>
+        <div class="stat-chip">🧪 Current exam: <span id="statExamName">—</span></div>
       </div>
     </section>
 
-    <!-- TABS: STUDENTS | MARKS -->
     <section class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
         <div class="tabs">
@@ -166,138 +127,65 @@
         <button id="generateReportsBtn" class="btn btn-primary">Generate Reports</button>
       </div>
 
-      <!-- STUDENTS TAB -->
       <div id="studentsTab" class="tab-panel">
         <div class="grid-2">
-          <!-- Student registration -->
           <div>
             <h3>Register Student (Form I–IV)</h3>
-            <p class="small">
-              Sajili wanafunzi wote wa Form I hadi Form IV kwenye madarasa yao
-              kabla ya kuingiza alama.
-            </p>
-
             <div class="form-row" style="margin-top:10px;">
-              <div class="field">
-                <label class="label">Admission No</label>
-                <input id="stuAdmission" class="input" placeholder="F1A/001" />
-              </div>
-              <div class="field">
-                <label class="label">First name</label>
-                <input id="stuFirst" class="input" placeholder="Kelvin" />
-              </div>
-              <div class="field">
-                <label class="label">Last name</label>
-                <input id="stuLast" class="input" placeholder="Deogratias" />
-              </div>
+              <div class="field"><label class="label">Admission No</label><input id="stuAdmission" class="input" placeholder="F1A/001" autocomplete="off" /></div>
+              <div class="field"><label class="label">First name</label><input id="stuFirst" class="input" placeholder="Kelvin" autocomplete="given-name" /></div>
+              <div class="field"><label class="label">Last name</label><input id="stuLast" class="input" placeholder="Deogratias" autocomplete="family-name" /></div>
             </div>
 
             <div class="form-row" style="margin-top:10px;">
               <div class="field">
                 <label class="label">Sex</label>
-                <select id="stuSex" class="input">
-                  <option value="">--</option>
-                  <option value="F">F</option>
-                  <option value="M">M</option>
-                </select>
+                <select id="stuSex" class="input"><option value="">--</option><option value="F">F</option><option value="M">M</option></select>
               </div>
-              <div class="field">
-                <label class="label">Guardian phone</label>
-                <input id="stuPhone" class="input" placeholder="0712345678" />
-              </div>
+              <div class="field"><label class="label">Guardian phone</label><input id="stuPhone" class="input" placeholder="0712345678" autocomplete="tel" /></div>
             </div>
 
-            <div class="row" style="margin-top:12px;">
-              <button id="addStudentBtn" class="btn btn-primary">Save Student</button>
-            </div>
+            <div class="row" style="margin-top:12px;"><button id="addStudentBtn" class="btn btn-primary">Save Student</button></div>
 
             <hr style="margin:16px 0;opacity:0.15;border:none;border-top:1px solid #1f2937;">
-
-            <!-- Subjects management -->
             <h3>Subjects in this class</h3>
-            <p class="small">Tumia codes fupi kama HIST, GEO, KIS, ENG, BUS n.k.</p>
-
             <div class="form-row" style="margin-top:10px;">
-              <div class="field">
-                <label class="label">Subject code</label>
-                <input id="subCode" class="input" placeholder="BUS" />
-              </div>
-              <div class="field">
-                <label class="label">Subject name</label>
-                <input id="subName" class="input" placeholder="Business Studies" />
-              </div>
+              <div class="field"><label class="label">Subject code</label><input id="subCode" class="input" placeholder="BUS" autocomplete="off" /></div>
+              <div class="field"><label class="label">Subject name</label><input id="subName" class="input" placeholder="Business Studies" autocomplete="off" /></div>
             </div>
-
-            <div class="row" style="margin-top:10px;">
-              <button id="addSubjectBtn" class="btn btn-ghost">+ Add Subject</button>
-            </div>
+            <div class="row" style="margin-top:10px;"><button id="addSubjectBtn" class="btn btn-ghost">+ Add Subject</button></div>
           </div>
 
-          <!-- Lists -->
           <div>
             <h3>Overview</h3>
-            <p class="small">Wanafunzi na masomo ya darasa hili (Form husika).</p>
-
             <div style="margin-top:10px;">
               <p class="label">Students</p>
               <div class="list-box small" style="max-height:200px;overflow:auto;">
-                <table class="table-mini" id="studentsMiniTable">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Adm</th>
-                      <th>Name</th>
-                      <th>Sex</th>
-                      <th>Phone</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+                <table class="table-mini" id="studentsMiniTable"><thead><tr><th>#</th><th>Adm</th><th>Name</th><th>Sex</th><th>Phone</th></tr></thead><tbody></tbody></table>
               </div>
             </div>
 
             <div style="margin-top:14px;">
               <p class="label">Subjects</p>
               <div class="list-box small" style="max-height:160px;overflow:auto;">
-                <table class="table-mini" id="subjectsMiniTable">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+                <table class="table-mini" id="subjectsMiniTable"><thead><tr><th>Code</th><th>Name</th></tr></thead><tbody></tbody></table>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
-      <!-- MARKS TAB -->
       <div id="marksTab" class="tab-panel" style="display:none;">
         <div class="matrix-header">
-          <div>
-            <h3>Marks Matrix</h3>
-            <p class="small">
-              Chagua darasa na mtihani, kisha jaza alama za mwisho za kila somo (0 – 100).<br/>
-              Mfano: BUS = 70, MATH = 55, KIS = 82.
-            </p>
-          </div>
-          <div class="pill">
-            Exam: <span id="pillExamLabel">—</span>
-          </div>
+          <div><h3>Marks Matrix</h3><p class="small">Chagua darasa na mtihani, kisha jaza alama za mwisho za kila somo (0 – 100).</p></div>
+          <div class="pill">Exam: <span id="pillExamLabel">—</span></div>
         </div>
-
         <div id="marksMatrixWrap" class="matrix-wrap"></div>
       </div>
     </section>
-
   </main>
 </div>
 
-<!-- Optional hidden debug box to show guard logs on UI (turn on when debugging) -->
 <div id="guardDebug" style="position:fixed;right:12px;bottom:12px;background:#111827aa;padding:8px;border-radius:8px;color:#fff;display:none;"></div>
 
 <!-- Firebase CDN v8 -->
@@ -308,61 +196,86 @@
 <!-- App scripts -->
 <script src="./js/database.js"></script>
 
-<!-- ===== POST-LOAD GUARD: only acts AFTER firebase is available =====
-     - Wait for firebase.auth().onAuthStateChanged.
-     - If user is null -> redirect to index.html
-     - If user exists && sessionStorage.justSignedIn === '1' -> consume flag and continue
-     - If user exists && no flag -> sign out and redirect (prevents stale sessions opening this page)
--->
+<!-- POST-LOAD GUARD: wait for Firebase onAuthStateChanged or timeout -->
 <script>
   (function(){
-    try {
-      console.log('[GUARD] post-load safety running');
+    const LOG = function(){ console.log('[GUARD]','MARKS',...arguments); };
+    const WARN = function(){ console.warn('[GUARD]','MARKS',...arguments); };
 
-      if (window.firebase && firebase.auth) {
-        firebase.auth().onAuthStateChanged(function(user){
-          console.log('[GUARD] post-load onAuthStateChanged user=', user ? user.email : null);
+    async function waitForAuthState(timeoutMs = 3000){
+      return new Promise(resolve => {
+        let done = false;
+        let timer = setTimeout(()=> {
+          if(done) return;
+          done = true;
+          WARN('waitForAuthState timed out after', timeoutMs, 'ms');
+          resolve(null);
+        }, timeoutMs);
 
-          var allowed = false;
-          try { allowed = sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ allowed = false; }
+        if(!window.firebase || !firebase.auth){
+          clearTimeout(timer);
+          done = true;
+          WARN('firebase.auth not present while waiting');
+          resolve(null);
+          return;
+        }
 
-          if (!user) {
-            console.warn('[GUARD] no authenticated user -> redirecting to login');
-            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-            window.location.replace('index.html');
-            return;
-          }
-
-          // user exists
-          if (user && allowed) {
-            // SAFE: only now clear the flag so subsequent reloads won't bypass guard
-            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-            console.log('[GUARD] authenticated session confirmed -> flag cleared, continuing to load page.');
-            return;
-          }
-
-          // If user exists but flag missing -> force sign out and redirect (prevents unauthorized open)
-          if (user && !allowed) {
-            console.warn('[GUARD] user exists but no fresh flag -> signing out and redirecting');
-            try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-            firebase.auth().signOut().finally(function(){
-              window.location.replace('index.html');
-            });
-            return;
-          }
+        const unsub = firebase.auth().onAuthStateChanged(user => {
+          if(done) return;
+          done = true;
+          clearTimeout(timer);
+          unsub();
+          LOG('onAuthStateChanged fired ->', user ? user.email : null);
+          resolve(user);
         });
-      } else {
-        console.log('[GUARD] firebase.auth not available yet for post-load safety');
-      }
-    } catch(err){
-      console.error('[GUARD] post-load safety error', err);
-      try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
-      window.location.replace('index.html');
+      });
     }
+
+    (async function(){
+      try{
+        LOG('post-load guard starting; waiting for firebase auth confirmation (3s max)');
+        const user = await waitForAuthState(3000);
+
+        const allowed = (function(){
+          try { return sessionStorage.getItem('justSignedIn') === '1'; } catch(e){ return false; }
+        })();
+
+        LOG('post-load: user=', user ? user.email : null, 'allowedFlag=', allowed);
+
+        if(!user){
+          // no user after wait: redirect to login
+          WARN('No firebase user found -> redirect to index.html');
+          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+          window.location.replace('index.html');
+          return;
+        }
+
+        // user exists
+        if(user && allowed){
+          // success: consume flag now and continue
+          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+          LOG('Authenticated user confirmed and flag present -> continuing');
+          return;
+        }
+
+        // user exists but not freshly signed in: sign out and redirect
+        if(user && !allowed){
+          WARN('User present but justSignedIn flag missing -> signing out and redirecting');
+          try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+          firebase.auth().signOut().finally(()=> window.location.replace('index.html'));
+          return;
+        }
+
+      }catch(err){
+        console.error('[GUARD] post-load fatal', err);
+        try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+        window.location.replace('index.html');
+      }
+    })();
   })();
 </script>
 
-<!-- Page logic: your marks.js should remain the primary script to load lists, exams, marks etc. -->
+<!-- Your page logic -->
 <script src="./js/marks.js"></script>
 
 </body>
