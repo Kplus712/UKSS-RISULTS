@@ -1,425 +1,578 @@
-// js/marks.js (AUTH-FIRST, DEBUG-FRIENDLY version)
-// Replace your current marks.js with this file.
+// js/marks.js
+// Robust Marks & Students controller — waits for Firebase auth, checks role, then loads data.
+// Works with the early/post-load guards on marks.html and auth.js (index.html).
 
 "use strict";
 
-/*
-  Requirements:
-  - database.js must run BEFORE this file and define globals: firebase, db, auth
-  - marks.html must include this script after database.js
-  - staff collection must exist with doc id = user.uid OR documents with field 'email'
-*/
+const M_PREFIX = "[MARKS]";
+function mlog(){ console.log(M_PREFIX, ...arguments); }
+function mwarn(){ console.warn(M_PREFIX, ...arguments); }
+function merror(){ console.error(M_PREFIX, ...arguments); }
 
-const LOG = (/*...args*/) => console.log("[MARKS]", ...arguments);
+// DOM refs (may be null until DOMContentLoaded)
+let classSelect, examSelect, addClassBtn, addExamBtn;
+let statStudents, statSubjects, statExamName;
+let studentsMiniBody, subjectsMiniBody;
+let stepClassPill, stepStudentsPill, stepExamPill, stepMarksPill;
+let tabButtons, studentsTab, marksTab, pillExamLabel, marksMatrixWrap;
+let generateReportsBtn, loadSampleBtn;
+let stuAdmission, stuFirst, stuLast, stuPhone, stuSex, addStudentBtn;
+let subCode, subName, addSubjectBtn;
+let navAdminLink, loadIndicator;
 
-if (typeof db === "undefined" || !db) {
-  console.error("[MARKS] Firestore `db` is not available. Check database.js. Aborting.");
-  // show friendly UI if possible
-  const wrap = document.querySelector('.main') || document.body;
-  const el = document.createElement('div');
-  el.className = 'card';
-  el.innerHTML = `<h3>Database not available</h3><div class="small">Firestore database object (db) is missing. Check that database.js is loaded before marks.js and that firebase.initializeApp was called.</div>`;
-  wrap.insertBefore(el, wrap.firstChild);
-  // stop further execution
-} else {
-  // DOM helpers
-  const byId = id => document.getElementById(id);
-  const classSelect  = byId("classSelect");
-  const examSelect   = byId("examSelect");
-  const addClassBtn  = byId("addClassBtn");
-  const addExamBtn   = byId("addExamBtn");
-  const statStudents = byId("statStudents");
-  const statSubjects = byId("statSubjects");
-  const statExamName = byId("statExamName");
-  const studentsMiniBody = document.querySelector("#studentsMiniTable tbody");
-  const subjectsMiniBody = document.querySelector("#subjectsMiniTable tbody");
-  const stepClassPill    = byId("stepClassPill");
-  const stepStudentsPill = byId("stepStudentsPill");
-  const stepExamPill     = byId("stepExamPill");
-  const stepMarksPill    = byId("stepMarksPill");
-  const tabButtons = document.querySelectorAll(".tab-btn");
-  const studentsTab = byId("studentsTab");
-  const marksTab    = byId("marksTab");
-  const pillExamLabel = byId("pillExamLabel");
-  const marksMatrixWrap = byId("marksMatrixWrap");
-  const generateReportsBtn = byId("generateReportsBtn");
-  const loadSampleBtn      = byId("loadSampleBtn");
-  const stuAdmission = byId("stuAdmission");
-  const stuFirst     = byId("stuFirst");
-  const stuLast      = byId("stuLast");
-  const stuPhone     = byId("stuPhone");
-  const stuSex       = byId("stuSex");
-  const addStudentBtn= byId("addStudentBtn");
-  const subCode      = byId("subCode");
-  const subName      = byId("subName");
-  const addSubjectBtn= byId("addSubjectBtn");
+// State
+let currentUser = null;
+let currentRole = null;
+let currentClassId = null;
+let currentExamId = null;
+let subjects = [];
+let exams = [];
+let students = [];
 
-  // state
-  let currentClassId = null;
-  let currentExamId  = null;
-  let subjects = [];
-  let exams    = [];
-  let students = [];
-  let currentUser = null;
-  let currentUserRole = null;
+// Short helpers
+function el(id){ return document.getElementById(id); }
+function sanitizeId(str){
+  return (str||"").toUpperCase().trim().replace(/\s+/g,"_").replace(/[^A-Z0-9_]/g,"");
+}
+function toast(msg){ mlog(msg); }
 
-  // allowed editors (you can change)
-  const allowedRolesToEdit = ["admin","academic","headmaster","class teacher"];
+// --------- init DOM refs once DOM ready ----------
+document.addEventListener("DOMContentLoaded", function(){
+  classSelect  = el("classSelect");
+  examSelect   = el("examSelect");
+  addClassBtn  = el("addClassBtn");
+  addExamBtn   = el("addExamBtn");
 
-  function sanitizeId(str){
-    return (str || "").toUpperCase().trim().replace(/\s+/g,"_").replace(/[^A-Z0-9_]/g,"");
-  }
+  statStudents = el("statStudents");
+  statSubjects = el("statSubjects");
+  statExamName = el("statExamName");
 
-  function toast(msg){ console.log("[MARKS] toast:", msg); }
+  studentsMiniBody = document.querySelector("#studentsMiniTable tbody");
+  subjectsMiniBody = document.querySelector("#subjectsMiniTable tbody");
 
-  function updateStepper(){
-    stepClassPill && stepClassPill.classList.toggle("active", !!currentClassId);
-    stepStudentsPill && stepStudentsPill.classList.toggle("active", !!currentClassId && subjects.length > 0);
-    stepExamPill && stepExamPill.classList.toggle("active", !!currentClassId && subjects.length > 0 && students.length > 0);
-    stepMarksPill && stepMarksPill.classList.toggle("active", !!currentClassId && subjects.length > 0 && students.length > 0 && !!currentExamId);
-  }
+  stepClassPill    = el("stepClassPill");
+  stepStudentsPill = el("stepStudentsPill");
+  stepExamPill     = el("stepExamPill");
+  stepMarksPill    = el("stepMarksPill");
 
-  // tabs
-  tabButtons.forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      tabButtons.forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      const t = btn.dataset.tab;
-      if(t === "studentsTab"){ studentsTab.style.display="block"; marksTab.style.display="none"; }
-      else { studentsTab.style.display="none"; marksTab.style.display="block"; }
+  tabButtons = document.querySelectorAll(".tab-btn");
+  studentsTab = el("studentsTab");
+  marksTab    = el("marksTab");
+  pillExamLabel = el("pillExamLabel");
+
+  marksMatrixWrap = el("marksMatrixWrap");
+
+  generateReportsBtn = el("generateReportsBtn");
+  loadSampleBtn      = el("loadSampleBtn");
+
+  stuAdmission = el("stuAdmission");
+  stuFirst     = el("stuFirst");
+  stuLast      = el("stuLast");
+  stuPhone     = el("stuPhone");
+  stuSex       = el("stuSex");
+  addStudentBtn= el("addStudentBtn");
+
+  subCode      = el("subCode");
+  subName      = el("subName");
+  addSubjectBtn= el("addSubjectBtn");
+
+  navAdminLink  = el("navAdminLink");
+
+  bindUiEvents();
+  mlog("DOM ready — waiting for Firebase auth...");
+});
+
+// --------- UI bindings (clicks etc) ----------
+function bindUiEvents(){
+  if(tabButtons){
+    tabButtons.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        tabButtons.forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const target = btn.dataset.tab;
+        if(target==="studentsTab"){
+          studentsTab.style.display="block";
+          marksTab.style.display="none";
+        }else{
+          studentsTab.style.display="none";
+          marksTab.style.display="block";
+        }
+      });
     });
-  });
+  }
 
-  // ---------- AUTH WAIT + ROLE ----------
-  async function fetchStaffRole(user){
-    try{
-      if(!user) return null;
-      const staffCol = db.collection("staff");
-      // try uid doc first
-      const doc = await staffCol.doc(user.uid).get();
-      if(doc && doc.exists){
-        const d = doc.data() || {};
-        LogAndReturn("[MARKS] staff by uid", d);
-        return (d.role || null);
-      }
-      // fallback: query by email
-      const q = await staffCol.where("email","==", user.email || "").limit(1).get();
-      if(q && !q.empty){
-        const d = q.docs[0].data() || {};
-        LogAndReturn("[MARKS] staff by email", d);
-        return (d.role || null);
-      }
-      return null;
-    }catch(err){
-      console.error("[MARKS] fetchStaffRole err", err);
-      return null;
+  if(addClassBtn) addClassBtn.addEventListener("click", onAddClass);
+  if(addExamBtn) addExamBtn.addEventListener("click", onAddExam);
+  if(addSubjectBtn) addSubjectBtn.addEventListener("click", onAddSubject);
+  if(addStudentBtn) addStudentBtn.addEventListener("click", onAddStudent);
+  if(classSelect) classSelect.addEventListener("change", onClassChange);
+  if(examSelect) examSelect.addEventListener("change", onExamChange);
+  if(generateReportsBtn) generateReportsBtn.addEventListener("click", onGenerateReports);
+  if(loadSampleBtn) loadSampleBtn.addEventListener("click", onLoadSample);
+}
+
+// --------- AUTH: wait for Firebase auth then start page ----------
+function startWhenAuthed(){
+  if(typeof auth === "undefined" || !auth){
+    merror("Firebase auth not available (database.js might not be loaded).");
+    return;
+  }
+
+  auth.onAuthStateChanged(async function(user){
+    mlog("onAuthStateChanged -> user:", user ? user.email : null);
+    if(!user){
+      // No user: redirect to index (login). Guard should already handle but double-safety.
+      mwarn("No authenticated user — redirecting to login.");
+      try { sessionStorage.removeItem('justSignedIn'); } catch(e){}
+      window.location.replace("index.html");
+      return;
     }
-  }
 
-  function LogAndReturn(){
-    console.log.apply(console, arguments);
-  }
-
-  // main entrypoint called after auth success
-  async function startForUser(user){
+    // There is a user — set current and fetch role
     currentUser = user;
-    LogAndReturn("[MARKS] startForUser ->", user ? user.email : null);
-    // fetch role
-    try{
-      const roleVal = await fetchStaffRole(user);
-      currentUserRole = roleVal ? (""+roleVal).toLowerCase() : null;
-      LogAndReturn("[MARKS] currentUserRole =", currentUserRole);
-      // hide/show admin nav
-      const navAdminLink = document.getElementById('navAdminLink');
-      if(navAdminLink) navAdminLink.style.display = (currentUserRole === 'admin') ? '' : 'none';
-    }catch(e){
-      console.warn("[MARKS] failed to resolve role", e);
-    }
+    currentRole = await fetchRoleFromStaff(user);
+    mlog("User role:", currentRole);
 
-    // now load classes and page data
+    // role based UI
+    applyRoleToUi();
+
+    // Now safe to load page data
     try{
       await loadClasses();
-      // optionally enable UI actions depending on role
-      // (you can disable add buttons for non-editors)
-      const canEdit = currentUserRole && allowedRolesToEdit.includes(currentUserRole);
-      if(!canEdit){
-        // disable controls that mutate data
-        document.querySelectorAll('button, input, select').forEach(el=>{
-          // leave navigation buttons enabled
-        });
-      }
     }catch(err){
-      console.error("[MARKS] failed to load initial data", err);
+      merror("Failed to load classes", err);
     }
+  });
+}
+
+// fetch role helper (same logic as auth.js helper)
+async function fetchRoleFromStaff(user){
+  try{
+    if(!user) return null;
+    if(typeof db === "undefined" || !db){ mwarn("fetchRoleFromStaff: db not present"); return null; }
+    const doc = await db.collection('staff').doc(user.uid).get();
+    if(doc && doc.exists) return (doc.data().role || '').toLowerCase();
+    const q = await db.collection('staff').where('email','==',user.email||'').limit(1).get();
+    if(q && !q.empty) return (q.docs[0].data().role || '').toLowerCase();
+    return null;
+  }catch(e){ merror('fetchRoleFromStaff error', e); return null; }
+}
+
+// show/hide admin link, and optionally show a small welcome
+function applyRoleToUi(){
+  if(navAdminLink){
+    if(currentRole === "admin") navAdminLink.style.display = "";
+    else navAdminLink.style.display = "none";
+  }
+  if(currentUser){
+    mlog("Signed in as:", currentUser.email, "| role:", currentRole);
+  }
+}
+
+// --------- CLASS / EXAM / STUDENT / SUBJECT loading ----------
+const classesCol = () => db.collection("classes");
+
+async function loadClasses(){
+  if(!db) throw new Error("Firestore not available.");
+  if(!classSelect) throw new Error("classSelect DOM not ready.");
+
+  classSelect.innerHTML = "";
+  const snap = await classesCol().orderBy("name").get();
+
+  if(snap.empty){
+    const opt = document.createElement("option");
+    opt.value="";
+    opt.textContent="-- Add class first --";
+    classSelect.appendChild(opt);
+    currentClassId = null;
+    subjects=[]; students=[]; exams=[];
+    renderOverview();
+    renderExamOptions();
+    renderMarksMatrix();
+    updateStepper();
+    return;
   }
 
-  // attach a single onAuthStateChanged listener and wait for user
-  (function attachAuthListener(){
-    if(typeof auth === 'undefined' || !auth){
-      console.error("[MARKS] auth not available");
-      // show UI message
-      const main = document.querySelector('.main') || document.body;
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `<h3>Authentication unavailable</h3><div class="small">Firebase Auth SDK not loaded. Check database.js include.</div>`;
-      main.insertBefore(card, main.firstChild);
-      return;
-    }
+  snap.forEach(doc=>{
+    const data = doc.data();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = data.name || doc.id;
+    classSelect.appendChild(opt);
+  });
 
-    LogAndReturn("[MARKS] attaching onAuthStateChanged listener");
-    auth.onAuthStateChanged(function(user){
-      LogAndReturn("[MARKS] onAuthStateChanged ->", user ? user.email : null);
-      if(!user){
-        // no user => either logged out or session expired
-        // show friendly message and redirect to login
-        const main = document.querySelector('.main') || document.body;
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `<h3>Session expired / not signed in</h3><div class="small">You must sign in to access this page. Redirecting to login…</div>`;
-        main.insertBefore(card, main.firstChild);
-        try{ sessionStorage.removeItem('justSignedIn'); }catch(e){}
-        setTimeout(()=>{ window.location.replace('index.html'); }, 900);
-        return;
-      }
-      // user exists: ensure marks page was allowed by guard (marks.html head guard already checked sessionStorage)
-      // proceed to start
-      startForUser(user).catch(e=>{
-        console.error('[MARKS] startForUser error', e);
-      });
-    });
-  })();
+  currentClassId = classSelect.value || null;
+  await loadClassData();
+}
 
-  // ---------- DATA LOADING ----------
-  async function loadClasses(){
-    LogAndReturn("[MARKS] loadClasses()");
-    classSelect.innerHTML = "";
-    const snap = await db.collection("classes").orderBy("name").get();
-    if(snap.empty){
-      const opt = document.createElement("option");
-      opt.value="";
-      opt.textContent="-- Add class first --";
-      classSelect.appendChild(opt);
-      currentClassId = null;
-      updateStepper();
-      return;
-    }
-    snap.forEach(doc=>{
-      const opt = document.createElement('option');
-      opt.value = doc.id;
-      opt.textContent = doc.data().name || doc.id;
-      classSelect.appendChild(opt);
-    });
-    currentClassId = classSelect.value || null;
+// add class
+async function onAddClass(){
+  const name = prompt("Enter class name e.g. FORM ONE A");
+  if(!name) return;
+  const id = sanitizeId(name);
+  try{
+    await classesCol().doc(id).set({ name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    toast("Class saved");
+    await loadClasses();
+    classSelect.value = id;
+    currentClassId = id;
     await loadClassData();
+  }catch(err){
+    merror("Failed to add class", err);
+    toast("Failed to add class.");
+  }
+}
+
+async function onClassChange(){
+  currentClassId = classSelect.value || null;
+  await loadClassData();
+}
+
+async function loadClassData(){
+  if(!currentClassId){
+    subjects=[]; students=[]; exams=[];
+    renderOverview();
+    renderExamOptions();
+    renderMarksMatrix();
+    updateStepper();
+    return;
+  }
+  await Promise.all([ loadSubjects(), loadExams(), loadStudentsAndMarks() ]);
+  renderOverview();
+  renderExamOptions();
+  renderMarksMatrix();
+  updateStepper();
+}
+
+async function loadSubjects(){
+  subjects=[];
+  const snap = await classesCol().doc(currentClassId).collection("subjects").orderBy("code").get();
+  snap.forEach(doc=> subjects.push({id:doc.id, ...doc.data()}) );
+}
+
+async function loadExams(){
+  exams=[];
+  const snap = await classesCol().doc(currentClassId).collection("exams").orderBy("createdAt","asc").get();
+  snap.forEach(doc=> exams.push({id:doc.id, ...doc.data()}) );
+  if(!exams.length) currentExamId = null;
+  else if(!currentExamId) currentExamId = exams[0].id;
+}
+
+async function loadStudentsAndMarks(){
+  students=[];
+  const snap = await classesCol().doc(currentClassId).collection("students").orderBy("admissionNo").get();
+  const promises = [];
+  snap.forEach(doc=>{
+    const data = doc.data()||{};
+    const stu = {
+      id: doc.id,
+      admissionNo: data.admissionNo || doc.id,
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      fullName: data.fullName || ((data.firstName||"")+" "+(data.lastName||"")).trim(),
+      guardianPhone: data.guardianPhone || "",
+      sex: data.sex || "",
+      marks: {}
+    };
+    students.push(stu);
+    promises.push(classesCol().doc(currentClassId).collection("students").doc(doc.id).get().then(d=>{
+      const dd = d.data() || {};
+      stu.marks = dd.marks || {};
+    }));
+  });
+  await Promise.all(promises);
+}
+
+// render overview
+function renderOverview(){
+  if(statStudents) statStudents.textContent = students.length;
+  if(statSubjects) statSubjects.textContent = subjects.length;
+
+  if(studentsMiniBody){
+    studentsMiniBody.innerHTML = "";
+    students.forEach((s, idx)=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${idx+1}</td><td>${s.admissionNo}</td><td>${s.fullName}</td><td>${s.sex}</td><td>${s.guardianPhone}</td>`;
+      studentsMiniBody.appendChild(tr);
+    });
   }
 
-  addClassBtn && addClassBtn.addEventListener("click", async ()=>{
-    const name = prompt("Enter class name e.g. FORM ONE A");
-    if(!name) return;
-    const id = sanitizeId(name);
-    try{
-      await db.collection("classes").doc(id).set({ name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      toast("Class saved"); await loadClasses();
-      classSelect.value = id; currentClassId = id; await loadClassData();
-    }catch(err){ console.error(err); toast("Failed to add class."); }
+  if(subjectsMiniBody){
+    subjectsMiniBody.innerHTML = "";
+    subjects.forEach(s=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${s.code}</td><td>${s.name}</td>`;
+      subjectsMiniBody.appendChild(tr);
+    });
+  }
+}
+
+// exam select
+function renderExamOptions(){
+  if(!examSelect) return;
+  examSelect.innerHTML = "";
+
+  if(!currentClassId){
+    const opt = document.createElement("option"); opt.value=""; opt.textContent="Select class first"; examSelect.appendChild(opt);
+    if(statExamName) statExamName.textContent = "—";
+    if(pillExamLabel) pillExamLabel.textContent = "—";
+    return;
+  }
+
+  if(!exams.length){
+    const opt = document.createElement("option"); opt.value=""; opt.textContent="No exam yet"; examSelect.appendChild(opt);
+    if(statExamName) statExamName.textContent = "—";
+    if(pillExamLabel) pillExamLabel.textContent = "—";
+    return;
+  }
+
+  exams.forEach(ex=>{
+    const opt = document.createElement("option");
+    opt.value = ex.id;
+    opt.textContent = ex.displayName || ex.name || ex.id;
+    examSelect.appendChild(opt);
   });
 
-  if(classSelect) classSelect.addEventListener("change", async ()=>{
-    currentClassId = classSelect.value || null;
+  if(currentExamId) examSelect.value = currentExamId;
+  else currentExamId = examSelect.value;
+
+  const ex = exams.find(e=>e.id===currentExamId);
+  const label = ex ? (ex.displayName || ex.name || ex.id) : "—";
+  if(statExamName) statExamName.textContent = label;
+  if(pillExamLabel) pillExamLabel.textContent = label;
+}
+
+function onExamChange(){
+  currentExamId = examSelect.value || null;
+  const ex = exams.find(e=>e.id===currentExamId);
+  const label = ex ? (ex.displayName || ex.name || ex.id) : "—";
+  if(statExamName) statExamName.textContent = label;
+  if(pillExamLabel) pillExamLabel.textContent = label;
+  renderMarksMatrix();
+  updateStepper();
+}
+
+// add exam
+async function onAddExam(){
+  if(!currentClassId) return alert("Select class first.");
+  const name = prompt("Exam name (e.g. TEST 1, MIDTERM 2025, ANNUAL 2025)");
+  if(!name) return;
+  const type = prompt("Type (e.g. TEST, MIDTERM, ANNUAL) - optional") || "";
+  const examId = sanitizeId(name);
+  try{
+    const exRef = classesCol().doc(currentClassId).collection("exams").doc(examId);
+    await exRef.set({ name, type, displayName: name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    toast("Exam added.");
+    await loadExams();
+    renderExamOptions();
+    renderMarksMatrix();
+    updateStepper();
+  }catch(err){
+    merror("Failed to add exam", err);
+    toast("Failed to add exam.");
+  }
+}
+
+// add subject
+async function onAddSubject(){
+  if(!currentClassId) return alert("Select class first.");
+  const code = (subCode.value || "").toUpperCase().trim();
+  const name = (subName.value || "").trim();
+  if(!code || !name) return alert("Fill subject code and name.");
+  try{
+    const subRef = classesCol().doc(currentClassId).collection("subjects").doc(code);
+    await subRef.set({ code, name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    subCode.value=""; subName.value="";
+    toast("Subject added.");
+    await loadSubjects();
+    renderOverview();
+    renderMarksMatrix();
+    updateStepper();
+  }catch(err){
+    merror("Failed to add subject", err);
+    toast("Failed to add subject.");
+  }
+}
+
+// add student
+async function onAddStudent(){
+  if(!currentClassId) return alert("Select class first.");
+  const admissionNoRaw = (stuAdmission.value || "").trim();
+  const admissionNo    = admissionNoRaw.toUpperCase();
+  const docId          = sanitizeId(admissionNoRaw);
+  const firstName   = (stuFirst.value || "").trim();
+  const lastName    = (stuLast.value || "").trim();
+  const guardianPhone = (stuPhone.value || "").trim();
+  const sex         = (stuSex.value || "").trim();
+
+  if(!admissionNo || !firstName || !lastName) return alert("Admission, First name & Last name are required.");
+
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  try{
+    const stuRef = classesCol().doc(currentClassId).collection("students").doc(docId);
+    await stuRef.set({ admissionNo, firstName, lastName, fullName, guardianPhone, sex, marks:{}, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+
+    stuAdmission.value=""; stuFirst.value=""; stuLast.value=""; stuPhone.value=""; stuSex.value="";
+    toast("Student saved.");
+    await loadStudentsAndMarks();
+    renderOverview();
+    renderMarksMatrix();
+    updateStepper();
+  }catch(err){
+    merror("Failed to add student", err);
+    toast("Failed to add student.");
+  }
+}
+
+// --------- marks matrix ----------
+function renderMarksMatrix(){
+  if(!marksMatrixWrap) return;
+  marksMatrixWrap.innerHTML = "";
+
+  if(!currentClassId){
+    marksMatrixWrap.textContent = "Please select a class.";
+    return;
+  }
+  if(!currentExamId){
+    marksMatrixWrap.textContent = "Add and select exam (Test, Midterm, Annual) to start entering marks.";
+    return;
+  }
+  if(!subjects.length || !students.length){
+    marksMatrixWrap.textContent = "Make sure this class has subjects and registered students.";
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "matrix-table";
+
+  const thead = document.createElement("thead");
+  const row1 = document.createElement("tr");
+  row1.innerHTML = `<th>#</th><th>Adm</th><th>Student</th><th>Sex</th>`;
+  subjects.forEach(s=>{
+    const th = document.createElement("th"); th.textContent = s.code; row1.appendChild(th);
+  });
+  thead.appendChild(row1);
+
+  const tbody = document.createElement("tbody");
+  students.forEach((stu, idx)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${idx+1}</td><td>${stu.admissionNo}</td><td>${stu.fullName}</td><td>${stu.sex}</td>`;
+    const examMarks = stu.marks[currentExamId]?.subjects || {};
+    subjects.forEach(sub=>{
+      const markVal = examMarks[sub.code] ?? "";
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number"; input.min = "0"; input.max = "100"; input.value = markVal;
+      input.className = "matrix-input";
+      input.dataset.stuId = stu.id;
+      input.dataset.subCode = sub.code;
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  marksMatrixWrap.appendChild(table);
+  table.addEventListener("change", onMatrixChange);
+}
+
+async function onMatrixChange(e){
+  const input = e.target;
+  if(!input.classList.contains("matrix-input")) return;
+  const stuId = input.dataset.stuId;
+  const subCode = input.dataset.subCode;
+  let value = input.value === "" ? null : Number(input.value);
+  if(value != null && (value < 0 || value > 100)){ alert("Mark must be between 0 and 100"); input.focus(); return; }
+  try{
+    const stuRef = classesCol().doc(currentClassId).collection("students").doc(stuId);
+    await stuRef.set({ marks: { [currentExamId]: { subjects: { [subCode]: value } } } }, { merge:true });
+    const stu = students.find(s=>s.id===stuId);
+    if(!stu.marks[currentExamId]) stu.marks[currentExamId] = { subjects:{} };
+    stu.marks[currentExamId].subjects[subCode] = value;
+  }catch(err){
+    merror("Failed to save mark", err);
+    toast("Failed to save mark.");
+  }
+}
+
+// generate reports
+function onGenerateReports(){
+  if(!currentClassId || !currentExamId) return alert("Select class and exam first.");
+  const url = `results.html?class=${encodeURIComponent(currentClassId)}&exam=${encodeURIComponent(currentExamId)}`;
+  window.location.href = url;
+}
+
+// load sample (for testing)
+async function onLoadSample(){
+  const ok = confirm("Load sample class, exams, students and subjects? (for testing)");
+  if(!ok) return;
+  try{
+    const clsId = "FORM_ONE_A";
+    await classesCol().doc(clsId).set({ name:"FORM ONE A", createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+
+    const subsRef = classesCol().doc(clsId).collection("subjects");
+    const sampleSubs = [
+      {code:"HIST", name:"History"},
+      {code:"GEO",  name:"Geography"},
+      {code:"KIS",  name:"Kiswahili"},
+      {code:"ENG",  name:"English"},
+      {code:"BUS",  name:"Business Studies"},
+      {code:"MATH", name:"Mathematics"}
+    ];
+    for(const s of sampleSubs){
+      await subsRef.doc(s.code).set({code:s.code,name:s.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
+    }
+
+    const examsRef = classesCol().doc(clsId).collection("exams");
+    const sampleExams = [
+      {id:"TEST_1", name:"TEST 1", type:"TEST"},
+      {id:"MIDTERM_2025", name:"MIDTERM 2025", type:"MIDTERM"}
+    ];
+    for(const ex of sampleExams){
+      await examsRef.doc(ex.id).set({name:ex.name,type:ex.type,displayName:ex.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
+    }
+
+    const stuRef = classesCol().doc(clsId).collection("students");
+    for(let i=1;i<=8;i++){
+      const adm = "F1A/"+String(i).padStart(3,"0");
+      const docId = sanitizeId(adm);
+      await stuRef.doc(docId).set({
+        admissionNo:adm, firstName:"STU"+i, lastName:"", fullName:"STU"+i,
+        guardianPhone:"06"+Math.floor(10000000 + Math.random()*89999999),
+        sex: i%2===0 ? "M" : "F", marks:{}, updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true});
+    }
+
+    toast("Sample data loaded.");
+    await loadClasses();
+    classSelect.value = clsId;
+    currentClassId = clsId;
     await loadClassData();
-  });
-
-  async function loadClassData(){
-    LogAndReturn("[MARKS] loadClassData for", currentClassId);
-    if(!currentClassId){
-      subjects=[]; students=[]; exams=[]; renderOverview(); renderExamOptions(); renderMarksMatrix(); updateStepper(); return;
-    }
-    // avoid reading from null
-    const classRef = db.collection("classes").doc(currentClassId);
-    await Promise.all([ loadSubjects(classRef), loadExams(classRef), loadStudentsAndMarks(classRef) ]);
-    renderOverview(); renderExamOptions(); renderMarksMatrix(); updateStepper();
+  }catch(err){
+    merror("Failed to load sample data", err);
+    toast("Failed to load sample data.");
   }
+}
 
-  async function loadSubjects(classRef){
-    subjects = [];
-    const snap = await classRef.collection("subjects").orderBy("code").get();
-    snap.forEach(doc => subjects.push({ id: doc.id, ...doc.data() }));
+// --------- stepper update ----------
+function updateStepper(){
+  if(!stepClassPill || !stepStudentsPill || !stepExamPill || !stepMarksPill) return;
+  stepClassPill.classList.toggle("active", !!currentClassId);
+  stepStudentsPill.classList.toggle("active", !!currentClassId && subjects.length > 0);
+  stepExamPill.classList.toggle("active", !!currentClassId && subjects.length > 0 && students.length > 0);
+  stepMarksPill.classList.toggle("active", !!currentClassId && subjects.length > 0 && students.length > 0 && !!currentExamId);
+}
+
+// --------- init: start auth watcher
+(function init(){
+  try{
+    startWhenAuthed();
+  }catch(err){
+    merror("Initialization failed", err);
   }
-
-  async function loadExams(classRef){
-    exams = [];
-    const snap = await classRef.collection("exams").orderBy("createdAt","asc").get();
-    snap.forEach(doc => exams.push({ id: doc.id, ...doc.data() }));
-    if(!exams.length) currentExamId = null;
-    else if(!currentExamId) currentExamId = exams[0].id;
-  }
-
-  async function loadStudentsAndMarks(classRef){
-    students = [];
-    const snap = await classRef.collection("students").orderBy("admissionNo").get();
-    snap.forEach(doc=>{
-      const d = doc.data() || {};
-      students.push({
-        id: doc.id,
-        admissionNo: d.admissionNo || doc.id,
-        firstName: d.firstName || '',
-        lastName: d.lastName || '',
-        fullName: d.fullName || ((d.firstName||'')+' '+(d.lastName||'')).trim(),
-        guardianPhone: d.guardianPhone || '',
-        sex: d.sex || '',
-        marks: d.marks || {}
-      });
-    });
-  }
-
-  // render overview
-  function renderOverview(){
-    statStudents && (statStudents.textContent = students.length);
-    statSubjects && (statSubjects.textContent = subjects.length);
-
-    if(studentsMiniBody){
-      studentsMiniBody.innerHTML = "";
-      students.forEach((s, idx)=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${idx+1}</td><td>${s.admissionNo}</td><td>${s.fullName}</td><td>${s.sex}</td><td>${s.guardianPhone}</td>`;
-        studentsMiniBody.appendChild(tr);
-      });
-    }
-    if(subjectsMiniBody){
-      subjectsMiniBody.innerHTML = "";
-      subjects.forEach(s=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${s.code}</td><td>${s.name}</td>`;
-        subjectsMiniBody.appendChild(tr);
-      });
-    }
-  }
-
-  function renderExamOptions(){
-    if(!examSelect) return;
-    examSelect.innerHTML = "";
-    if(!currentClassId){ examSelect.appendChild(Object.assign(document.createElement('option'), { value:'', textContent:'Select class first' })); statExamName.textContent='—'; pillExamLabel.textContent='—'; return; }
-    if(!exams.length){ examSelect.appendChild(Object.assign(document.createElement('option'), { value:'', textContent:'No exam yet' })); statExamName.textContent='—'; pillExamLabel.textContent='—'; return; }
-    exams.forEach(ex=> { const opt = document.createElement('option'); opt.value=ex.id; opt.textContent=ex.displayName||ex.name||ex.id; examSelect.appendChild(opt); });
-    if(currentExamId) examSelect.value = currentExamId; else currentExamId = examSelect.value;
-    const ex = exams.find(e=>e.id===currentExamId);
-    const label = ex ? (ex.displayName||ex.name||ex.id) : '—';
-    statExamName && (statExamName.textContent = label); pillExamLabel && (pillExamLabel.textContent = label);
-  }
-
-  if(examSelect) examSelect.addEventListener("change", ()=>{
-    currentExamId = examSelect.value || null;
-    const ex = exams.find(e=>e.id===currentExamId);
-    const label = ex ? (ex.displayName || ex.name || ex.id) : '—';
-    statExamName && (statExamName.textContent = label); pillExamLabel && (pillExamLabel.textContent = label);
-    renderMarksMatrix(); updateStepper();
-  });
-
-  // render matrix
-  function renderMarksMatrix(){
-    if(!marksMatrixWrap) return;
-    marksMatrixWrap.innerHTML = "";
-    if(!currentClassId){ marksMatrixWrap.textContent = "Please select a class."; return; }
-    if(!currentExamId){ marksMatrixWrap.textContent = "Add and select exam to start entering marks."; return; }
-    if(!subjects.length || !students.length){ marksMatrixWrap.textContent = "Make sure this class has subjects and registered students."; return; }
-
-    const table = document.createElement('table'); table.className = 'matrix-table';
-    const thead = document.createElement('thead'); const trh = document.createElement('tr');
-    trh.innerHTML = '<th>#</th><th>Adm</th><th>Student</th><th>Sex</th>';
-    subjects.forEach(s=>{ const th = document.createElement('th'); th.textContent = s.code; trh.appendChild(th); });
-    thead.appendChild(trh); table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    students.forEach((stu, idx)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${idx+1}</td><td>${stu.admissionNo}</td><td>${stu.fullName}</td><td>${stu.sex}</td>`;
-      const examMarks = (stu.marks && stu.marks[currentExamId] && stu.marks[currentExamId].subjects) || {};
-      subjects.forEach(sub=>{
-        const td = document.createElement('td');
-        const input = document.createElement('input');
-        input.type='number'; input.min='0'; input.max='100';
-        const v = (typeof examMarks[sub.code] !== 'undefined') ? examMarks[sub.code] : '';
-        input.value = (v === null || v === undefined) ? '' : v;
-        input.className = 'matrix-input';
-        input.dataset.stuId = stu.id; input.dataset.subCode = sub.code;
-        // disable if not allowed to edit
-        const canEdit = currentUserRole && allowedRolesToEdit.includes(currentUserRole);
-        if(!canEdit){ input.disabled = true; input.title = "No permission to edit marks"; }
-        td.appendChild(input); tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody); marksMatrixWrap.appendChild(table);
-    table.addEventListener('change', onMatrixChangeDebounced);
-  }
-
-  // saving with debounce
-  const saveTimers = new Map();
-  function onMatrixChangeDebounced(e){
-    const input = e.target;
-    if(!input || !input.classList.contains('matrix-input')) return;
-    const key = `${input.dataset.stuId}::${input.dataset.subCode}`;
-    if(saveTimers.has(key)) clearTimeout(saveTimers.get(key));
-    saveTimers.set(key, setTimeout(()=>{ saveTimers.delete(key); saveMark(input); }, 150));
-  }
-
-  async function saveMark(input){
-    const stuId = input.dataset.stuId, subCode = input.dataset.subCode;
-    const raw = input.value === "" ? null : Number(input.value);
-    if(raw !== null && (isNaN(raw) || raw < 0 || raw > 100)){ alert("Mark must be 0-100"); input.focus(); return; }
-    // permission check
-    if(!currentUserRole || !allowedRolesToEdit.includes(currentUserRole)){
-      alert("You don't have permission to edit marks.");
-      // revert
-      const s = students.find(x=>x.id===stuId);
-      const prev = (s && s.marks && s.marks[currentExamId] && s.marks[currentExamId].subjects && s.marks[currentExamId].subjects[subCode]) || "";
-      input.value = prev === null || prev === undefined ? "" : prev;
-      return;
-    }
-    try{
-      const stuRef = db.collection("classes").doc(currentClassId).collection("students").doc(stuId);
-      await stuRef.set({ marks: { [currentExamId]: { subjects: { [subCode]: raw } } }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      // update local state
-      const s = students.find(x=>x.id===stuId);
-      if(s){
-        if(!s.marks) s.marks = {};
-        if(!s.marks[currentExamId]) s.marks[currentExamId] = { subjects:{} };
-        s.marks[currentExamId].subjects[subCode] = raw;
-      }
-      input.classList.add('saved');
-      setTimeout(()=> input.classList.remove('saved'), 800);
-    }catch(err){
-      console.error('[MARKS] saveMark error', err);
-      toast("Failed to save mark: " + (err && err.message || err));
-    }
-  }
-
-  // generateReports, loadSample (same as before)
-  generateReportsBtn && generateReportsBtn.addEventListener('click', ()=>{
-    if(!currentClassId || !currentExamId) return alert("Select class and exam first.");
-    window.location.href = `results.html?class=${encodeURIComponent(currentClassId)}&exam=${encodeURIComponent(currentExamId)}`;
-  });
-
-  loadSampleBtn && loadSampleBtn.addEventListener('click', async ()=>{
-    const ok = confirm("Load sample data?");
-    if(!ok) return;
-    try{
-      const clsId = "FORM_ONE_A";
-      await db.collection("classes").doc(clsId).set({ name:"FORM ONE A", createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      const subs = [{code:"HIST",name:"History"},{code:"GEO",name:"Geography"},{code:"ENG",name:"English"},{code:"MATH",name:"Mathematics"},{code:"BUS",name:"Business Studies"}];
-      for(const s of subs) await db.collection("classes").doc(clsId).collection("subjects").doc(s.code).set({ code:s.code, name:s.name, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      await db.collection("classes").doc(clsId).collection("exams").doc('TEST_1').set({ name:'TEST 1', displayName:'TEST 1', type:'TEST', createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      for(let i=1;i<=6;i++){
-        const adm = `F1A/${String(i).padStart(3,'0')}`; const id = sanitizeId(adm);
-        await db.collection("classes").doc(clsId).collection("students").doc(id).set({ admissionNo:adm, firstName:'STU'+i, lastName:'', fullName:'STU'+i, guardianPhone:'06'+Math.floor(10000000+Math.random()*89999999), sex: i%2===0?'M':'F', marks:{}, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-      }
-      toast('Sample loaded');
-      await loadClasses(); classSelect.value = clsId; currentClassId = clsId; await loadClassData();
-    }catch(e){ console.error(e); toast('Sample load failed'); }
-  });
-
-  // add subject/student handlers omitted for brevity (you can copy from prior file if needed)
-
-} // end else db available
+})();
 
 
