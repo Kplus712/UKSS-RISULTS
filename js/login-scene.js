@@ -1,27 +1,28 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const char = document.getElementById('character');
-  const bag  = char.querySelector('.bag');
-  const form = document.getElementById('loginForm');
+window.addEventListener("load", () => {
 
-  // STEP 1: walk in
+  const character = document.getElementById("character");
+  const bag = document.getElementById("bag");
+  const card = document.getElementById("loginCard");
+
+  // STEP 1: walking tayari inaanza kwa CSS
+  // STEP 2: after walk ends
   setTimeout(() => {
-    char.classList.remove('walk');
-    char.classList.add('stand');
+    character.classList.remove("walk");
+    character.classList.add("pose");
 
-    // STEP 2: drop bag
-    setTimeout(() => {
-      bag.classList.remove('hidden');
+    // STEP 3: drop bag
+    bag.classList.add("drop");
 
-      // STEP 3: idle pose
-      setTimeout(() => {
-        char.classList.add('idle');
+  }, 3000);
 
-        // STEP 4: show login
-        form.classList.remove('hidden');
+  // STEP 4: show login card
+  setTimeout(() => {
+    card.classList.add("show");
+  }, 3800);
 
-      }, 600);
+  // STEP 5: lean character to card
+  setTimeout(() => {
+    character.style.transform = "translateX(20px) rotate(-2deg)";
+  }, 4800);
 
-    }, 700);
-
-  }, 3000); // walking duration
 });
