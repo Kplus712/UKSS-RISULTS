@@ -11,72 +11,72 @@ body{
   margin:0;
   height:100vh;
   overflow:hidden;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  background:linear-gradient(135deg,#3454f5,#2c3de8);
-  color:#fff;
+  font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:linear-gradient(120deg,#3454f5,#2c3de8);
 }
 
-/* ================= SCENE ================= */
+/* ===== SCENE ===== */
 .scene{
   position:relative;
   width:100%;
   height:100vh;
 }
 
-/* ================= CHARACTER ================= */
-.character{
+/* ===== ACTOR ===== */
+.actor{
   position:absolute;
   bottom:60px;
-  left:-260px;
-  width:220px;
-  transition:transform .6s ease;
-}
-.character img{width:100%;display:block}
-
-/* walking */
-.character.walk{
-  animation:walkIn 3.2s linear forwards;
+  left:-300px;
+  width:240px;
+  z-index:5;
 }
 
-/* idle bounce */
-.character.idle{
-  animation:idle 2.4s ease-in-out infinite;
+/* character image */
+.actor img.char{
+  width:100%;
+  display:block;
 }
 
 /* bag */
 .bag{
   position:absolute;
   bottom:-10px;
-  left:50px;
-  width:90px;
+  left:70px;
+  width:110px;
   opacity:0;
-  transition:opacity .4s ease;
+  transform:scale(.9);
+  transition:.4s ease;
 }
-.bag.show{opacity:1}
+.bag.show{
+  opacity:1;
+  transform:scale(1);
+}
 
-/* ================= LOGIN CARD ================= */
+/* ===== LOGIN CARD ===== */
 .login-card{
   position:absolute;
   right:110px;
   top:50%;
-  transform:translateY(-50%) translateX(60px);
+  transform:translateY(-50%) translateX(80px);
   width:380px;
   background:linear-gradient(180deg,#0b3f2b,#07291f);
   padding:28px;
-  border-radius:20px;
+  border-radius:22px;
   box-shadow:0 25px 60px rgba(0,0,0,.45);
   opacity:0;
   transition:.8s ease;
+  z-index:10;
 }
+
 .login-card.show{
   opacity:1;
   transform:translateY(-50%) translateX(0);
 }
 
-.login-card h1{margin:0;font-size:20px}
-.sub{font-size:13px;opacity:.85;margin-bottom:14px}
+.login-card h1{color:#fff;margin:0;font-size:20px}
+.sub{color:#cfe8d6;font-size:13px;margin-bottom:14px}
 
-label{font-size:13px;margin-top:12px;display:block}
+label{color:#e6f7ef;font-size:13px;margin-top:12px;display:block}
 input{
   width:100%;
   padding:12px;
@@ -97,30 +97,23 @@ button{
   color:#01210d;
   font-weight:700;
   font-size:16px;
-  cursor:pointer;
 }
 
-.error{color:#ffb4b4;font-size:13px;min-height:18px;margin-top:10px}
-.foot{font-size:12px;opacity:.7;margin-top:14px;text-align:center}
+.foot{
+  margin-top:14px;
+  color:#b6dccc;
+  font-size:12px;
+  text-align:center;
+}
 
-/* ================= MOBILE ================= */
+/* ===== MOBILE ===== */
 @media(max-width:900px){
-  .character{display:none}
+  .actor{display:none}
   .login-card{
     right:50%;
     transform:translate(50%,-50%);
     opacity:1;
   }
-}
-
-/* ================= KEYFRAMES ================= */
-@keyframes walkIn{
-  from{transform:translateX(0)}
-  to{transform:translateX(520px)}
-}
-@keyframes idle{
-  0%,100%{transform:translateX(520px) translateY(0)}
-  50%{transform:translateX(520px) translateY(-10px)}
 }
 </style>
 </head>
@@ -129,25 +122,24 @@ button{
 
 <div class="scene">
 
-  <!-- CHARACTER -->
-  <div id="character" class="character walk">
-    <img id="charImg" src="./assets/teacher-walk.png" alt="Teacher"/>
-    <img id="bag" src="./assets/bag.png" class="bag" alt="Bag"/>
+  <!-- ACTOR -->
+  <div id="actor" class="actor">
+    <img id="charImg" class="char" src="./assets/teacher-walk.png">
+    <img id="bag" class="bag" src="./assets/bag.png">
   </div>
 
   <!-- LOGIN -->
-  <form id="loginForm" class="login-card" autocomplete="on" novalidate>
+  <form class="login-card" id="loginCard">
     <h1>UKSS Results System</h1>
     <div class="sub">UMOJA KINGORI SECONDARY — Staff Login</div>
 
     <label>Email</label>
-    <input id="email" type="email" placeholder="you@school.ac.tz" required>
+    <input type="email" placeholder="you@school.ac.tz">
 
     <label>Password</label>
-    <input id="password" type="password" placeholder="********" required>
+    <input type="password" placeholder="********">
 
-    <button type="submit">Login</button>
-    <div id="loginError" class="error"></div>
+    <button>Login</button>
 
     <div class="foot">
       Accounts husimamiwa na Admin.<br>
@@ -157,58 +149,45 @@ button{
 
 </div>
 
-<!-- ================= SOUNDS ================= -->
-<audio id="stepSound" src="./assets/step.mp3" preload="auto"></audio>
-<audio id="dropSound" src="./assets/drop.mp3" preload="auto"></audio>
-
-<!-- ================= FIREBASE ================= -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<script src="./js/database.js"></script>
-<script src="./js/auth.js"></script>
-
-<!-- ================= ANIMATION LOGIC ================= -->
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
+/* ===== PRO TIMELINE ===== */
+const actor = document.getElementById("actor");
+const charImg = document.getElementById("charImg");
+const bag = document.getElementById("bag");
+const login = document.getElementById("loginCard");
 
-  const character = document.getElementById("character");
-  const img = document.getElementById("charImg");
-  const bag = document.getElementById("bag");
-  const card = document.getElementById("loginForm");
-  const step = document.getElementById("stepSound");
-  const drop = document.getElementById("dropSound");
+/* STEP 1: WALK IN */
+let x = -300;
+const walk = setInterval(()=>{
+  x += 4;
+  actor.style.left = x + "px";
+  if(x >= 420){
+    clearInterval(walk);
+    stand();
+  }
+},16);
 
-  // STEP SOUND LOOP
-  let stepInterval = setInterval(()=> step.play(), 600);
+/* STEP 2: STOP */
+function stand(){
+  setTimeout(dropBag,400);
+}
 
-  // AFTER WALK
-  setTimeout(()=>{
-    clearInterval(stepInterval);
-    step.pause(); step.currentTime=0;
+/* STEP 3: DROP BAG */
+function dropBag(){
+  bag.classList.add("show");
+  setTimeout(wave,600);
+}
 
-    // DROP BAG
-    bag.classList.add("show");
-    drop.play();
+/* STEP 4: WAVE */
+function wave(){
+  charImg.src = "./assets/teacher-wave.png";
+  setTimeout(showLogin,700);
+}
 
-    // SWITCH TO WAVE POSE
-    setTimeout(()=>{
-      img.src="./assets/teacher-wave.png";
-
-      // IDLE
-      character.classList.add("idle");
-
-      // SHOW LOGIN
-      setTimeout(()=>{
-        card.classList.add("show");
-      },600);
-
-    },700);
-
-  },3200);
-
-});
+/* STEP 5: SHOW LOGIN */
+function showLogin(){
+  login.classList.add("show");
+}
 </script>
 
 </body>
