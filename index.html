@@ -1,243 +1,230 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>UKSS Results System — Secure Login</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>UKSS Login — Smart School System</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<!-- GSAP -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-
+<!-- ===== STYLE ===== -->
 <style>
-:root{
-  --bg1:#020617;
-  --bg2:#020617;
-  --green:#22c55e;
-  --card:#022c22;
-  --glass:rgba(255,255,255,.06);
-}
-
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  min-height:100vh;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  background:
-    radial-gradient(circle at top,#1e3a8a 0%,var(--bg1) 55%);
-  display:flex;
-  justify-content:center;
-  align-items:center;
+html,body{
+  margin:0;
+  height:100%;
+  background:#020617;
   overflow:hidden;
-  perspective:1600px;
-  color:#e5e7eb;
+  font-family:system-ui,Segoe UI,Roboto;
 }
 
-/* ================= SCENE ================= */
+/* SCENE */
 .scene{
-  width:100%;
-  max-width:1400px;
-  height:680px;
   position:relative;
-  transform-style:preserve-3d;
+  width:100%;
+  height:100%;
+  perspective:1200px;
 }
 
-/* ================= TEACHER ================= */
-.teacher{
-  position:absolute;
-  bottom:140px;
-  left:-320px;
-  width:200px;
-  height:380px;
-  transform-style:preserve-3d;
-  filter:drop-shadow(0 40px 30px rgba(0,0,0,.6));
-}
-
-/* head */
-.head{
-  position:absolute;
-  top:0;
-  left:65px;
-  width:70px;
-  height:70px;
-  background:#f5cfcf;
-  border-radius:50%;
-  transform:translateZ(40px);
-}
-.eye{
-  width:10px;height:10px;
-  background:#111;border-radius:50%;
-  position:absolute;top:26px;
-}
-.eye.l{left:15px}
-.eye.r{right:15px}
-.mouth{
-  position:absolute;bottom:14px;left:50%;
-  width:28px;height:14px;
-  background:#ef4444;
-  border-radius:0 0 16px 16px;
-  transform:translateX(-50%);
-}
-
-/* body */
-.body{
-  position:absolute;
-  top:70px;
-  left:42px;
-  width:110px;
-  height:140px;
-  background:linear-gradient(180deg,#2563eb,#1e40af);
-  border-radius:40px 40px 18px 18px;
-  transform:translateZ(25px);
-}
-
-/* arms */
-.arm{
-  position:absolute;
-  top:82px;
-  width:20px;height:90px;
-  background:#2563eb;
-  border-radius:10px;
-  transform-origin:top;
-}
-.arm.l{left:22px}
-.arm.r{right:22px}
-
-/* legs */
-.leg{
+/* GROUND */
+.ground{
   position:absolute;
   bottom:0;
-  width:26px;height:110px;
-  background:#020617;
-  border-radius:14px;
-  transform-origin:top;
+  width:100%;
+  height:35%;
+  background:linear-gradient(#14532d,#052e16);
 }
-.leg.l{left:58px}
-.leg.r{right:58px}
 
-/* bag */
-.bag{
+/* CHARACTER */
+.character{
   position:absolute;
-  top:95px;
-  left:-48px;
-  width:56px;height:72px;
-  background:#92400e;
-  border-radius:10px;
+  bottom:35%;
+  left:-200px;
+  width:160px;
+  height:320px;
+  transform-style:preserve-3d;
 }
 
-/* ================= LOGIN CARD ================= */
+/* BODY */
+.body{
+  width:100px;
+  height:120px;
+  background:#16a34a;
+  border-radius:20px;
+  position:absolute;
+  left:30px;
+  top:80px;
+}
+.head{
+  width:70px;
+  height:70px;
+  background:#ffd6c9;
+  border-radius:50%;
+  position:absolute;
+  left:45px;
+  top:0;
+}
+.eye{
+  width:8px;height:8px;background:#000;border-radius:50%;
+  position:absolute;top:25px;
+}
+.eye.left{left:15px}
+.eye.right{right:15px}
+.mouth{
+  width:20px;height:10px;background:#ef4444;
+  position:absolute;bottom:15px;left:50%;
+  transform:translateX(-50%);
+  border-radius:0 0 10px 10px;
+}
+
+/* LIMBS */
+.arm,.leg{
+  position:absolute;background:#16a34a;border-radius:10px;
+  transform-origin:top center;
+}
+.arm{width:16px;height:80px;top:90px;}
+.arm.left{left:15px}
+.arm.right{right:15px}
+.leg{width:20px;height:90px;bottom:0;}
+.leg.left{left:40px}
+.leg.right{right:40px}
+
+/* BAG */
+.bag{
+  width:45px;height:60px;
+  background:#92400e;
+  position:absolute;
+  left:-40px;top:110px;
+  border-radius:8px;
+}
+
+/* LOGIN CARD */
 .login-card{
   position:absolute;
-  right:6%;
+  right:10%;
   top:50%;
-  transform:translateY(-50%) rotateY(-18deg) scale(.8);
-  width:440px;
-  padding:32px;
-  border-radius:24px;
-  background:linear-gradient(180deg,#064e3b,#022c22);
-  box-shadow:0 50px 100px rgba(0,0,0,.65);
-  backdrop-filter:blur(18px);
-  border:1px solid var(--glass);
+  transform:translateY(-50%) scale(0.9);
+  width:360px;
+  background:rgba(255,255,255,0.95);
+  padding:26px;
+  border-radius:18px;
   opacity:0;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);
 }
-
-.login-card h2{margin-bottom:4px}
-.login-card p{font-size:13px;color:#a7f3d0;margin-bottom:20px}
-
-label{font-size:13px}
-input{
-  width:100%;
-  padding:14px;
-  border-radius:16px;
-  border:none;
-  margin-top:6px;
-  margin-bottom:16px;
-  background:#022c22;
-  color:#e5e7eb;
-  outline:none;
+.login-card h2{text-align:center;margin:0 0 10px}
+.input{
+  width:100%;padding:12px;border-radius:10px;
+  border:1px solid #ccc;margin-bottom:12px;
 }
-button{
-  width:100%;
-  padding:15px;
-  border:none;
-  border-radius:32px;
-  font-weight:700;
+.btn{
+  width:100%;padding:12px;
   background:linear-gradient(90deg,#22c55e,#16a34a);
-  color:#022c22;
-  cursor:pointer;
+  border:none;border-radius:20px;
+  font-weight:bold;cursor:pointer;
 }
-.status{
-  font-size:13px;margin-top:10px;min-height:18px
-}
-
-/* ================= PARALLAX ================= */
-.scene.parallax{
-  transition:transform .1s linear;
-}
+.status{margin-top:10px;font-size:13px;text-align:center}
 </style>
 </head>
 
 <body>
+<div class="scene">
 
-<div class="scene" id="scene">
+  <div class="ground"></div>
 
-  <!-- TEACHER -->
-  <div class="teacher" id="teacher">
+  <!-- CHARACTER -->
+  <div class="character" id="char">
     <div class="head">
-      <div class="eye l"></div>
-      <div class="eye r"></div>
+      <div class="eye left"></div>
+      <div class="eye right"></div>
       <div class="mouth"></div>
     </div>
     <div class="body"></div>
-    <div class="arm l"></div>
-    <div class="arm r"></div>
-    <div class="leg l"></div>
-    <div class="leg r"></div>
+    <div class="arm left"></div>
+    <div class="arm right"></div>
+    <div class="leg left"></div>
+    <div class="leg right"></div>
     <div class="bag"></div>
   </div>
 
   <!-- LOGIN -->
-  <form class="login-card" id="loginForm">
-    <h2>UKSS Results System</h2>
-    <p>UMOJA KINGORI SECONDARY — Staff Login</p>
-
-    <label>Email</label>
-    <input type="email" id="email" required>
-
-    <label>Password</label>
-    <input type="password" id="password" required>
-
-    <button>Login</button>
+  <div class="login-card" id="loginCard">
+    <h2>UKSS Login</h2>
+    <input id="email" class="input" type="email" placeholder="Email">
+    <input id="password" class="input" type="password" placeholder="Password">
+    <button class="btn" id="loginBtn">LOGIN</button>
     <div class="status" id="status"></div>
-  </form>
+  </div>
 
 </div>
 
+<!-- ===== FIREBASE ===== -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script src="js/database.js"></script>
+
+<!-- ===== SOUNDS ===== -->
 <script>
-/* ===== GSAP CINEMATIC SEQUENCE ===== */
-const tl = gsap.timeline({defaults:{ease:"power3.out"}});
-
-tl.to("#teacher",{x:"52vw",duration:3})
-  .to(".arm,.leg",{rotation:0,stagger:.05,duration:.6},"-=.6")
-  .to(".bag",{y:120,rotation:-30,duration:1},"-=.2")
-  .to("#teacher .arm",{rotation:-70,duration:.8})
-  .to(".login-card",{opacity:1,rotateY:0,scale:1,duration:1},"-=.6");
-
-/* ===== PARALLAX ===== */
-document.addEventListener("mousemove",e=>{
-  const x=(e.clientX/window.innerWidth-.5)*10;
-  const y=(e.clientY/window.innerHeight-.5)*10;
-  scene.style.transform=`rotateY(${x}deg) rotateX(${-y}deg)`;
-});
-
-/* ===== FAKE LOGIN (replace with Firebase) ===== */
-loginForm.addEventListener("submit",e=>{
-  e.preventDefault();
-  status.textContent="Authenticating...";
-  gsap.to(".mouth",{height:20,background:"#22c55e",duration:.3});
-  setTimeout(()=>status.textContent="Login successful ✔",1200);
-});
+const sounds={
+ step:new Audio("assets/sounds/step.mp3"),
+ bag:new Audio("assets/sounds/bag-drop.mp3"),
+ typing:new Audio("assets/sounds/typing.mp3"),
+ success:new Audio("assets/sounds/success.mp3"),
+ error:new Audio("assets/sounds/error.mp3")
+};
+function s(n){sounds[n]&& (sounds[n].currentTime=0,sounds[n].play());}
 </script>
 
+<!-- ===== MAIN LOGIC ===== -->
+<script>
+const char=document.getElementById("char");
+const card=document.getElementById("loginCard");
+const status=document.getElementById("status");
+
+/* WALK IN */
+let x=-200;
+const walk=setInterval(()=>{
+  x+=4;
+  char.style.left=x+"px";
+  char.querySelector(".arm.left").style.transform=`rotate(${Math.sin(x/10)*20}deg)`;
+  char.querySelector(".arm.right").style.transform=`rotate(${Math.cos(x/10)*20}deg)`;
+  s("step");
+  if(x>window.innerWidth*0.45){
+    clearInterval(walk);
+    s("bag");
+    document.querySelector(".bag").style.top="200px";
+    card.style.opacity=1;
+    card.style.transform="translateY(-50%) scale(1)";
+  }
+},30);
+
+/* LOGIN */
+document.getElementById("loginBtn").onclick=async()=>{
+  const email=email.value.trim();
+  const pass=password.value;
+  status.textContent="Authenticating...";
+  s("typing");
+
+  try{
+    const cred=await auth.signInWithEmailAndPassword(email,pass);
+    const uid=cred.user.uid;
+
+    const snap=await db.collection("staff").doc(uid).get();
+    const role=snap.exists?snap.data().role:"academic";
+
+    s("success");
+    status.textContent="Welcome "+role;
+
+    setTimeout(()=>{
+      if(role==="admin")location="admin.html";
+      else if(role==="headmaster")location="results.html";
+      else if(role==="classteacher")location="marks.html";
+      else location="marks.html";
+    },1200);
+
+  }catch(e){
+    s("error");
+    status.textContent=e.message;
+  }
+};
+</script>
 </body>
 </html>
-
