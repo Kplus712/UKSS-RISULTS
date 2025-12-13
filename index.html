@@ -1,66 +1,186 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>UKSS Results System — Staff Login</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>UKSS Results System — Staff Login</title>
 
-  <!-- Base styles -->
-  <link rel="stylesheet" href="./style.css" />
-  <link rel="stylesheet" href="./css/login-anim.css" />
+<!-- ================== GLOBAL RESET ================== -->
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  height:100vh;
+  overflow:hidden;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background:#3454f5;
+  color:#fff;
+}
+</style>
 
-  <meta name="theme-color" content="#0b3f2b"/>
+<!-- ================== SCENE + ANIMATION ================== -->
+<style>
+.scene{
+  position:relative;
+  width:100%;
+  height:100vh;
+}
+
+/* ===== CHARACTER ===== */
+.character{
+  position:absolute;
+  bottom:60px;
+  left:-280px;
+  width:220px;
+}
+
+.character.walk{
+  animation:walkIn 3.2s linear forwards;
+}
+
+.character.stand{
+  transform:translateX(520px);
+}
+
+.character.idle{
+  animation:idle 2.6s ease-in-out infinite;
+}
+
+.char-img{
+  width:100%;
+  display:block;
+}
+
+.bag{
+  position:absolute;
+  bottom:0;
+  left:40px;
+  width:90px;
+}
+
+.hidden{display:none}
+
+/* ===== LOGIN CARD ===== */
+.login-card{
+  position:absolute;
+  right:120px;
+  top:50%;
+  transform:translateY(-50%);
+  width:380px;
+  background:#0b3f2b;
+  padding:28px;
+  border-radius:20px;
+  box-shadow:0 25px 60px rgba(0,0,0,.45);
+  opacity:0;
+  animation:popup .9s ease forwards;
+}
+
+.login-card h1{
+  margin:0;
+  font-size:20px;
+}
+
+.sub{
+  font-size:13px;
+  opacity:.8;
+  margin-bottom:14px;
+}
+
+.login-card label{
+  font-size:13px;
+  margin-top:12px;
+  display:block;
+}
+
+.login-card input{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:0;
+  margin-top:6px;
+  background:#06261c;
+  color:#eafff3;
+}
+
+.login-card button{
+  width:100%;
+  margin-top:16px;
+  padding:14px;
+  border-radius:999px;
+  border:0;
+  background:#22c55e;
+  color:#01210d;
+  font-weight:700;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.error{
+  color:#ffb4b4;
+  font-size:13px;
+  min-height:18px;
+  margin-top:10px;
+}
+
+.foot{
+  font-size:12px;
+  opacity:.7;
+  margin-top:14px;
+  text-align:center;
+}
+
+/* ===== KEYFRAMES ===== */
+@keyframes walkIn{
+  from{transform:translateX(0)}
+  to{transform:translateX(520px)}
+}
+
+@keyframes idle{
+  0%,100%{transform:translateX(520px) translateY(0)}
+  50%{transform:translateX(520px) translateY(-10px)}
+}
+
+@keyframes popup{
+  from{opacity:0;transform:translate(40px,-50%)}
+  to{opacity:1;transform:translate(0,-50%)}
+}
+</style>
 </head>
+
 <body>
 
-<div class="login-shell">
+<div class="scene">
 
-  <!-- LEFT : Animated teacher -->
-  <div class="login-visual">
-    <img src="./assets/teacher.png" alt="Teacher illustration" class="teacher"/>
-    <div class="visual-text">
-      <h2>UKSS Results System</h2>
-      <p>Secure staff access to marks, results & reports</p>
-    </div>
+  <!-- ===== CHARACTER ===== -->
+  <div id="character" class="character walk">
+    <img src="./assets/teacher.png" class="char-img" alt="Teacher"/>
+    <img src="./assets/bag.png" class="bag hidden" alt="Bag"/>
   </div>
 
-  <!-- RIGHT : Login card -->
-  <form id="loginForm" class="login-card" autocomplete="on" novalidate>
-    <div class="brand">
-      <div class="brand-badge">UK</div>
-      <div>
-        <h1>UKSS Results System</h1>
-        <div class="sub">UMOJA KINGORI SECONDARY — Staff Login</div>
-      </div>
-    </div>
+  <!-- ===== LOGIN FORM ===== -->
+  <form id="loginForm" class="login-card hidden" autocomplete="on" novalidate>
+    <h1>UKSS Results System</h1>
+    <div class="sub">UMOJA KINGORI SECONDARY — Staff Login</div>
 
-    <div class="field">
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" class="input"
-             placeholder="you@school.ac.tz" autocomplete="username" required />
-    </div>
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@school.ac.tz" required>
 
-    <div class="field">
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" class="input"
-             placeholder="********" autocomplete="current-password" required />
-    </div>
+    <label>Password</label>
+    <input id="password" type="password" placeholder="********" required>
 
-    <button id="loginSubmit" type="submit" class="btn-primary">
-      <span>Login</span>
-    </button>
+    <button id="loginSubmit" type="submit">Login</button>
 
-    <div id="loginError" class="error" aria-live="polite"></div>
-    <div id="loginStatus" class="status" aria-live="polite"></div>
+    <div id="loginError" class="error"></div>
 
     <div class="foot">
-      Accounts husimamiwa na Admin. Ukisahau password,
-      mwone Academic Officer / Headmaster.
+      Accounts husimamiwa na Admin. <br>
+      Ukisahau password, mwone Academic Officer / Headmaster.
     </div>
   </form>
+
 </div>
 
-<!-- Firebase v8 -->
+<!-- ================== FIREBASE ================== -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -68,11 +188,35 @@
 <script src="./js/database.js"></script>
 <script src="./js/auth.js"></script>
 
-<!-- Animation logic -->
-<script src="./js/login-anim.js"></script>
+<!-- ================== ANIMATION CONTROLLER ================== -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const character = document.getElementById("character");
+  const bag = character.querySelector(".bag");
+  const form = document.getElementById("loginForm");
+
+  // after walking
+  setTimeout(() => {
+    character.classList.remove("walk");
+    character.classList.add("stand");
+
+    // drop bag
+    setTimeout(() => {
+      bag.classList.remove("hidden");
+
+      // idle + show login
+      setTimeout(() => {
+        character.classList.add("idle");
+        form.classList.remove("hidden");
+      }, 600);
+
+    }, 700);
+
+  }, 3200);
+});
+</script>
 
 </body>
 </html>
-
 
 
