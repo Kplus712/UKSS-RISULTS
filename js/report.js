@@ -1,231 +1,220 @@
-// js/report.js
-// Single student report form
+// js/report.js — UKSS Student Report (FULL, A4, AUTO DATA)
+"use strict";
 
-// ===== helpers =====
+/* ---------------------------------------------------
+   HELPERS
+--------------------------------------------------- */
 function qs(id){ return document.getElementById(id); }
+function getParam(name){
+  return new URLSearchParams(window.location.search).get(name);
+}
+function fmtDate(d){
+  return d.toLocaleDateString("sw-TZ",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+function gradeFromMark(m){
+  if(m >= 75) return "A";
+  if(m >= 65) return "B";
+  if(m >= 45) return "C";
+  if(m >= 30) return "D";
+  return "F";
+}
+function commentFromGrade(g){
+  if(g==="A") return "Bora sana";
+  if(g==="B") return "Nzuri sana";
+  if(g==="C") return "Wastani";
+  if(g==="D") return "Hafifu";
+  return "Duni, ongeza juhudi";
+}
 
-function setStatus(type, msg){
-  const el = qs("reportStatus");
-  if (!el) return;
-  el.classList.remove("hidden","status-info","status-success","status-error");
-  if (!msg){
-    el.classList.add("hidden");
+/* ---------------------------------------------------
+   PARAMS
+   report.html?class=FORM_ONE_A&exam=FINAL_2025&student=F1A_001
+--------------------------------------------------- */
+const classId   = getParam("class");
+const examId    = getParam("exam");
+const studentId = getParam("student");
+
+/* ---------------------------------------------------
+   INIT
+--------------------------------------------------- */
+(async function init(){
+  if(!classId || !examId || !studentId){
+    alert("Missing report parameters");
     return;
   }
-  if (type === "success") el.classList.add("status-success");
-  else if (type === "error") el.classList.add("status-error");
-  else el.classList.add("status-info");
-  el.textContent = msg;
-}
 
-function getQueryParam(name){
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
+  // Header date
+  qs("repDate").textContent = fmtDate(new Date());
 
-// grade per subject
-function gradeFromScore(m){
-  if (m === null || m === undefined || m === "") return {grade:"-", remark:""};
-  m = Number(m);
-  if (isNaN(m)) return {grade:"-", remark:""};
-  if (m >= 81) return {grade:"A", remark:"Bora Sana"};
-  if (m >= 61) return {grade:"B", remark:"Vizuri Sana"};
-  if (m >= 41) return {grade:"C", remark:"Wastani"};
-  if (m >= 21) return {grade:"D", remark:"Hafifu"};
-  return {grade:"E", remark:"Dhaifu Sana"};
-}
-
-// division (overall)
-function divisionFromAverage(avg){
-  if (avg >= 75) return "DIV I";
-  if (avg >= 60) return "DIV II";
-  if (avg >= 45) return "DIV III";
-  if (avg >= 30) return "DIV IV";
-  return "DIV 0";
-}
-
-// comment based on division
-function overallComment(div){
-  if (div === "DIV I") return "Ufaulu wa hali ya juu sana, endelea na juhudi hizo.";
-  if (div === "DIV II") return "Ufaulu mzuri, ongeza bidii ili ufikie daraja la juu.";
-  if (div === "DIV III") return "Ufaulu wa kati, ongeza juhudi zaidi kuboresha matokeo.";
-  if (div === "DIV IV") return "Ufaulu wa chini, unahitaji kufanya kazi kwa bidii na msaada wa karibu.";
-  return "Matokeo si mazuri, chukua hatua za haraka kuboresha ufaulu.";
-}
-
-// ===== main loader =====
-(async function initReport(){
   try{
-    setStatus("info","Loading report...");
-
-    if (!db){
-      setStatus("error","Firestore not initialised.");
-      return;
-    }
-
-    const classId   = getQueryParam("classId");
-    const studentId = getQueryParam("studentId");
-    const examId    = getQueryParam("examId");
-
-    if (!classId || !studentId || !examId){
-      setStatus("error","Missing classId, studentId or examId in URL.");
-      return;
-    }
-
-    // Update exam label on top
-    qs("repExamLabel").textContent = `Class: ${classId} — Exam: ${examId}`;
-
-    // get class document
-    const classDoc = await db.collection("classes").doc(classId).get();
-    if (!classDoc.exists){
-      setStatus("error","Class not found.");
-      return;
-    }
-    const classData = classDoc.data();
-    const className = classData.name || classId;
-
-    // school info (unaweza ku-binda hapa ukitaka dynamic)
-    if (classData.schoolName) qs("repSchoolName").textContent = classData.schoolName;
-    if (classData.council) qs("repCouncil").textContent = classData.council;
-
-    // get subjects of that class
-    const subjSnap = await db.collection("classes").doc(classId)
-      .collection("subjects").orderBy("code").get();
-    const subjects = subjSnap.docs.map(d => d.data());
-
-    // get all students (for position)
-    const stuSnap = await db.collection("classes").doc(classId)
-      .collection("students").get();
-    const students = stuSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    const target = students.find(s => s.id === studentId);
-    if (!target){
-      setStatus("error","Student not found in this class.");
-      return;
-    }
-
-    // fill basic info
-    qs("repStudentName").textContent = target.fullName || "";
-    qs("repAdmNo").textContent      = target.admissionNo || "";
-    qs("repForm").textContent       = classData.level || classData.form || "FORM";
-    qs("repStream").textContent     = classData.stream || "";
-    qs("repParentName").textContent = target.guardianName || target.parentName || "................";
-    qs("repClosingDate").textContent = classData.closingDate || "______________";
-    qs("repOpeningDate").textContent = classData.openingDate || "______________";
-
-    // date today
-    qs("repDate").textContent = new Date().toLocaleDateString("en-GB");
-
-    // exam title (optional)
-    if (classData.exams && classData.exams[examId] && classData.exams[examId].name){
-      qs("repExamTitle").textContent = classData.exams[examId].name;
-    }
-
-    // build subject table
-    const examMarksObj = target.marks && target.marks[examId] ? target.marks[examId].subjects || {} : {};
-    let total = 0;
-    let countSubjects = 0;
-
-    const tbody = qs("repSubjectsBody");
-    tbody.innerHTML = "";
-
-    subjects.forEach((subj, index) => {
-      const code = subj.code;
-      const name = subj.name || code;
-      const rawMark = examMarksObj[code] ?? null;
-
-      const row = document.createElement("tr");
-
-      let markDisplay = "";
-      let grade = "-";
-      let remark = "";
-
-      if (rawMark !== null && rawMark !== undefined){
-        const m = Number(rawMark);
-        if (!isNaN(m)){
-          markDisplay = m.toString();
-          const g = gradeFromScore(m);
-          grade = g.grade;
-          remark = g.remark;
-          total += m;
-          countSubjects += 1;
-        }
-      }
-
-      row.innerHTML = `
-        <td class="num">${index+1}</td>
-        <td>${name}</td>
-        <td class="num">${markDisplay}</td>
-        <td class="num">${grade}</td>
-        <td>${remark}</td>
-      `;
-      tbody.appendChild(row);
-    });
-
-    // totals, average, division
-    const avg = countSubjects > 0 ? +(total / countSubjects).toFixed(1) : 0;
-    const division = divisionFromAverage(avg);
-
-    qs("repTotalMarks").textContent = total.toString();
-    qs("repAverage").textContent    = avg.toString();
-    qs("repDivision").textContent   = division;
-
-    // compute position in class (based on same exam)
-    const ranking = students.map(st => {
-      const marksObj = st.marks && st.marks[examId] ? st.marks[examId].subjects || {} : {};
-      let tot = 0;
-      let cnt = 0;
-      subjects.forEach(sub => {
-        const val = marksObj[sub.code];
-        if (val !== null && val !== undefined){
-          const n = Number(val);
-          if (!isNaN(n)){
-            tot += n;
-            cnt++;
-          }
-        }
-      });
-      const av = cnt>0 ? tot/cnt : 0;
-      return {
-        id: st.id,
-        avg: av
-      };
-    });
-
-    ranking.sort((a,b)=> b.avg - a.avg);
-
-    let classSize = ranking.length;
-    let position = "-";
-    let lastAvg = null;
-    let lastPos = 0;
-    ranking.forEach((r, idx)=>{
-      if (r.avg !== lastAvg){
-        lastPos = idx + 1;
-        lastAvg = r.avg;
-      }
-      if (r.id === studentId){
-        position = lastPos;
-      }
-    });
-
-    qs("repPosition").textContent   = position.toString();
-    qs("repClassSize").textContent  = classSize.toString();
-
-    // comments
-    qs("repTeacherComment").textContent = overallComment(division);
-
-    // show page
-    qs("reportPage").style.display = "block";
-    setStatus("success","Report loaded successfully.");
-
+    await loadExam();
+    await loadStudentAndMarks();
+    await loadBehaviour();
+    await loadTeachers();
   }catch(err){
-    console.error(err);
-    setStatus("error","Failed to load report: " + err.message);
+    console.error("REPORT LOAD ERROR:", err);
+    alert("Failed to load report");
   }
 })();
 
+/* ---------------------------------------------------
+   LOAD EXAM
+--------------------------------------------------- */
+async function loadExam(){
+  const examDoc = await db
+    .collection("classes")
+    .doc(classId)
+    .collection("exams")
+    .doc(examId)
+    .get();
+
+  if(examDoc.exists){
+    const ex = examDoc.data();
+    qs("repExamName").textContent = ex.displayName || ex.name || "EXAMINATION REPORT";
+  }
+}
+
+/* ---------------------------------------------------
+   LOAD STUDENT + MARKS
+--------------------------------------------------- */
+async function loadStudentAndMarks(){
+  const stuRef = db
+    .collection("classes")
+    .doc(classId)
+    .collection("students")
+    .doc(studentId);
+
+  const stuSnap = await stuRef.get();
+  if(!stuSnap.exists) throw "Student not found";
+
+  const stu = stuSnap.data();
+
+  // BASIC INFO
+  qs("repStudentName").textContent = stu.fullName || "-";
+  qs("repParent").textContent = stu.parentName || "________________";
+  qs("repForm").textContent = stu.form || classId.replace(/_/g," ");
+  qs("repStream").textContent = stu.stream || "A";
+  qs("repAdm").textContent = stu.admissionNo || "-";
+
+  const subjectsSnap = await db
+    .collection("classes")
+    .doc(classId)
+    .collection("subjects")
+    .orderBy("code")
+    .get();
+
+  const body = qs("subjectsBody");
+  body.innerHTML = "";
+
+  let total = 0;
+  let count = 0;
+  let index = 1;
+
+  subjectsSnap.forEach(doc=>{
+    const sub = doc.data();
+    const marks = (stu.marks?.[examId]?.subjects || {});
+    const final = marks[sub.code];
+
+    let avg = final ?? "-";
+    let grade = final!=null ? gradeFromMark(final) : "-";
+    let comment = final!=null ? commentFromGrade(grade) : "-";
+
+    if(final!=null){
+      total += final;
+      count++;
+    }
+
+    body.innerHTML += `
+      <tr>
+        <td class="center">${index++}</td>
+        <td class="left">${sub.name}</td>
+        <td class="center">-</td>
+        <td class="center">-</td>
+        <td class="center">${final ?? "-"}</td>
+        <td class="center">${avg}</td>
+        <td class="center">${grade}</td>
+        <td class="left">${comment}</td>
+      </tr>
+    `;
+  });
+
+  const average = count ? (total / count).toFixed(1) : 0;
+
+  qs("repTotal").textContent   = total;
+  qs("repAverage").textContent = average;
+
+  await calculatePosition(total, average);
+}
+
+/* ---------------------------------------------------
+   POSITION & DIVISION
+--------------------------------------------------- */
+async function calculatePosition(totalMarks, avg){
+  const snap = await db
+    .collection("classes")
+    .doc(classId)
+    .collection("students")
+    .get();
+
+  const scores = [];
+  snap.forEach(doc=>{
+    const m = doc.data().marks?.[examId]?.subjects || {};
+    let t = 0, c = 0;
+    Object.values(m).forEach(v=>{
+      if(v!=null){ t+=v; c++; }
+    });
+    scores.push({ id:doc.id, total:t, avg:c?(t/c):0 });
+  });
+
+  scores.sort((a,b)=>b.total - a.total);
+
+  const pos = scores.findIndex(s=>s.id===studentId) + 1;
+
+  qs("repPosition").textContent      = pos;
+  qs("repTotalStudents").textContent = scores.length;
+
+  let division="IV", points=0;
+  if(avg>=75){division="I";points=7;}
+  else if(avg>=65){division="II";points=9;}
+  else if(avg>=45){division="III";points=12;}
+
+  qs("repDivision").textContent = division;
+  qs("repPoints").textContent  = points;
+}
+
+/* ---------------------------------------------------
+   BEHAVIOUR
+--------------------------------------------------- */
+async function loadBehaviour(){
+  const snap = await db
+    .collection("behaviour")
+    .doc(studentId)
+    .get();
+
+  if(snap.exists){
+    qs("repBehaviour").textContent = snap.data().summary || "Tabia nzuri";
+  }
+}
+
+/* ---------------------------------------------------
+   TEACHERS (AUTO FROM STAFF)
+--------------------------------------------------- */
+async function loadTeachers(){
+  const staffSnap = await db.collection("staff").get();
+
+  staffSnap.forEach(doc=>{
+    const s = doc.data();
+    if(s.role==="classteacher" && s.class===classId){
+      qs("repClassTeacher").textContent = s.name;
+      qs("repTeacherComment").textContent =
+        s.comment || "Mwanafunzi anaendelea vizuri.";
+    }
+    if(s.role==="headmaster"){
+      qs("repHeadTeacher").textContent = s.name;
+      qs("repHeadComment").textContent =
+        s.comment || "Endelea kujituma kwenye masomo.";
+    }
+  });
+}
 
 
