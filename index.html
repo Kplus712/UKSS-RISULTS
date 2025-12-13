@@ -11,18 +11,18 @@ html,body{height:100%}
 
 body{
   font-family:system-ui,Segoe UI,Roboto,Arial;
-  background:radial-gradient(circle at 30% 30%,#0b5f45,#041f17 60%);
+  background:#020617;
   overflow:hidden;
   color:#eafff4;
 }
 
 /* ===== SPLINE BACKGROUND ===== */
-.spline{
+.spline-bg{
   position:fixed;
   inset:0;
   z-index:1;
 }
-.spline iframe{
+.spline-bg iframe{
   width:100%;
   height:100%;
   border:none;
@@ -30,11 +30,14 @@ body{
 
 /* MOBILE FALLBACK */
 @media(max-width:900px){
-  .spline{display:none;}
+  .spline-bg{display:none;}
+  body{
+    background:radial-gradient(circle at 30% 30%,#0b5f45,#041f17 60%);
+  }
 }
 
 /* ===== LOGIN CARD ===== */
-.login{
+.login-card{
   position:absolute;
   right:6%;
   top:50%;
@@ -47,12 +50,6 @@ body{
     0 40px 90px rgba(0,0,0,.65),
     inset 0 0 0 1px rgba(255,255,255,.04);
   z-index:5;
-  animation:cardFloat 6s ease-in-out infinite;
-}
-
-@keyframes cardFloat{
-  0%,100%{transform:translateY(-50%)}
-  50%{transform:translateY(calc(-50% - 6px))}
 }
 
 .brand{
@@ -65,9 +62,12 @@ body{
   width:56px;height:56px;
   border-radius:16px;
   background:linear-gradient(180deg,#22c55e,#16a34a);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:900;color:#052013;font-size:20px;
-  box-shadow:0 0 30px rgba(34,197,94,.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  color:#052013;
+  font-size:20px;
 }
 
 label{
@@ -84,13 +84,10 @@ input{
   border:1px solid rgba(255,255,255,.08);
   background:#03140f;
   color:#fff;
-  transition:.25s;
 }
 input:focus{
   outline:none;
-  box-shadow:
-    0 0 0 2px rgba(34,197,94,.45),
-    0 0 30px rgba(34,197,94,.35);
+  box-shadow:0 0 0 2px rgba(34,197,94,.45);
 }
 
 button{
@@ -103,11 +100,7 @@ button{
   font-weight:700;
   font-size:16px;
   cursor:pointer;
-  box-shadow:0 20px 40px rgba(34,197,94,.45);
-  transition:.2s;
 }
-button:hover{transform:translateY(-1px)}
-button:active{transform:translateY(0)}
 
 .status{
   margin-top:12px;
@@ -129,15 +122,16 @@ button:active{transform:translateY(0)}
 
 <body>
 
-<!-- ===== SPLINE ===== -->
-<div class="spline">
-  <iframe id="splineFrame"
-    src="https://prod.spline.design/yeuIYnuhhXQDO8UQ/scene.splinecode">
+<!-- ===== SPLINE BACKGROUND ===== -->
+<div class="spline-bg">
+  <iframe
+    src="https://my.spline.design/roomrelaxingcopy-NeoW90vaQWUazLbQWv0LoLrh/"
+    allow="autoplay; fullscreen">
   </iframe>
 </div>
 
-<!-- ===== LOGIN ===== -->
-<div class="login">
+<!-- ===== LOGIN CARD ===== -->
+<div class="login-card">
   <div class="brand">
     <div class="logo">UK</div>
     <div>
@@ -150,12 +144,12 @@ button:active{transform:translateY(0)}
 
   <form id="loginForm">
     <label>Email</label>
-    <input id="email" type="email" required>
+    <input id="email" type="email" required placeholder="admin@ukss.tz">
 
     <label>Password</label>
     <input id="password" type="password" required>
 
-    <button>Login</button>
+    <button type="submit">Login</button>
   </form>
 
   <div id="status" class="status info">Ingiza taarifa zako</div>
@@ -166,76 +160,49 @@ button:active{transform:translateY(0)}
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- database.js = firebaseConfig + firebase.initializeApp -->
 <script src="./js/database.js"></script>
 
 <script>
-/* ===== SPLINE COMM ===== */
-const frame=document.getElementById("splineFrame");
-function spline(msg){
-  if(frame && frame.contentWindow){
-    frame.contentWindow.postMessage(msg,"*");
-  }
-}
-
-/* ===== SAFE SOUND (USER INTERACTION) ===== */
-let audioReady=false;
-const clickSound=new Audio("./assets/sounds/click.mp3");
-document.addEventListener("click",()=>{
-  if(!audioReady){
-    clickSound.play().catch(()=>{});
-    audioReady=true;
-  }
-},{once:true});
-
-/* ===== INPUT REACTION ===== */
-const email=document.getElementById("email");
-const pass=document.getElementById("password");
-
-[email,pass].forEach(el=>{
-  el.addEventListener("focus",()=>{
-    spline(el.id==="email"?"lookEmail":"lookPassword");
-  });
-  el.addEventListener("input",()=>spline("typing"));
-  el.addEventListener("blur",()=>spline("idle"));
-});
-
-/* ===== LOGIN ===== */
 const status=document.getElementById("status");
 
 document.getElementById("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  spline("typing");
-
   status.textContent="Inathibitisha...";
   status.className="status info";
 
   try{
+    const email=document.getElementById("email").value.trim();
+    const pass=document.getElementById("password").value;
+
     const cred=await firebase.auth()
-      .signInWithEmailAndPassword(email.value,pass.value);
+      .signInWithEmailAndPassword(email,pass);
 
     const snap=await firebase.firestore()
       .collection("staff")
       .doc(cred.user.uid).get();
 
-    if(!snap.exists) throw "NO_ROLE";
+    if(!snap.exists){
+      throw new Error("NO_ROLE");
+    }
 
-    spline("success");
     status.textContent="Karibu 🎉";
     status.className="status success";
 
     setTimeout(()=>{
-      const r=snap.data().role;
+      const role=snap.data().role;
       location.href=
-        r==="admin"?"admin.html":
-        r==="headmaster"?"results.html":
-        r==="academic"?"academic.html":
+        role==="admin"?"admin.html":
+        role==="headmaster"?"results.html":
+        role==="academic"?"academic.html":
         "marks.html";
-    },1300);
+    },1000);
 
   }catch(err){
-    spline("error");
+    console.error(err);
     status.textContent=
-      err==="NO_ROLE"
+      err.message==="NO_ROLE"
       ?"Account haina role"
       :"Email au password sio sahihi";
     status.className="status error";
@@ -245,4 +212,3 @@ document.getElementById("loginForm").addEventListener("submit",async e=>{
 
 </body>
 </html>
-
