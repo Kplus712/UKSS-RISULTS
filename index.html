@@ -3,13 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>UKSS Results System — Login</title>
+<title>UKSS Results System — Secure Login</title>
 
 <style>
 :root{
   --green:#22c55e;
+  --green2:#16a34a;
   --dark:#041b12;
+  --card:#0b3f2b;
 }
+
+/* RESET */
 *{box-sizing:border-box}
 body{
   margin:0;
@@ -17,41 +21,74 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  background:radial-gradient(circle at top,#0a3a2a,#02140d);
+  background:
+    radial-gradient(1200px 600px at 10% 10%,#0d5a3d,#03140d),
+    radial-gradient(800px 400px at 90% 90%,#083d2a,#020b07);
   font-family:system-ui,Segoe UI,Roboto;
   color:#eafff3;
   overflow:hidden;
 }
 
-/* 3D STAGE */
-.stage{
-  perspective:1200px;
+/* ===== SCENE ===== */
+.scene{
   display:flex;
-  gap:80px;
+  gap:90px;
   align-items:center;
+  perspective:1400px;
 }
 
-/* CHARACTER (SOFT 3D PLACEHOLDER) */
-.character{
-  width:160px;
-  height:260px;
+/* ===== CHARACTER (SOFT 3D ABSTRACT AVATAR) ===== */
+.avatar{
+  width:180px;
+  height:300px;
+  border-radius:90px 90px 40px 40px;
   background:linear-gradient(180deg,#34d399,#059669);
-  border-radius:80px 80px 40px 40px;
-  box-shadow:0 30px 60px rgba(0,0,0,.5);
-  transform-style:preserve-3d;
-  transition:.3s ease;
+  box-shadow:
+    0 40px 80px rgba(0,0,0,.6),
+    inset 0 6px 20px rgba(255,255,255,.25);
+  transform:
+    translateX(-400px)
+    translateZ(120px);
+  animation: walkIn 1.8s cubic-bezier(.2,.8,.2,1) forwards,
+             idleFloat 4s ease-in-out infinite 2s;
 }
 
-/* LOGIN CARD */
+/* walk in */
+@keyframes walkIn{
+  to{transform:translateX(0) translateZ(120px)}
+}
+
+/* idle breathing */
+@keyframes idleFloat{
+  0%,100%{transform:translateZ(120px) translateY(0)}
+  50%{transform:translateZ(130px) translateY(-8px)}
+}
+
+/* ===== LOGIN CARD ===== */
 .card{
-  width:380px;
-  padding:28px;
-  border-radius:22px;
+  width:400px;
+  padding:30px;
+  border-radius:24px;
   background:linear-gradient(180deg,#0b3f2b,#06271c);
-  box-shadow:0 40px 80px rgba(0,0,0,.7);
+  box-shadow:
+    0 50px 100px rgba(0,0,0,.75),
+    inset 0 1px 0 rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.05);
-  transform-style:preserve-3d;
-  transition:.25s ease;
+  opacity:0;
+  transform:
+    translateX(80px)
+    scale(.9)
+    translateZ(60px);
+  animation: cardIn .9s cubic-bezier(.2,.8,.2,1) forwards;
+  animation-delay:1.6s;
+}
+
+/* card entrance */
+@keyframes cardIn{
+  to{
+    opacity:1;
+    transform:translateX(0) scale(1) translateZ(80px);
+  }
 }
 
 h1{margin:0;font-size:22px}
@@ -62,24 +99,35 @@ input{
   width:100%;
   padding:12px;
   margin-top:6px;
-  border-radius:12px;
+  border-radius:14px;
   border:1px solid rgba(255,255,255,.08);
   background:#03140e;
   color:#eafff3;
+  font-size:14px;
 }
-button{
-  width:100%;
-  margin-top:16px;
-  padding:13px;
-  border-radius:30px;
-  border:0;
-  background:linear-gradient(90deg,#22c55e,#16a34a);
-  font-weight:700;
-  cursor:pointer;
+input:focus{
+  outline:none;
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(34,197,94,.15);
 }
 
+button{
+  width:100%;
+  margin-top:18px;
+  padding:14px;
+  border-radius:30px;
+  border:0;
+  background:linear-gradient(90deg,var(--green),var(--green2));
+  font-weight:700;
+  font-size:16px;
+  cursor:pointer;
+  transition:.2s;
+}
+button:hover{transform:translateY(-2px)}
+button:active{transform:translateY(0)}
+
 .msg{
-  margin-top:10px;
+  margin-top:12px;
   font-size:13px;
   min-height:18px;
 }
@@ -97,25 +145,25 @@ button{
 
 <body>
 
-<div class="stage">
-  <div class="character" id="character"></div>
+<div class="scene">
+  <div class="avatar"></div>
 
   <form class="card" id="loginForm">
     <h1>UKSS Results System</h1>
     <div class="sub">UMOJA KINGORI SECONDARY — Staff Login</div>
 
     <label>Email</label>
-    <input id="email" type="email" required placeholder="you@school.ac.tz">
+    <input id="email" type="email" required>
 
     <label style="margin-top:12px">Password</label>
-    <input id="password" type="password" required placeholder="********">
+    <input id="password" type="password" required>
 
     <button type="submit">Login</button>
 
     <div id="msg" class="msg"></div>
 
     <div class="footer">
-      Accounts husimamiwa na Admin / Academic / Headmaster
+      Admin • Academic • Headmaster • Teacher
     </div>
   </form>
 </div>
@@ -126,49 +174,36 @@ button{
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-/* ================= FIREBASE INIT ================= */
+/* ==== FIREBASE INIT ==== */
 firebase.initializeApp({
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT"
+  apiKey:"YOUR_KEY",
+  authDomain:"YOUR_PROJECT.firebaseapp.com",
+  projectId:"YOUR_PROJECT"
 });
-const auth = firebase.auth();
-const db   = firebase.firestore();
+const auth=firebase.auth();
+const db=firebase.firestore();
 
-/* ================= 3D PARALLAX ================= */
-const card = document.querySelector(".card");
-const chara = document.getElementById("character");
-
-document.addEventListener("mousemove",e=>{
-  const x=(e.clientX/window.innerWidth-.5)*20;
-  const y=(e.clientY/window.innerHeight-.5)*20;
-  card.style.transform=`rotateY(${x}deg) rotateX(${-y}deg)`;
-  chara.style.transform=`translateX(${x}px) rotateY(${x}deg)`;
-});
-document.addEventListener("mouseleave",()=>{
-  card.style.transform="rotateX(0) rotateY(0)";
-  chara.style.transform="rotateY(0)";
-});
-
-/* ================= LOGIN LOGIC ================= */
+/* ==== LOGIN + AUDIT LOGS ==== */
 const form=document.getElementById("loginForm");
 const msg=document.getElementById("msg");
 
 form.addEventListener("submit",async e=>{
   e.preventDefault();
-  msg.textContent="Inaingia...";
+  msg.textContent="Inathibitisha...";
   msg.className="msg";
 
-  const email=document.getElementById("email").value;
+  const email=emailEl.value=emailEl=document.getElementById("email").value;
   const pass=document.getElementById("password").value;
+
+  let success=false, role="unknown";
 
   try{
     const cred=await auth.signInWithEmailAndPassword(email,pass);
     const snap=await db.collection("staff").doc(cred.user.uid).get();
+    if(!snap.exists) throw "NO_ROLE";
 
-    if(!snap.exists) throw new Error("NO_ROLE");
-
-    const role=snap.data().role;
+    role=snap.data().role;
+    success=true;
 
     msg.textContent="Karibu 🎉";
     msg.className="msg success";
@@ -182,15 +217,21 @@ form.addEventListener("submit",async e=>{
 
   }catch(err){
     msg.className="msg error";
-    if(err.message==="NO_ROLE"){
-      msg.textContent="Account haina role. Wasiliana na Admin.";
-    }else{
-      msg.textContent="Email au password sio sahihi.";
-    }
+    msg.textContent=
+      err==="NO_ROLE"
+      ? "Account haina role. Wasiliana na Admin."
+      : "Email au password sio sahihi.";
   }
+
+  /* AUDIT LOG */
+  db.collection("login_logs").add({
+    email,
+    role,
+    success,
+    time:firebase.firestore.FieldValue.serverTimestamp()
+  });
 });
 </script>
 
 </body>
 </html>
-
