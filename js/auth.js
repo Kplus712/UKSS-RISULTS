@@ -1,94 +1,186 @@
-// js/auth.js — tuned to work with index.html (green) as canonical login
+// js/auth.js
 "use strict";
 
-const AUTH_PREFIX = '[AUTH]';
-function log(){ console.log(AUTH_PREFIX, ...arguments); }
-function warn(){ console.warn(AUTH_PREFIX, ...arguments); }
-function error(){ console.error(AUTH_PREFIX, ...arguments); }
-function el(id){ return document.getElementById(id); }
-function setStatus(txt){
-  const s = el('loginStatus');
-  if(!s) return;
-  if(!txt){ s.classList.add('hidden'); s.textContent=''; }
-  else { s.classList.remove('hidden'); s.textContent = txt; }
+/* ===========================
+   HELPERS & LOGGING
+=========================== */
+const AUTH_PREFIX = "[AUTH]";
+
+function log(...args){ console.log(AUTH_PREFIX, ...args); }
+function warn(...args){ console.warn(AUTH_PREFIX, ...args); }
+function err(...args){ console.error(AUTH_PREFIX, ...args); }
+
+function el(id){
+  return document.getElementById(id);
 }
-function setError(txt){
-  const e = el('loginError');
-  if(!e){
-    if(txt) alert(txt);
+
+function setStatus(msg){
+  const s = el("status") || el("loginStatus");
+  if(!s) return;
+  s.textContent = msg || "";
+  s.className = "status";
+}
+
+function setError(msg){
+  const e = el("loginError") || el("status");
+  if(!e) return;
+  e.textContent = msg || "";
+  e.className = "status error";
+}
+
+/* ===========================
+   FETCH ROLE FROM FIRESTORE
+=========================== */
+async function fetchUserRole(user){
+  if(!user) return null;
+
+  try{
+    if(typeof db === "undefined"){
+      warn("Firestore (db) not found");
+      return null;
+    }
+
+    // 1️⃣ primary: staff/{uid}
+    const doc = await db.collection("staff").doc(user.uid).get();
+    if(doc.exists){
+      return (doc.data().role || "").toLowerCase();
+    }
+
+    // 2️⃣ fallback: search by email
+    const q = await db.collection("staff")
+      .where("email", "==", user.email)
+      .limit(1)
+      .get();
+
+    if(!q.empty){
+      return (q.docs[0].data().role || "").toLowerCase();
+    }
+
+    return null;
+
+  }catch(e){
+    err("fetchUserRole failed:", e);
+    return null;
+  }
+}
+
+/* ===========================
+   DOM READY
+=========================== */
+document.addEventListener("DOMContentLoaded", () => {
+
+  if(typeof firebase === "undefined" || !firebase.auth){
+    err("Firebase Auth not loaded. Check database.js");
     return;
   }
-  e.textContent = txt || '';
-}
 
-// fetch role (helper)
-async function fetchRole(user){
-  try{
-    if(!user) return null;
-    if(typeof db === 'undefined' || !db){ warn('fetchRole: db not present'); return null; }
-    const doc = await db.collection('staff').doc(user.uid).get();
-    if(doc && doc.exists) return (doc.data().role || '').toLowerCase();
-    const q = await db.collection('staff').where('email','==',user.email||'').limit(1).get();
-    if(q && !q.empty) return (q.docs[0].data().role || '').toLowerCase();
-    return null;
-  }catch(e){ error('fetchRole error', e); return null; }
-}
+  const auth = firebase.auth();
+  log("Auth initialized");
 
-// safety: ensure auth available
-document.addEventListener('DOMContentLoaded', function(){
-  if(typeof auth === 'undefined' || !auth){ warn('Auth SDK not available. Ensure database.js loaded first.'); return; }
-  log('auth guard init on index.html');
+  const form = el("loginForm");
+  if contando not exist, do nothing (page may be guard page)
+  if(!form){
+    log("No login form found on this page");
+    return;
+  }
 
-  // onAuthStateChanged: only observe; do not auto-redirect away from login here.
-  auth.onAuthStateChanged(function(user){
-    log('onAuthStateChanged -> user:', user ? user.email : null);
-    // don't redirect from login page here to avoid race loops
-  });
+  const emailInput = el("email");
+  const passwordInput = el("password");
+  const submitBtn = form.querySelector("button");
 
-  // bind login form
-  const loginForm = el('loginForm');
-  if(!loginForm){ log('No login form present.'); return; }
-  log('Login form bound.');
-
-  const emailEl = el('email');
-  const passEl  = el('password');
-  const submitBtn = el('loginSubmit');
-
-  loginForm.addEventListener('submit', function(e){
+  /* ===========================
+     LOGIN SUBMIT
+  =========================== */
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    setError('');
-    setStatus('');
+    setError("");
+    setStatus("Inathibitisha taarifa...");
 
-    const email = (emailEl && emailEl.value || '').trim();
-    const pass = (passEl && passEl.value || '');
+    const email = emailInput?.value.trim();
+    const password = passwordInput?.value;
 
-    if(!email || !pass){ setError('Please enter email and password.'); return; }
+    if(!email || !password){
+      setError("Tafadhali jaza email na password");
+      return;
+    }
 
-    setStatus('Logging in… please wait');
-    if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Logging in...'; }
+    if(submitBtn){
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Inaingia...";
+    }
 
-    auth.signInWithEmailAndPassword(email, pass)
-      .then(async cred => {
-        log('signIn success (submit flow).');
-        try{ sessionStorage.setItem('justSignedIn','1'); } catch(e){ warn('sessionStorage set failed', e); }
+    try{
+      // 🔐 Firebase Auth
+      const cred = await auth.signInWithEmailAndPassword(email, password);
+      const user = cred.user;
 
-        // optional welcome message (role aware)
-        const user = auth.currentUser || (cred && cred.user);
-        const role = await fetchRole(user);
-        const roleLabel = role ? (role.charAt(0).toUpperCase()+role.slice(1)) : 'User';
-        setStatus(`${user.email} — umeingia kama ${roleLabel}`);
+      log("Login success:", user.email);
 
-        // redirect once to marks.html (small delay to allow UI update)
-        setTimeout(()=> { window.location.href = 'marks.html'; }, 250);
-      })
-      .catch(err => {
-        error('signIn failed', err);
-        const nice = err && err.message ? err.message : 'Login failed';
-        setError(nice);
-        setStatus('');
-        if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Login'; }
-      });
+      // 🧠 Get role
+      const role = await fetchUserRole(user);
+      if(!role){
+        throw new Error("ROLE_NOT_ASSIGNED");
+      }
+
+      // Store session flag (for guards)
+      sessionStorage.setItem("justSignedIn", "1");
+      sessionStorage.setItem("userRole", role);
+      sessionStorage.setItem("userName", user.displayName || user.email);
+
+      setStatus(`Karibu ${role.toUpperCase()} 👋`);
+
+      /* ===========================
+         ROLE-BASED REDIRECT
+      =========================== */
+      setTimeout(() => {
+        switch(role){
+          case "admin":
+            window.location.href = "admin.html";
+            break;
+
+          case "academic":
+            window.location.href = "academic.html";
+            break;
+
+          case "headmaster":
+            window.location.href = "results.html";
+            break;
+
+          case "teacher":
+            window.location.href = "marks.html";
+            break;
+
+          default:
+            warn("Unknown role:", role);
+            window.location.href = "marks.html";
+        }
+      }, 700);
+
+    }catch(e){
+      err("Login failed:", e);
+
+      let message = "Imeshindikana kuingia";
+
+      if(e.code === "auth/user-not-found"){
+        message = "Akaunti haipo";
+      }else if(e.code === "auth/wrong-password"){
+        message = "Password si sahihi";
+      }else if(e.code === "auth/invalid-email"){
+        message = "Email si sahihi";
+      }else if(e.message === "ROLE_NOT_ASSIGNED"){
+        message = "Huna ruhusa ya kuingia (role haijawekwa)";
+      }
+
+      setError(message);
+      setStatus("");
+
+      if(submitBtn){
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Login";
+      }
+    }
   });
+
 });
 
 
