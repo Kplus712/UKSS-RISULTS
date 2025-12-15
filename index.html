@@ -2,213 +2,255 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UKSS Results System — Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg1:#021b13;
+  --bg2:#053b29;
+  --accent:#22c55e;
+  --accent2:#16a34a;
+  --text:#eafff4;
+  --card:#03140f;
+}
+body.light{
+  --bg1:#eafff4;
+  --bg2:#c7f9df;
+  --card:#ffffff;
+  --text:#052a1e;
+}
 
 body{
-  font-family:system-ui,Segoe UI,Roboto,Arial;
-  background:#020617;
-  overflow:hidden;
-  color:#eafff4;
-}
-
-/* ===== SPLINE BACKGROUND ===== */
-.spline-bg{
-  position:fixed;
-  inset:0;
-  z-index:1;
-}
-.spline-bg iframe{
-  width:100%;
-  height:100%;
-  border:none;
-}
-
-/* MOBILE FALLBACK */
-@media(max-width:900px){
-  .spline-bg{display:none;}
-  body{
-    background:radial-gradient(circle at 30% 30%,#0b5f45,#041f17 60%);
-  }
-}
-
-/* ===== LOGIN CARD ===== */
-.login-card{
-  position:absolute;
-  right:6%;
-  top:50%;
-  transform:translateY(-50%);
-  width:420px;
-  padding:30px;
-  border-radius:26px;
-  background:linear-gradient(180deg,#0b3f2b,#06261c);
-  box-shadow:
-    0 40px 90px rgba(0,0,0,.65),
-    inset 0 0 0 1px rgba(255,255,255,.04);
-  z-index:5;
-}
-
-.brand{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  margin-bottom:14px;
-}
-.logo{
-  width:56px;height:56px;
-  border-radius:16px;
-  background:linear-gradient(180deg,#22c55e,#16a34a);
+  min-height:100vh;
+  font-family:"Segoe UI",system-ui,Arial;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:900;
-  color:#052013;
-  font-size:20px;
+  color:var(--text);
+  transition:.4s;
 }
 
-label{
-  display:block;
-  margin-top:14px;
-  font-size:13px;
-  opacity:.9;
+/* WRAPPER */
+.wrapper{
+  width:900px;
+  height:520px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  border-radius:28px;
+  overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,.6);
+  animation:pop .8s ease;
 }
-input{
+@keyframes pop{
+  from{transform:scale(.92);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+
+/* LOGIN */
+.login{
+  background:var(--card);
+  padding:46px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.login h2{font-size:28px}
+.login p{font-size:14px;opacity:.7;margin-bottom:22px}
+
+.field{margin-bottom:16px}
+.field label{font-size:13px}
+.field input{
   width:100%;
   margin-top:6px;
-  padding:13px 16px;
+  padding:14px 16px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.08);
-  background:#03140f;
-  color:#fff;
+  background:transparent;
+  color:var(--text);
 }
-input:focus{
+.field input:focus{
   outline:none;
-  box-shadow:0 0 0 2px rgba(34,197,94,.45);
+  box-shadow:0 0 0 2px rgba(34,197,94,.5);
 }
 
-button{
-  width:100%;
-  margin-top:18px;
+.btn{
   padding:14px;
-  border:none;
   border-radius:999px;
-  background:linear-gradient(90deg,#22c55e,#16a34a);
+  border:none;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
   font-weight:700;
-  font-size:16px;
   cursor:pointer;
 }
+.btn:hover{transform:translateY(-2px)}
 
 .status{
-  margin-top:12px;
+  margin-top:14px;
   font-size:13px;
   min-height:18px;
 }
-.info{color:#c7ffe6}
-.error{color:#ffb4b4}
-.success{color:#8dffbf}
+.status.error{color:#ffb4b4}
+.status.success{color:#9bffd0}
 
 .roles{
-  margin-top:14px;
-  text-align:center;
+  margin-top:20px;
   font-size:12px;
-  opacity:.7;
+  opacity:.6;
+  text-align:center;
+}
+
+/* WELCOME */
+.welcome{
+  background:linear-gradient(135deg,#0b6b46,#22c55e);
+  padding:60px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  position:relative;
+}
+.welcome h1{
+  font-size:36px;
+  margin-bottom:10px;
+}
+.welcome p{
+  max-width:320px;
+  line-height:1.6;
+}
+.cursor{
+  display:inline-block;
+  width:2px;
+  height:1em;
+  background:#fff;
+  animation:blink 1s infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+.theme-btn{
+  position:absolute;
+  top:20px;
+  right:20px;
+  border:none;
+  background:rgba(255,255,255,.2);
+  color:#fff;
+  padding:6px 12px;
+  border-radius:999px;
+  cursor:pointer;
+}
+
+/* MOBILE */
+@media(max-width:900px){
+  .wrapper{grid-template-columns:1fr;width:95%;height:auto}
+  .welcome{display:none}
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== SPLINE BACKGROUND ===== -->
-<div class="spline-bg">
-  <iframe
-    src="https://my.spline.design/roomrelaxingcopy-NeoW90vaQWUazLbQWv0LoLrh/"
-    allow="autoplay; fullscreen">
-  </iframe>
-</div>
+<div class="wrapper">
+  <!-- LOGIN PANEL -->
+  <div class="login">
+    <h2>Login</h2>
+    <p id="typingStatus"></p>
 
-<!-- ===== LOGIN CARD ===== -->
-<div class="login-card">
-  <div class="brand">
-    <div class="logo">UK</div>
-    <div>
-      <h2>UKSS Results System</h2>
-      <div style="font-size:13px;opacity:.8">
-        UMOJA KINGORI SECONDARY — Staff Login
+    <form id="loginForm">
+      <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" required>
       </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="password" type="password" required>
+      </div>
+      <button class="btn">Login</button>
+    </form>
+
+    <div id="status" class="status"></div>
+
+    <div class="roles">
+      Admin • Academic • Headmaster • Teacher
     </div>
   </div>
 
-  <form id="loginForm">
-    <label>Email</label>
-    <input id="email" type="email" required placeholder="admin@ukss.tz">
-
-    <label>Password</label>
-    <input id="password" type="password" required>
-
-    <button type="submit">Login</button>
-  </form>
-
-  <div id="status" class="status info">Ingiza taarifa zako</div>
-  <div class="roles">Admin • Academic • Headmaster • Teacher</div>
+  <!-- WELCOME -->
+  <div class="welcome">
+    <button class="theme-btn" id="themeBtn">Theme</button>
+    <h1 id="welcomeText"></h1>
+    <p>We are happy to have you again. Manage results securely and professionally.</p>
+  </div>
 </div>
 
-<!-- ===== FIREBASE ===== -->
+<!-- SOUNDS -->
+<audio id="typingSound" src="assets/sounds/typing.mp3"></audio>
+<audio id="successSound" src="assets/sounds/success.mp3"></audio>
+<audio id="errorSound" src="assets/sounds/error.mp3"></audio>
+
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- database.js = firebaseConfig + firebase.initializeApp -->
 <script src="./js/database.js"></script>
 
 <script>
-const status=document.getElementById("status");
+/* ===== THEME ===== */
+document.getElementById("themeBtn").onclick=()=>{
+  document.body.classList.toggle("light");
+};
 
+/* ===== TYPING EFFECT ===== */
+function type(el,text,delay=60){
+  let i=0;
+  el.textContent="";
+  const snd=document.getElementById("typingSound");
+  const t=setInterval(()=>{
+    el.textContent+=text[i++];
+    snd.currentTime=0; snd.play().catch(()=>{});
+    if(i>=text.length) clearInterval(t);
+  },delay);
+}
+type(document.getElementById("welcomeText"),"WELCOME BACK!");
+type(document.getElementById("typingStatus"),"Ingia kwenye mfumo wa matokeo...");
+
+/* ===== LOGIN ===== */
+const status=document.getElementById("status");
 document.getElementById("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
   status.textContent="Inathibitisha...";
-  status.className="status info";
-
   try{
-    const email=document.getElementById("email").value.trim();
-    const pass=document.getElementById("password").value;
+    const email=emailInput=email.value.trim();
+    const pass=password.value;
 
     const cred=await firebase.auth()
       .signInWithEmailAndPassword(email,pass);
 
     const snap=await firebase.firestore()
-      .collection("staff")
-      .doc(cred.user.uid).get();
+      .collection("staff").doc(cred.user.uid).get();
 
-    if(!snap.exists){
-      throw new Error("NO_ROLE");
-    }
+    if(!snap.exists) throw "NO_ROLE";
 
     status.textContent="Karibu 🎉";
     status.className="status success";
+    document.getElementById("successSound").play().catch(()=>{});
 
     setTimeout(()=>{
-      const role=snap.data().role;
+      const r=snap.data().role;
       location.href=
-        role==="admin"?"admin.html":
-        role==="headmaster"?"results.html":
-        role==="academic"?"academic.html":
+        r==="admin"?"admin.html":
+        r==="academic"?"academic.html":
+        r==="headmaster"?"results.html":
         "marks.html";
-    },1000);
+    },900);
 
   }catch(err){
-    console.error(err);
-    status.textContent=
-      err.message==="NO_ROLE"
-      ?"Account haina role"
-      :"Email au password sio sahihi";
+    status.textContent="Email au password sio sahihi";
     status.className="status error";
+    document.getElementById("errorSound").play().catch(()=>{});
   }
 });
 </script>
 
 </body>
 </html>
+
