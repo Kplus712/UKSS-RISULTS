@@ -277,13 +277,34 @@ form.addEventListener("submit",async e=>{
 
     overlay.classList.add("show");
 
-    setTimeout(()=>{
-      location.href=
-        role==="admin"?"admin.html":
-        role==="academic"?"academic.html":
-        role==="headmaster"?"results.html":
-        "marks.html";
-    },900);
+  setTimeout(() => {
+  switch (role) {
+    case "admin":
+      // Admin anaona EVERYTHING
+      window.location.href = "admin.html";
+      break;
+
+    case "academic":
+      window.location.href = "academic.html";
+      break;
+
+    case "headmaster":
+      window.location.href = "headmaster.html"; 
+      // au "results.html" kama hapo ndo dashboard yake
+      break;
+
+    case "teacher":
+    case "classteacher":
+      window.location.href = "marks.html";
+      break;
+
+    default:
+      // Role haijatambulika → rudi login
+      alert("Role haijatambulika. Wasiliana na Admin.");
+      firebase.auth().signOut();
+      window.location.href = "index.html";
+  }
+}, 900);
 
   }catch(err){
     status.textContent="Email au password sio sahihi";
