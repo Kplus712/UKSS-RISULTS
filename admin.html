@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>UKSS Admin Control Center</title>
+<title>UKSS — Admin Control Center</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 :root{
-  --bg:#061a13;
+  --bg:#021b13;
   --card:#0b2f22;
   --accent:#22c55e;
   --danger:#ff6b6b;
@@ -20,44 +20,71 @@ body{
   background:linear-gradient(135deg,#021b13,#053b29);
   color:var(--text);
 }
+
+/* HEADER */
 header{
-  padding:20px;
+  padding:18px 24px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-header h1{margin:0}
+header h1{margin:0;font-size:22px}
 .btn{
-  padding:10px 16px;
+  padding:10px 18px;
   border-radius:20px;
   border:none;
-  background:var(--accent);
   cursor:pointer;
   font-weight:600;
 }
+.btn.green{background:var(--accent)}
+.btn.red{background:var(--danger);color:#000}
+
+/* GRID */
 .grid{
+  padding:24px;
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:20px;
-  padding:20px;
 }
 .card{
   background:var(--card);
-  padding:20px;
-  border-radius:18px;
+  padding:22px;
+  border-radius:20px;
+  box-shadow:0 12px 30px rgba(0,0,0,.4);
+  transition:.35s;
   cursor:pointer;
-  transition:.3s;
-  box-shadow:0 10px 30px rgba(0,0,0,.3);
 }
 .card:hover{
-  transform:translateY(-6px);
-  box-shadow:0 20px 40px rgba(0,0,0,.5);
+  transform:translateY(-8px) scale(1.02);
 }
 .card h3{margin-top:0}
-.danger{
-  background:#3b0d0d;
-  border:1px solid var(--danger);
+.card p{opacity:.7}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
 }
+.modal.active{display:flex}
+.modal-box{
+  background:#04251a;
+  padding:24px;
+  border-radius:18px;
+  width:420px;
+}
+.modal-box h3{margin-top:0}
+.modal-box label{
+  display:block;
+  margin:10px 0;
+}
+.modal-box input{margin-right:8px}
+
+/* FOOTER */
 footer{
   padding:20px;
   text-align:center;
@@ -69,50 +96,61 @@ footer{
 <body>
 
 <header>
-  <h1>🛡 UKSS Admin Control Center</h1>
-  <button id="logout" class="btn">Logout</button>
+  <h1>🛡 UKSS Admin Dashboard</h1>
+  <button id="logout" class="btn green">Logout</button>
 </header>
 
 <section class="grid">
   <div class="card" onclick="go('students')">
-    <h3>👨‍🎓 Students</h3>
-    <p>Manage all student records</p>
+    <h3>👨‍🎓 Students</h3><p>Manage registrations</p>
   </div>
-
   <div class="card" onclick="go('staff')">
-    <h3>👨‍🏫 Staff</h3>
-    <p>Roles & permissions</p>
+    <h3>👨‍🏫 Staff</h3><p>Roles & permissions</p>
   </div>
-
   <div class="card" onclick="go('subjects')">
-    <h3>📚 Subjects</h3>
-    <p>All subjects</p>
+    <h3>📚 Subjects</h3><p>All subjects</p>
   </div>
-
   <div class="card" onclick="go('classes')">
-    <h3>🏫 Classes</h3>
-    <p>Class structure</p>
+    <h3>🏫 Classes</h3><p>Streams & forms</p>
   </div>
-
   <div class="card" onclick="go('exams')">
-    <h3>📝 Exams</h3>
-    <p>Exam periods</p>
+    <h3>📝 Exams</h3><p>Exam periods</p>
   </div>
-
   <div class="card" onclick="go('results')">
-    <h3>📊 Results</h3>
-    <p>All results</p>
+    <h3>📊 Results</h3><p>All results</p>
   </div>
-
-  <div class="card danger" onclick="wipeAll()">
-    <h3>⚠️ Danger Zone</h3>
-    <p>Futa DATA ZOTE</p>
+  <div class="card" style="border:1px solid var(--danger)" onclick="openDelete()">
+    <h3>⚠️ Delete Data</h3>
+    <p>Selective & safe delete</p>
   </div>
 </section>
 
 <footer>
-  Academic Year: <span id="year"></span> • UKSS SYSTEM
+  Academic Year: <b id="year"></b> • UKSS System
 </footer>
+
+<!-- DELETE MODAL -->
+<div class="modal" id="deleteModal">
+  <div class="modal-box">
+    <h3>⚠️ Chagua unachotaka kufuta</h3>
+
+    <label><input type="checkbox" value="students"> Students</label>
+    <label><input type="checkbox" value="subjects"> Subjects</label>
+    <label><input type="checkbox" value="classes"> Classes</label>
+    <label><input type="checkbox" value="exams"> Exams</label>
+    <label><input type="checkbox" value="results"> Results</label>
+
+    <p style="font-size:13px;opacity:.7">
+      Andika <b>DELETE</b> kuthibitisha
+    </p>
+    <input id="confirmText" placeholder="Type DELETE">
+
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" onclick="closeDelete()">Cancel</button>
+      <button class="btn red" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -123,35 +161,55 @@ footer{
 
 <script>
 document.getElementById("year").textContent = new Date().getFullYear();
+const db = firebase.firestore();
 
-function go(where){
-  alert("Feature: " + where + " (utaunganisha page yake)");
+/* NAV */
+function go(name){
+  alert("Feature: " + name + " (utaunganisha page yake)");
 }
 
-async function wipeAll(){
-  if(!confirm("UNATAKA KUFUTA DATA ZOTE?")) return;
-  if(prompt("ANDIKA DELETE") !== "DELETE") return;
-
-  const db = firebase.firestore();
-  const collections = ["students","staff","subjects","classes","exams","results"];
-
-  for(const c of collections){
-    const snap = await db.collection(c).get();
-    const batch = db.batch();
-    snap.docs.forEach(d=>batch.delete(d.ref));
-    await batch.commit();
-  }
-  alert("DATA ZOTE ZIMEFUTWA");
-}
-
+/* LOGOUT */
 document.getElementById("logout").onclick = async ()=>{
   await firebase.auth().signOut();
   location.href="index.html";
 };
+
+/* DELETE */
+function openDelete(){
+  document.getElementById("deleteModal").classList.add("active");
+}
+function closeDelete(){
+  document.getElementById("deleteModal").classList.remove("active");
+}
+
+async function confirmDelete(){
+  const confirmText=document.getElementById("confirmText").value;
+  if(confirmText!=="DELETE"){
+    alert("Andika DELETE kuthibitisha");
+    return;
+  }
+
+  const checks=[...document.querySelectorAll("input[type=checkbox]:checked")];
+  if(checks.length===0){
+    alert("Chagua angalau kitu kimoja");
+    return;
+  }
+
+  for(const c of checks){
+    const snap=await db.collection(c.value).get();
+    const batch=db.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+  }
+
+  alert("Data zimefutwa salama");
+  closeDelete();
+}
 </script>
 
 </body>
 </html>
+
 
 
 
