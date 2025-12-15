@@ -206,9 +206,9 @@ body{
     <button class="theme-btn" id="themeBtn">Theme</button>
 
     <!-- LOGO ADDED HERE -->
-    <div class="school-logo">
-      <img src="assets/logo.png" alt="School Logo">
-      <h3>UMOJA KINGORI<br>SECONDARY SCHOOL</h3>
+    <div class="school-logo.png">
+      <img src="assets/school-logo.png" alt="School Logo">
+     
     </div>
 
     <h1 id="welcomeText"></h1>
@@ -284,7 +284,7 @@ form.addEventListener("submit",async e=>{
     setTimeout(()=>{
       const r=snap.data().role;
       location.href=
-        r==="admin"?"admin.html":
+        r==="admin"?"admin.html","academic.html","results.html","marks.html":
         r==="academic"?"academic.html":
         r==="headmaster"?"results.html":
         "marks.html";
