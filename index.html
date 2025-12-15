@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>UKSS Results System — Login</title>
+<title>UKSS Results System — Secure Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -12,16 +12,10 @@
   --bg2:#053b29;
   --accent:#22c55e;
   --accent2:#16a34a;
+  --danger:#ff6b6b;
   --text:#eafff4;
   --card:#03140f;
 }
-body.light{
-  --bg1:#eafff4;
-  --bg2:#c7f9df;
-  --card:#ffffff;
-  --text:#052a1e;
-}
-
 body{
   min-height:100vh;
   font-family:"Segoe UI",system-ui,Arial;
@@ -30,7 +24,27 @@ body{
   align-items:center;
   justify-content:center;
   color:var(--text);
-  transition:.4s;
+  overflow:hidden;
+}
+
+/* ===== TRANSITION OVERLAY ===== */
+#transition{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#052e1f,#0b6b46);
+  z-index:999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:28px;
+  font-weight:700;
+  opacity:0;
+  pointer-events:none;
+  transition:.6s ease;
+}
+#transition.show{
+  opacity:1;
 }
 
 /* WRAPPER */
@@ -42,10 +56,10 @@ body{
   border-radius:28px;
   overflow:hidden;
   box-shadow:0 40px 100px rgba(0,0,0,.6);
-  animation:pop .8s ease;
+  animation:pop .7s ease;
 }
 @keyframes pop{
-  from{transform:scale(.92);opacity:0}
+  from{transform:scale(.95);opacity:0}
   to{transform:scale(1);opacity:1}
 }
 
@@ -60,12 +74,12 @@ body{
 .login h2{font-size:28px}
 .login p{font-size:14px;opacity:.7;margin-bottom:22px}
 
-.field{margin-bottom:16px}
+.field{margin-bottom:16px;position:relative}
 .field label{font-size:13px}
 .field input{
   width:100%;
   margin-top:6px;
-  padding:14px 16px;
+  padding:14px 44px 14px 16px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.08);
   background:transparent;
@@ -76,34 +90,58 @@ body{
   box-shadow:0 0 0 2px rgba(34,197,94,.5);
 }
 
+/* PASSWORD TOGGLE */
+.toggle-pass{
+  position:absolute;
+  right:14px;
+  top:42px;
+  cursor:pointer;
+  opacity:.6;
+}
+.toggle-pass:hover{opacity:1}
+
+/* CAPS WARNING */
+.caps{
+  font-size:12px;
+  color:#ffd166;
+  display:none;
+}
+
+/* BUTTON */
 .btn{
+  margin-top:8px;
   padding:14px;
   border-radius:999px;
   border:none;
   background:linear-gradient(90deg,var(--accent),var(--accent2));
   font-weight:700;
   cursor:pointer;
-  transition:.3s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
 }
-.btn.loading{
-  opacity:.7;
-  pointer-events:none;
+.btn.loading{opacity:.7;pointer-events:none}
+.spinner{
+  width:18px;height:18px;
+  border:3px solid rgba(0,0,0,.2);
+  border-top-color:#000;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
 }
-.btn:hover{transform:translateY(-2px)}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-.status{
-  margin-top:14px;
-  font-size:13px;
-  min-height:18px;
-}
+/* STATUS */
+.status{margin-top:14px;font-size:13px;min-height:18px}
 .status.error{color:#ffb4b4}
 .status.success{color:#9bffd0}
 
-.roles{
-  margin-top:20px;
-  font-size:12px;
-  opacity:.6;
-  text-align:center;
+/* SHAKE */
+.shake{animation:shake .35s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
 }
 
 /* WELCOME */
@@ -113,57 +151,15 @@ body{
   display:flex;
   flex-direction:column;
   justify-content:center;
-  position:relative;
-  animation:slideIn 1s ease;
 }
-@keyframes slideIn{
-  from{transform:translateX(40px);opacity:0}
-  to{transform:none;opacity:1}
-}
-
 .school-logo{
   display:flex;
   align-items:center;
   gap:14px;
   margin-bottom:18px;
 }
-.school-logo img{
-  width:52px;
-  height:52px;
-}
-.school-logo h3{
-  font-size:18px;
-  line-height:1.2;
-}
-
-.welcome h1{
-  font-size:36px;
-  margin-bottom:10px;
-}
-.welcome p{
-  max-width:320px;
-  line-height:1.6;
-}
-.cursor{
-  display:inline-block;
-  width:2px;
-  height:1em;
-  background:#fff;
-  animation:blink 1s infinite;
-}
-@keyframes blink{50%{opacity:0}}
-
-.theme-btn{
-  position:absolute;
-  top:20px;
-  right:20px;
-  border:none;
-  background:rgba(255,255,255,.2);
-  color:#fff;
-  padding:6px 12px;
-  border-radius:999px;
-  cursor:pointer;
-}
+.school-logo img{width:52px}
+.welcome h1{font-size:36px}
 
 /* MOBILE */
 @media(max-width:900px){
@@ -175,53 +171,49 @@ body{
 
 <body>
 
-<div class="wrapper">
+<div id="transition">✔ LOGIN SUCCESS</div>
 
-  <!-- LOGIN PANEL -->
+<div class="wrapper" id="card">
+
+  <!-- LOGIN -->
   <div class="login">
-    <h2>Login</h2>
-    <p id="typingStatus"></p>
+    <h2 id="roleGreeting">Login</h2>
+    <p>Ingia kwenye mfumo wa matokeo</p>
 
     <form id="loginForm">
       <div class="field">
         <label>Email</label>
         <input id="email" type="email" required>
       </div>
+
       <div class="field">
         <label>Password</label>
         <input id="password" type="password" required>
+        <span class="toggle-pass" id="togglePass">👁</span>
+        <div id="caps" class="caps">Caps Lock iko ON</div>
       </div>
-      <button class="btn" id="loginBtn">Login</button>
+
+      <button class="btn" id="loginBtn">
+        <span>Login</span>
+      </button>
     </form>
 
     <div id="status" class="status"></div>
-
-    <div class="roles">
-      Admin • Academic • Headmaster • Teacher
-    </div>
   </div>
 
   <!-- WELCOME -->
   <div class="welcome">
-    <button class="theme-btn" id="themeBtn">Theme</button>
-
-    <!-- LOGO ADDED HERE -->
-    <div class="school-logo.png">
-      <img src="assets/school-logo.png" alt="School Logo">
-     
+    <div class="school-logo">
+      <img src="assets/logo.png">
+      <h3>UMOJA KINGORI<br>SECONDARY SCHOOL</h3>
     </div>
-
-    <h1 id="welcomeText"></h1>
-    <p>
-      We are happy to have you again.  
-      Manage results securely and professionally.
-    </p>
+    <h1>Welcome Back</h1>
+    <p>Secure · Fast · Reliable Results Management</p>
   </div>
 
 </div>
 
-<!-- SOUNDS (will play only after interaction) -->
-<audio id="typingSound" src="assets/sounds/typing.mp3"></audio>
+<!-- SOUNDS -->
 <audio id="successSound" src="assets/sounds/success.mp3"></audio>
 <audio id="errorSound" src="assets/sounds/error.mp3"></audio>
 
@@ -232,42 +224,35 @@ body{
 <script src="./js/database.js"></script>
 
 <script>
-/* THEME */
-document.getElementById("themeBtn").onclick=()=>{
-  document.body.classList.toggle("light");
-};
-
-/* TYPING EFFECT */
 let audioEnabled=false;
 document.body.addEventListener("click",()=>audioEnabled=true,{once:true});
 
-function type(el,text,delay=60){
-  let i=0;
-  el.textContent="";
-  const snd=document.getElementById("typingSound");
-  const t=setInterval(()=>{
-    el.textContent+=text[i++];
-    if(audioEnabled){ snd.currentTime=0; snd.play().catch(()=>{}); }
-    if(i>=text.length) clearInterval(t);
-  },delay);
-}
-type(document.getElementById("welcomeText"),"WELCOME BACK!");
-type(document.getElementById("typingStatus"),"Ingia kwenye mfumo wa matokeo...");
+const pass=document.getElementById("password");
+const caps=document.getElementById("caps");
+pass.addEventListener("keyup",e=>{
+  caps.style.display=e.getModifierState("CapsLock")?"block":"none";
+});
 
-/* LOGIN */
+document.getElementById("togglePass").onclick=()=>{
+  pass.type=pass.type==="password"?"text":"password";
+};
+
 const form=document.getElementById("loginForm");
-const status=document.getElementById("status");
 const btn=document.getElementById("loginBtn");
+const status=document.getElementById("status");
+const card=document.getElementById("card");
+const overlay=document.getElementById("transition");
+const greeting=document.getElementById("roleGreeting");
 
 form.addEventListener("submit",async e=>{
   e.preventDefault();
   btn.classList.add("loading");
-  btn.textContent="Inathibitisha...";
+  btn.innerHTML='<div class="spinner"></div>';
   status.textContent="";
 
   try{
-    const email=document.getElementById("email").value.trim();
-    const password=document.getElementById("password").value;
+    const email=email.value.trim();
+    const password=pass.value;
 
     const cred=await firebase.auth()
       .signInWithEmailAndPassword(email,password);
@@ -277,24 +262,36 @@ form.addEventListener("submit",async e=>{
 
     if(!snap.exists) throw "NO_ROLE";
 
-    status.textContent="Karibu 🎉";
+    const role=snap.data().role;
+    const roleLabel={
+      admin:"Admin",
+      academic:"Academic Officer",
+      headmaster:"Headmaster",
+      teacher:"Mwalimu wa Darasa"
+    }[role]||"Mtumiaji";
+
+    greeting.textContent="Karibu "+roleLabel;
+    status.textContent="Login successful";
     status.className="status success";
-    if(audioEnabled) document.getElementById("successSound").play().catch(()=>{});
+    if(audioEnabled) successSound.play().catch(()=>{});
+
+    overlay.classList.add("show");
 
     setTimeout(()=>{
-      const r=snap.data().role;
       location.href=
-        r==="admin"?"admin.html","academic.html","results.html","marks.html":
-        r==="academic"?"academic.html":
-        r==="headmaster"?"results.html":
+        role==="admin"?"admin.html":
+        role==="academic"?"academic.html":
+        role==="headmaster"?"results.html":
         "marks.html";
-    },800);
+    },900);
 
   }catch(err){
     status.textContent="Email au password sio sahihi";
     status.className="status error";
-    if(audioEnabled) document.getElementById("errorSound").play().catch(()=>{});
-    btn.textContent="Login";
+    if(audioEnabled) errorSound.play().catch(()=>{});
+    card.classList.add("shake");
+    setTimeout(()=>card.classList.remove("shake"),400);
+    btn.innerHTML="<span>Login</span>";
     btn.classList.remove("loading");
   }
 });
