@@ -27,7 +27,7 @@ body{
   overflow:hidden;
 }
 
-/* ===== TRANSITION OVERLAY ===== */
+/* TRANSITION */
 #transition{
   position:fixed;
   inset:0;
@@ -43,9 +43,7 @@ body{
   pointer-events:none;
   transition:.6s ease;
 }
-#transition.show{
-  opacity:1;
-}
+#transition.show{opacity:1}
 
 /* WRAPPER */
 .wrapper{
@@ -100,7 +98,7 @@ body{
 }
 .toggle-pass:hover{opacity:1}
 
-/* CAPS WARNING */
+/* CAPS */
 .caps{
   font-size:12px;
   color:#ffd166;
@@ -158,7 +156,7 @@ body{
   gap:14px;
   margin-bottom:18px;
 }
-.school-logo img{width:52px}
+.school-logo img{width:56px}
 .welcome h1{font-size:36px}
 
 /* MOBILE */
@@ -193,9 +191,7 @@ body{
         <div id="caps" class="caps">Caps Lock iko ON</div>
       </div>
 
-      <button class="btn" id="loginBtn">
-        <span>Login</span>
-      </button>
+      <button class="btn" id="loginBtn"><span>Login</span></button>
     </form>
 
     <div id="status" class="status"></div>
@@ -204,7 +200,7 @@ body{
   <!-- WELCOME -->
   <div class="welcome">
     <div class="school-logo">
-      <img src="assets/school-logo.png">
+      <img src="assets/school-logo.png" alt="School Logo">
       <h3>UMOJA KINGORI<br>SECONDARY SCHOOL</h3>
     </div>
     <h1>Welcome Back</h1>
@@ -224,87 +220,81 @@ body{
 <script src="./js/database.js"></script>
 
 <script>
+/* ENABLE AUDIO AFTER INTERACTION */
 let audioEnabled=false;
 document.body.addEventListener("click",()=>audioEnabled=true,{once:true});
 
-const pass=document.getElementById("password");
-const caps=document.getElementById("caps");
-pass.addEventListener("keyup",e=>{
-  caps.style.display=e.getModifierState("CapsLock")?"block":"none";
-});
-
-document.getElementById("togglePass").onclick=()=>{
-  pass.type=pass.type==="password"?"text":"password";
-};
-
+/* ELEMENTS */
+const emailInput=document.getElementById("email");
+const passwordInput=document.getElementById("password");
 const form=document.getElementById("loginForm");
 const btn=document.getElementById("loginBtn");
 const status=document.getElementById("status");
 const card=document.getElementById("card");
 const overlay=document.getElementById("transition");
 const greeting=document.getElementById("roleGreeting");
+const successSound=document.getElementById("successSound");
+const errorSound=document.getElementById("errorSound");
 
+/* CAPS LOCK */
+const caps=document.getElementById("caps");
+passwordInput.addEventListener("keyup",e=>{
+  caps.style.display=e.getModifierState("CapsLock")?"block":"none";
+});
+
+/* TOGGLE PASSWORD */
+document.getElementById("togglePass").onclick=()=>{
+  passwordInput.type=passwordInput.type==="password"?"text":"password";
+};
+
+/* LOGIN */
 form.addEventListener("submit",async e=>{
   e.preventDefault();
   btn.classList.add("loading");
   btn.innerHTML='<div class="spinner"></div>';
   status.textContent="";
 
-  try{
-    const email=email.value.trim();
-    const password=pass.value;
+  const email=emailInput.value.trim();
+  const password=passwordInput.value;
 
+  try{
     const cred=await firebase.auth()
       .signInWithEmailAndPassword(email,password);
 
-    const snap=await firebase.firestore()
+    const doc=await firebase.firestore()
       .collection("staff").doc(cred.user.uid).get();
 
-    if(!snap.exists) throw "NO_ROLE";
+    if(!doc.exists) throw "NO_ROLE";
 
-    const role=snap.data().role;
+    const role=(doc.data().role||"").toLowerCase();
+
     const roleLabel={
       admin:"Admin",
       academic:"Academic Officer",
       headmaster:"Headmaster",
-      teacher:"Mwalimu wa Darasa"
-    }[role]||"Mtumiaji";
+      teacher:"Teacher",
+      classteacher:"Class Teacher"
+    }[role]||"User";
 
     greeting.textContent="Karibu "+roleLabel;
-    status.textContent="Login successful";
+    status.textContent="Umefanikiwa kuingia";
     status.className="status success";
     if(audioEnabled) successSound.play().catch(()=>{});
-
     overlay.classList.add("show");
 
-  setTimeout(() => {
-  switch (role) {
-    case "admin":
-      // Admin anaona EVERYTHING
-      window.location.href = "admin.html";
-      break;
-
-    case "academic":
-      window.location.href = "academic.html";
-      break;
-
-    case "headmaster":
-      window.location.href = "headmaster.html"; 
-      // au "results.html" kama hapo ndo dashboard yake
-      break;
-
-    case "teacher":
-    case "classteacher":
-      window.location.href = "marks.html";
-      break;
-
-    default:
-      // Role haijatambulika → rudi login
-      alert("Role haijatambulika. Wasiliana na Admin.");
-      firebase.auth().signOut();
-      window.location.href = "index.html";
-  }
-}, 900);
+    setTimeout(()=>{
+      switch(role){
+        case "admin": location.href="admin.html"; break;
+        case "academic": location.href="academic.html"; break;
+        case "headmaster": location.href="results.html"; break;
+        case "teacher":
+        case "classteacher": location.href="marks.html"; break;
+        default:
+          alert("Role haijatambulika. Wasiliana na Admin.");
+          firebase.auth().signOut();
+          location.href="index.html";
+      }
+    },900);
 
   }catch(err){
     status.textContent="Email au password sio sahihi";
@@ -320,4 +310,3 @@ form.addEventListener("submit",async e=>{
 
 </body>
 </html>
-
